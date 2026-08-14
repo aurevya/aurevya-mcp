@@ -87,16 +87,99 @@ async function configurePage(page, opts) {
     if (typeof build === 'function') build();
   }, { mode, company, trust, cis, nominee, clientName, month, year, currency });
 
-  // extra CIS cells beyond the two the page seeds by default
-  const extraCells = Math.max(0, (opts.cisCells || 0) - 2);
-  if (mode === 'structure' && cis && extraCells > 0) {
-    await page.evaluate((n) => {
-      for (let i = 0; i < n; i++) {
-        if (typeof addStructNode === 'function') addStructNode('ciscell');
+  // Named CIS cells take priority over the plain cisCells count — if both
+  // are given, cisCellNames wins and cisCells is ignored.
+  if (mode === 'structure' && cis && Array.isArray(opts.cisCellNames) && opts.cisCellNames.length) {
+    // handled below, in the combined structure-detail step
+  } else {
+    // extra CIS cells beyond the two the page seeds by default (unnamed —
+    // the page's own default "CELL C", "CELL D", ... naming applies)
+    const extraCells = Math.max(0, (opts.cisCells || 0) - 2);
+    if (mode === 'structure' && cis && extraCells > 0) {
+      await page.evaluate((n) => {
+        for (let i = 0; i < n; i++) {
+          if (typeof addStructNode === 'function') addStructNode('ciscell');
+        }
+      }, extraCells);
+    }
+  }
+
+  // Multiple shareholders/settlors, extra trusts beyond the first, and/or
+  // named CIS cells — all optional, all built on top of the base
+  // structure using the app's own diagram-editing functions (the same
+  // ones the "+ Shareholder" / "+ Trust" / "+ CIS Cell" buttons call), so
+  // nothing about node placement, fee book entries, or diagram wiring is
+  // duplicated here.
+  const hasShareholders = mode === 'structure' && Array.isArray(opts.shareholders) && opts.shareholders.length;
+  const hasExtraTrusts = mode === 'structure' && trust && Array.isArray(opts.extraTrusts) && opts.extraTrusts.length;
+  const hasCellNames = mode === 'structure' && cis && Array.isArray(opts.cisCellNames) && opts.cisCellNames.length;
+  if (hasShareholders || hasExtraTrusts || hasCellNames) {
+    await page.evaluate((cfg) => {
+      if (STATE.mode !== 'structure' || !STATE.struct) return;
+      const st = STATE.struct;
+
+      // one box per requested shareholder/settlor name, reusing whatever
+      // default node(s) already exist before adding more
+      if (Array.isArray(cfg.shareholders) && cfg.shareholders.length) {
+        cfg.shareholders.forEach((name, i) => {
+          const existing = st.nodes.filter((n) => n.kind === 'shareholder');
+          if (existing[i]) {
+            existing[i].label = name;
+          } else {
+            addStructNode('shareholder');
+            const added = st.nodes.filter((n) => n.kind === 'shareholder').slice(-1)[0];
+            if (added) added.label = name;
+          }
+        });
+        // drop any leftover default shareholder box beyond the names given
+        st.nodes.filter((n) => n.kind === 'shareholder').slice(cfg.shareholders.length)
+          .forEach((n) => removeStructNode(n.id));
       }
-    }, extraCells);
+
+      // additional trusts beyond the first (which the Trust checkbox
+      // already added as a real Section-1 entity) — each gets its own
+      // copy of the real Trust setup/maintenance fee lines, not just a
+      // placeholder, by copying straight out of PRICEBOOK.trust
+      if (Array.isArray(cfg.extraTrusts) && cfg.extraTrusts.length && STATE.entities.trust) {
+        cfg.extraTrusts.forEach((name) => {
+          addStructNode('box');
+          const added = st.nodes.filter((n) => n.kind === 'box').slice(-1)[0];
+          if (!added) return;
+          added.label = String(name).toUpperCase();
+          ['setup', 'fixed'].forEach((which) => {
+            STATE.fees[which] = STATE.fees[which].filter((r) => r._nodeId !== added.id);
+            (PRICEBOOK.trust[which] || []).forEach((r) => {
+              STATE.fees[which].push(Object.assign({}, r, { _nodeId: added.id }));
+            });
+          });
+        });
+        renderFeeEditor();
+      }
+
+      // named CIS cells — renames the default cells and adds/removes to
+      // match the requested list exactly
+      if (Array.isArray(cfg.cisCellNames) && cfg.cisCellNames.length && STATE.entities.cis) {
+        cfg.cisCellNames.forEach((name, i) => {
+          const existing = st.nodes.filter((n) => n.kind === 'ciscell');
+          if (existing[i]) {
+            existing[i].label = name;
+          } else {
+            addStructNode('ciscell');
+            const added = st.nodes.filter((n) => n.kind === 'ciscell').slice(-1)[0];
+            if (added) added.label = name;
+          }
+        });
+        st.nodes.filter((n) => n.kind === 'ciscell').slice(cfg.cisCellNames.length)
+          .forEach((n) => removeStructNode(n.id));
+        if (typeof syncCellFees === 'function') syncCellFees();
+      }
+
+      if (typeof renderStructEditorUI === 'function') renderStructEditorUI();
+      if (typeof build === 'function') build();
+    }, { shareholders: opts.shareholders, extraTrusts: opts.extraTrusts, cisCellNames: opts.cisCellNames });
   }
 }
+
 
 /** Fee quote only — no files written. Fast enough to answer "what would a
  *  GBC + Trust cost" directly in chat. */
@@ -113,6 +196,15 @@ export async function quoteProposal(opts) {
         // immediately in the quote instead of only showing up missing from
         // a finished PDF.
         selections: STATE.mode === 'structure' ? { ...STATE.entities } : { mode: STATE.mode },
+        // Every shareholder/settlor, trust, and CIS cell actually on the
+        // diagram right now, by name — read this back to the client
+        // before generating the final PDF so a structure with (say) 3
+        // shareholders and 2 trusts is confirmed correct, not assumed.
+        structureDetail: STATE.mode === 'structure' && STATE.struct ? {
+          shareholders: STATE.struct.nodes.filter((n) => n.kind === 'shareholder').map((n) => n.label),
+          trusts: STATE.struct.nodes.filter((n) => n.kind === 'box' && /TRUST/i.test(n.label)).map((n) => n.label),
+          cisCells: STATE.struct.nodes.filter((n) => n.kind === 'ciscell').map((n) => n.label),
+        } : null,
         currency: document.getElementById('fCurrency').value,
         setupFees: STATE.fees.setup,
         fixedFees: STATE.fees.fixed,
@@ -134,11 +226,16 @@ export async function createProposal(opts) {
   return withPage(async (page) => {
     await configurePage(page, opts);
 
-    const { html, filename, label, selections } = await page.evaluate(() => ({
+    const { html, filename, label, selections, structureDetail } = await page.evaluate(() => ({
       html: buildExportHTML(),
       filename: exportFilename(),
       label: currentSpec().label,
       selections: STATE.mode === 'structure' ? { ...STATE.entities } : { mode: STATE.mode },
+      structureDetail: STATE.mode === 'structure' && STATE.struct ? {
+        shareholders: STATE.struct.nodes.filter((n) => n.kind === 'shareholder').map((n) => n.label),
+        trusts: STATE.struct.nodes.filter((n) => n.kind === 'box' && /TRUST/i.test(n.label)).map((n) => n.label),
+        cisCells: STATE.struct.nodes.filter((n) => n.kind === 'ciscell').map((n) => n.label),
+      } : null,
     }));
 
     const clientSlug = slugify(opts.clientName);
@@ -155,7 +252,7 @@ export async function createProposal(opts) {
 
     const pdfBase64 = fs.readFileSync(pdfPath).toString('base64');
 
-    return { htmlPath, pdfPath, pdfFilename, pdfBase64, label, filename, selections, clientSlug };
+    return { htmlPath, pdfPath, pdfFilename, pdfBase64, label, filename, selections, structureDetail, clientSlug };
   });
 }
 

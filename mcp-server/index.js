@@ -217,7 +217,7 @@ const TOOLS = [
   },
   {
     name: 'quote_proposal',
-    description: 'Fast fee quote for a Mauritius structure (any combination of Authorised Company / GBC / none, + Trust, + CIS, + Nominee shareholder) or for the MFO / Fund Luxembourg / Accounting-only templates — no files written, just the numbers. Good for "what would a GBC with a trust cost" style questions, and also a good way to sanity-check a combination before calling create_proposal — the result echoes back a "selections" object showing exactly what was applied; compare it against what the client actually asked for before proceeding. IMPORTANT: for mode=structure, always ask the client explicitly whether they want a Trust, a CIS, and (if the company is an AC) a Nominee shareholder — all three default to NOT included and must be actively requested. Never add any of them just because a related option (like company=ac) was chosen.',
+    description: 'Fast fee quote for a Mauritius structure (any combination of Authorised Company / GBC / none, + Trust(s), + CIS, + Nominee shareholder) or for the MFO / Fund Luxembourg / Accounting-only templates — no files written, just the numbers. Good for "what would a GBC with a trust cost" style questions, and also a good way to sanity-check a combination before calling create_proposal — the result echoes back "selections" and "structureDetail" objects showing exactly what was applied (every shareholder, trust, and CIS cell by name); compare that against what the client actually asked for before proceeding. IMPORTANT — ask before assuming: (1) Trust, CIS, and (if company=ac) Nominee shareholder all default to NOT included. (2) How many shareholders/settlors are there, and what should each be named? Don\'t assume just one. (3) If a Trust is wanted, is it a single trust or does the client need more than one (e.g. one per family branch, one per jurisdiction)? (4) If a CIS is wanted, how many cells, and do they have specific names (e.g. "Cell A — Growth Fund") or should the standard "CELL A"/"CELL B" naming be used? Never silently default any of these to one when the client\'s situation might need more.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -226,13 +226,16 @@ const TOOLS = [
         trust: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a Trust wrapper? Pass true/false based on their actual answer.' },
         cis: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a CIS (Protected Cell Company)? Pass true/false based on their actual answer.' },
         nominee: { type: 'boolean', default: false, description: 'Only relevant when company=ac. Nominee shareholder is an OPTIONAL add-on where Aurevya holds the shares on the client\'s behalf — it defaults to false (not included). Only set true if the client explicitly asks for a nominee shareholder; do not include it just because the company is an AC.' },
+        shareholders: { type: 'array', items: { type: 'string' }, description: 'Name of each shareholder/settlor on the structure diagram, in order, e.g. ["Mr. Peter Nguyen", "Mrs. Anna Nguyen"]. Ask how many there are — don\'t assume a single shareholder. Omit for the default single generic "SHAREHOLDER"/"SETTLOR" box.' },
+        extraTrusts: { type: 'array', items: { type: 'string' }, description: 'Names for any ADDITIONAL trusts beyond the first (requires trust=true — the first trust is that one). Each extra trust gets its own full Trust setup/maintenance fee. Ask if more than one trust is needed before assuming a single trust covers everything.' },
+        cisCellNames: { type: 'array', items: { type: 'string' }, description: 'Custom names for each CIS cell, e.g. ["Cell A — Growth Fund", "Cell B — Income Fund"]. Requires cis=true. Ask how many cells and whether they need specific names. If omitted, defaults to the standard 2 cells named "CELL A"/"CELL B" (or use cisCells for an unnamed count instead).' },
         currency: { type: 'string', enum: ['USD', 'EUR'], default: 'USD' },
       },
     },
   },
   {
     name: 'create_proposal',
-    description: 'Generates a full Aurevya Wealth proposal (PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download. Handles any combination of Authorised Company / GBC / none + Trust + CIS + Nominee shareholder, or the MFO / Fund Luxembourg / Accounting-only templates. Returns a download link for the PDF (permanent — does not expire — as long as permanent storage is configured server-side; otherwise falls back to a 1-hour link) plus a "selections" object showing exactly what was applied inside the generator — read that back to the client before sharing the link, to confirm nothing was dropped or defaulted incorrectly. IMPORTANT: before calling this, explicitly ask the client (don\'t assume) whether they want a Trust, a CIS, and — if the company is an AC — a Nominee shareholder. Trust, CIS and Nominee shareholder all default to NOT included — only set them true if the client actually asked for them. Recommend running quote_proposal first with the same options to confirm the combination and fees look right before generating the final PDF.',
+    description: 'Generates a full Aurevya Wealth proposal (PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download, including manually adding extra shareholders, extra trusts, or naming CIS cells. Handles any combination of Authorised Company / GBC / none + Trust(s) + CIS + Nominee shareholder, or the MFO / Fund Luxembourg / Accounting-only templates. Returns a download link for the PDF (permanent — does not expire — as long as permanent storage is configured server-side; otherwise falls back to a 1-hour link) plus "selections" and "structureDetail" objects showing exactly what was applied inside the generator (every shareholder, trust, and CIS cell by name) — read that back to the client before sharing the link, to confirm nothing was dropped, defaulted incorrectly, or under-counted. IMPORTANT — ask before assuming: (1) Trust, CIS, and (if company=ac) Nominee shareholder all default to NOT included. (2) How many shareholders/settlors are there, and what should each be named? (3) If a Trust is wanted, does the client need more than one (extraTrusts)? (4) If a CIS is wanted, how many cells and do they need specific names (cisCellNames)? Recommend running quote_proposal first with the same options to confirm the combination, structure, and fees look right before generating the final PDF.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -242,7 +245,10 @@ const TOOLS = [
         trust: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a Trust wrapper? Pass true/false based on their actual answer — never leave this out if they said yes.' },
         cis: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a CIS (Protected Cell Company)? Pass true/false based on their actual answer.' },
         nominee: { type: 'boolean', default: false, description: 'Only relevant when company=ac. Nominee shareholder is an OPTIONAL add-on where Aurevya holds the shares on the client\'s behalf — it defaults to false (not included). Only set true if the client explicitly asks for a nominee shareholder; do not include it just because the company is an AC.' },
-        cisCells: { type: 'number', description: 'Total CIS cells to show on the diagram (defaults to the standard 2 if cis=true)' },
+        shareholders: { type: 'array', items: { type: 'string' }, description: 'Name of each shareholder/settlor on the structure diagram, in order, e.g. ["Mr. Peter Nguyen", "Mrs. Anna Nguyen"]. Ask how many there are — don\'t assume a single shareholder. Omit for the default single generic "SHAREHOLDER"/"SETTLOR" box.' },
+        extraTrusts: { type: 'array', items: { type: 'string' }, description: 'Names for any ADDITIONAL trusts beyond the first (requires trust=true — the first trust is that one). Each extra trust gets its own full Trust setup/maintenance fee, and its own box on the diagram. Ask if more than one trust is needed.' },
+        cisCellNames: { type: 'array', items: { type: 'string' }, description: 'Custom names for each CIS cell, e.g. ["Cell A — Growth Fund", "Cell B — Income Fund"]. Requires cis=true. Takes priority over cisCells if both are given.' },
+        cisCells: { type: 'number', description: 'Total (unnamed) CIS cells to show on the diagram (defaults to the standard 2 if cis=true). Ignored if cisCellNames is provided — use that instead when the client has specific names in mind.' },
         month: { type: 'number', description: '0-11, defaults to current month' },
         year: { type: 'number', description: 'defaults to current year' },
         currency: { type: 'string', enum: ['USD', 'EUR'], default: 'USD' },
@@ -310,9 +316,10 @@ async function handle(sessionId, name, args) {
       return ok({
         label: result.label,
         selections: result.selections,
+        structureDetail: result.structureDetail,
         filename: result.pdfFilename,
         downloadUrl,
-        note: 'This link is permanent and does not expire. Read "selections" back to the client to confirm it matches what they asked for (trust/cis/nominee/company) before sharing it.',
+        note: 'This link is permanent and does not expire. Read "selections" and "structureDetail" back to the client (every shareholder, trust, and CIS cell by name) to confirm the structure matches what they asked for before sharing it.',
       });
     }
     if (process.env.PORT) {
@@ -324,18 +331,20 @@ async function handle(sessionId, name, args) {
       return ok({
         label: result.label,
         selections: result.selections,
+        structureDetail: result.structureDetail,
         filename: result.pdfFilename,
         downloadUrl,
-        note: 'This link expires in 1 hour and will break after the next server redeploy (permanent storage isn\'t configured yet — see SUPABASE_SERVICE_ROLE_KEY in the README). Read "selections" back to the client to confirm it matches what they asked for before sharing it.',
+        note: 'This link expires in 1 hour and will break after the next server redeploy (permanent storage isn\'t configured yet — see SUPABASE_SERVICE_ROLE_KEY in the README). Read "selections" and "structureDetail" back to the client to confirm the structure matches what they asked for before sharing it.',
       });
     }
     // Local (stdio) mode: the file is genuinely on this machine's disk.
     return ok({
       label: result.label,
       selections: result.selections,
+      structureDetail: result.structureDetail,
       htmlPath: result.htmlPath,
       pdfPath: result.pdfPath,
-      note: 'Confirm "selections" matches what the client asked for, then open the PDF to review before sending to the client.',
+      note: 'Confirm "selections" and "structureDetail" match what the client asked for, then open the PDF to review before sending to the client.',
     });
   }
   if (name === 'list_generated_proposals') {
