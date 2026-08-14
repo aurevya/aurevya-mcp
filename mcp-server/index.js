@@ -226,7 +226,7 @@ const TOOLS = [
         trust: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a Trust wrapper? Pass true/false based on their actual answer.' },
         cis: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a CIS (Protected Cell Company)? Pass true/false based on their actual answer.' },
         nominee: { type: 'boolean', default: false, description: 'Only relevant when company=ac. Nominee shareholder is an OPTIONAL add-on where Aurevya holds the shares on the client\'s behalf — it defaults to false (not included). Only set true if the client explicitly asks for a nominee shareholder; do not include it just because the company is an AC.' },
-        shareholders: { type: 'array', items: { type: 'string' }, description: 'Name of each shareholder/settlor on the structure diagram, in order, e.g. ["Mr. Peter Nguyen", "Mrs. Anna Nguyen"]. Ask how many there are — don\'t assume a single shareholder. Omit for the default single generic "SHAREHOLDER"/"SETTLOR" box.' },
+        shareholders: { type: 'array', items: { type: 'string' }, description: 'REQUIRED whenever there is more than one shareholder/settlor — pass their actual names here, one per array entry, e.g. ["Mr. John Smith", "Mrs. Jane Smith"]. Do NOT write the names into the clientName field instead (e.g. do not do clientName: "Smith Family (Settlors: John & Jane)") — that will NOT put them on the diagram; this array is the only field that does. Ask how many shareholders/settlors there are before generating anything — don\'t assume a single shareholder. Omit only for the default single generic "SHAREHOLDER"/"SETTLOR" box.' },
         extraTrusts: { type: 'array', items: { type: 'string' }, description: 'Names for any ADDITIONAL trusts beyond the first (requires trust=true — the first trust is that one). Each extra trust gets its own full Trust setup/maintenance fee. Ask if more than one trust is needed before assuming a single trust covers everything.' },
         cisCellNames: { type: 'array', items: { type: 'string' }, description: 'Custom names for each CIS cell, e.g. ["Cell A — Growth Fund", "Cell B — Income Fund"]. Requires cis=true. Ask how many cells and whether they need specific names. If omitted, defaults to the standard 2 cells named "CELL A"/"CELL B" (or use cisCells for an unnamed count instead).' },
         currency: { type: 'string', enum: ['USD', 'EUR'], default: 'USD' },
@@ -239,13 +239,13 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        clientName: { type: 'string', description: 'e.g. "Mr. Peter Nguyen" — used in the document title and filename' },
+        clientName: { type: 'string', description: 'e.g. "Mr. Peter Nguyen" or "Smith Family" — used in the document title and filename ONLY. If there are multiple shareholders/settlors, put their names in the separate `shareholders` array, not here — do not append things like "(Settlors: John & Jane)" to this field.' },
         mode: { type: 'string', enum: ['structure', 'mfo', 'fundlux', 'accounting'], default: 'structure' },
         company: { type: 'string', enum: ['ac', 'gbc', 'none'], default: 'ac', description: 'Only used when mode=structure. Ask which one the client wants.' },
         trust: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a Trust wrapper? Pass true/false based on their actual answer — never leave this out if they said yes.' },
         cis: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a CIS (Protected Cell Company)? Pass true/false based on their actual answer.' },
         nominee: { type: 'boolean', default: false, description: 'Only relevant when company=ac. Nominee shareholder is an OPTIONAL add-on where Aurevya holds the shares on the client\'s behalf — it defaults to false (not included). Only set true if the client explicitly asks for a nominee shareholder; do not include it just because the company is an AC.' },
-        shareholders: { type: 'array', items: { type: 'string' }, description: 'Name of each shareholder/settlor on the structure diagram, in order, e.g. ["Mr. Peter Nguyen", "Mrs. Anna Nguyen"]. Ask how many there are — don\'t assume a single shareholder. Omit for the default single generic "SHAREHOLDER"/"SETTLOR" box.' },
+        shareholders: { type: 'array', items: { type: 'string' }, description: 'REQUIRED whenever there is more than one shareholder/settlor — pass their actual names here, one per array entry, e.g. ["Mr. John Smith", "Mrs. Jane Smith"]. Do NOT write the names into the clientName field instead (e.g. do not do clientName: "Smith Family (Settlors: John & Jane)") — that will NOT put them on the diagram; this array is the only field that does. Ask how many shareholders/settlors there are before generating anything — don\'t assume a single shareholder. Omit only for the default single generic "SHAREHOLDER"/"SETTLOR" box.' },
         extraTrusts: { type: 'array', items: { type: 'string' }, description: 'Names for any ADDITIONAL trusts beyond the first (requires trust=true — the first trust is that one). Each extra trust gets its own full Trust setup/maintenance fee, and its own box on the diagram. Ask if more than one trust is needed.' },
         cisCellNames: { type: 'array', items: { type: 'string' }, description: 'Custom names for each CIS cell, e.g. ["Cell A — Growth Fund", "Cell B — Income Fund"]. Requires cis=true. Takes priority over cisCells if both are given.' },
         cisCells: { type: 'number', description: 'Total (unnamed) CIS cells to show on the diagram (defaults to the standard 2 if cis=true). Ignored if cisCellNames is provided — use that instead when the client has specific names in mind.' },
@@ -273,6 +273,30 @@ function fail(message) {
   return { content: [{ type: 'text', text: 'Error: ' + message }], isError: true };
 }
 
+// Defensive fallback: calling assistants have repeatedly been observed
+// stuffing settlor/shareholder names into the free-text `clientName`
+// field (e.g. clientName: "Smith Family (Settlors: John Smith & Jane
+// Smith)") instead of using the dedicated `shareholders` array, even
+// though the tool schema explicitly asks for the array. Rather than rely
+// solely on prompt wording, parse a few common phrasings out of
+// clientName and populate `shareholders` server-side when the caller
+// didn't supply it. Also strips the matched fragment out of clientName so
+// the document title/filename don't end up with a redundant
+// "(Settlors: ...)" parenthetical baked in.
+function extractShareholdersFromClientName(clientName) {
+  if (!clientName || typeof clientName !== 'string') return { names: null, cleanedName: clientName };
+  const m = clientName.match(/\(?\s*settlors?\s*:\s*([^)]+?)\)?\s*$/i);
+  if (!m) return { names: null, cleanedName: clientName };
+  const namesPart = m[1];
+  const names = namesPart
+    .split(/\s*(?:,|&|\band\b)\s*/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (names.length < 2) return { names: null, cleanedName: clientName };
+  const cleanedName = clientName.slice(0, m.index).trim().replace(/[,\-–—]\s*$/, '').trim();
+  return { names, cleanedName: cleanedName || clientName };
+}
+
 /** Every tool handler, parameterized by the MCP session id so hosted
  *  (HTTP) mode keeps each staff member's login completely separate even
  *  though they're all talking to the same running server. In local
@@ -288,6 +312,19 @@ async function handle(sessionId, name, args) {
     // it — logging the full args here is the fastest way to tell whether
     // that's a calling-client behavior issue or a real bug on this end.
     console.error('[aurevya-mcp] %s args: %s', name, JSON.stringify(args));
+
+    // Confirmed via those logs: the calling assistant was passing
+    // clientName: "Smith Family (Settlors: John Appadoo & Jane Appadoo)"
+    // with no `shareholders` array at all. Catch that pattern here so the
+    // diagram/fees are correct even when the calling assistant doesn't
+    // use the dedicated parameter.
+    if ((!Array.isArray(args.shareholders) || args.shareholders.length === 0) && args.clientName) {
+      const { names, cleanedName } = extractShareholdersFromClientName(args.clientName);
+      if (names) {
+        console.error('[aurevya-mcp] %s — extracted shareholders from clientName: %s', name, JSON.stringify(names));
+        args = Object.assign({}, args, { shareholders: names, clientName: cleanedName });
+      }
+    }
   }
 
   if (name === 'aurevya_login') {
