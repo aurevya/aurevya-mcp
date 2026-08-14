@@ -27,6 +27,11 @@ function registerDownload(path, filename) {
   setTimeout(() => fileRegistry.delete(token), FILE_TTL_MS).unref?.();
   return token;
 }
+function fileDownloadUrl(path, filename) {
+  const token = registerDownload(path, filename);
+  const domain = process.env.RAILWAY_PUBLIC_DOMAIN || 'aurevya-mcp-production.up.railway.app';
+  return `https://${domain}/files/${token}`;
+}
 
 /* ── tool catalogue ─────────────────────────────────────────────────── */
 
@@ -246,7 +251,7 @@ const TOOLS = [
   },
   {
     name: 'list_generated_proposals',
-    description: 'Lists recently generated proposal files (from create_proposal), most recent first.',
+    description: 'Lists recently generated proposal PDFs (from create_proposal), most recent first, each with its own fresh download link (valid for 1 hour — call this again to get a new link if an old one expired). Good for "can I get that proposal again" or "what have I generated recently" style requests, instead of re-running create_proposal. Note: on the hosted server this only sees files generated since the container last restarted (a redeploy resets it) — it is not a permanent archive.',
     inputSchema: {
       type: 'object',
       properties: { limit: { type: 'number', default: 20 } },
@@ -299,9 +304,7 @@ async function handle(sessionId, name, args) {
       // Hosted mode: the file only exists on this container, which the
       // staff member can never browse to directly — hand back a real
       // clickable download URL instead of a path.
-      const token = registerDownload(result.pdfPath, result.pdfFilename);
-      const domain = process.env.RAILWAY_PUBLIC_DOMAIN || 'aurevya-mcp-production.up.railway.app';
-      const downloadUrl = `https://${domain}/files/${token}`;
+      const downloadUrl = fileDownloadUrl(result.pdfPath, result.pdfFilename);
       return ok({
         label: result.label,
         selections: result.selections,
@@ -319,7 +322,22 @@ async function handle(sessionId, name, args) {
       note: 'Confirm "selections" matches what the client asked for, then open the PDF to review before sending to the client.',
     });
   }
-  if (name === 'list_generated_proposals') return ok(listGeneratedProposals(args.limit));
+  if (name === 'list_generated_proposals') {
+    const files = listGeneratedProposals(args.limit);
+    if (process.env.PORT) {
+      // Same reasoning as create_proposal: hand back clickable links, not
+      // server-local paths. A fresh token is minted every time this list
+      // is requested (each is good for an hour), so re-running this tool
+      // is the way to get a working link again after an old one expires.
+      return ok(files.map((f) => ({
+        client: f.client,
+        file: f.file,
+        modified: f.modified,
+        downloadUrl: fileDownloadUrl(f.path, f.file),
+      })));
+    }
+    return ok(files);
+  }
 
   // everything else needs a signed-in staff session
   const { supabase, profile } = await getAuthedClient(sessionId);

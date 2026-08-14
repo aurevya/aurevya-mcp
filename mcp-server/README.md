@@ -150,7 +150,7 @@ locally — see Option A if you want one shared URL instead.
 **Proposals** (no Supabase needed)
 - `quote_proposal` — instant fee quote for any AC/GBC/none × Trust × CIS × Nominee shareholder combination, or MFO / Fund Luxembourg / Accounting-only. Claude is instructed to ask about each optional component (Trust, CIS, Nominee shareholder — the latter only relevant for AC) explicitly rather than assume, and the result echoes back a `selections` object so you can confirm nothing was dropped before generating the final PDF.
 - `create_proposal` — generates the full HTML + PDF proposal, saved to `Generated Proposals/<client name>/`. Also returns `selections` for the same reason — check it matches what the client asked for before sharing the download link.
-- `list_generated_proposals` — what's been generated recently.
+- `list_generated_proposals` — what's been generated recently, each with its own fresh download link (in hosted mode; only covers files generated since the container last restarted, not a permanent archive).
 
 **Clients & entities** — `list_clients`, `get_client`, `list_entities`.
 
