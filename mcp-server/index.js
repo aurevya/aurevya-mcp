@@ -463,32 +463,41 @@ if (process.env.PORT) {
 
   app.all('/mcp', async (req, res) => {
     const existingId = req.headers['mcp-session-id'];
-    let transport;
+    console.error('[aurevya-mcp] %s /mcp session=%s body.method=%s', req.method, existingId || '(none)', req.body && req.body.method);
+    try {
+      let transport;
 
-    if (existingId && transports[existingId]) {
-      transport = transports[existingId];
-    } else if (!existingId && isInitializeRequest(req.body)) {
-      // Choose the session id ourselves (rather than letting the SDK pick
-      // one lazily) so the login-session store key and the transport's own
-      // "mcp-session-id" always match up.
-      const sessionId = randomUUID();
-      transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => sessionId,
-        onsessioninitialized: (sid) => { transports[sid] = transport; },
-      });
-      transport.onclose = () => { delete transports[sessionId]; };
-      const server = buildServer(sessionId);
-      await server.connect(transport);
-    } else {
-      res.status(400).json({
-        jsonrpc: '2.0',
-        error: { code: -32000, message: 'Bad Request: missing or invalid mcp-session-id' },
-        id: null,
-      });
-      return;
+      if (existingId && transports[existingId]) {
+        transport = transports[existingId];
+      } else if (!existingId && isInitializeRequest(req.body)) {
+        // Choose the session id ourselves (rather than letting the SDK pick
+        // one lazily) so the login-session store key and the transport's own
+        // "mcp-session-id" always match up.
+        const sessionId = randomUUID();
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => sessionId,
+          onsessioninitialized: (sid) => { transports[sid] = transport; },
+        });
+        transport.onclose = () => { delete transports[sessionId]; };
+        const server = buildServer(sessionId);
+        await server.connect(transport);
+      } else {
+        console.error('[aurevya-mcp] rejecting: no matching session and not an initialize request');
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: 'Bad Request: missing or invalid mcp-session-id' },
+          id: null,
+        });
+        return;
+      }
+
+      await transport.handleRequest(req, res, req.body);
+    } catch (e) {
+      console.error('[aurevya-mcp] /mcp handler threw:', e && e.stack || e);
+      if (!res.headersSent) {
+        res.status(500).json({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal error: ' + (e && e.message) }, id: null });
+      }
     }
-
-    await transport.handleRequest(req, res, req.body);
   });
 
   const port = Number(process.env.PORT);
