@@ -1967,8 +1967,12 @@ function crest(dark){
   if(!dark){
     return '<div class="crest">'+logoImg('7.5mm')+'</div>';
   }
-  return '<div class="crest"><div class="orn">'+ornamentSVG('11pt')+'</div>'+
-    '<div class="mk">aurevya</div><div class="wm">WEALTH</div></div>';
+  /* Dark/photo pages: the logo's wordmark is navy, so it needs a light
+     chip behind it to stay legible — falls back to the old text+ornament
+     treatment automatically if the logo image itself fails to load (see
+     logoFallback()), so nothing ever looks broken either way. */
+  return '<div class="crest"><div style="display:inline-block;background:#fff;'+
+    'border-radius:2mm;padding:1.6mm 2.6mm;line-height:0">'+logoImg('7.5mm')+'</div></div>';
 }
 
 /* Real logo, with a fallback chain so it works whether or not the
@@ -2013,7 +2017,8 @@ function pgCover(p,d){
   return page('<div class="cover">'+
     slot('cover-photograph','cover photograph',{cls:'art',inner:'<div class="tag">'+BP.tagline+'</div>'})+
     '<div class="pane">'+
-      '<div class="mark"><div class="orn">'+ornamentSVG('19pt')+'</div><div class="nm">aurevya</div><div class="wm">WEALTH</div></div>'+
+      '<div class="mark"><div style="display:inline-block;background:#fff;border-radius:3mm;'+
+        'padding:4mm 6mm;line-height:0">'+logoImg('20mm')+'</div></div>'+
       '<div class="t1">'+p.coverT1+'</div><div class="t2">'+p.coverT2+'</div>'+
       (p.coverT3?'<div class="t1" style="font-size:10pt;margin-top:1mm">'+p.coverT3+'</div>':'')+
       '<div class="rule"></div>'+
@@ -2087,7 +2092,9 @@ function pgOurGroup(){
   }).join('');
   return page(crest()+'<div class="pbody"><h1 class="ptitle">Our Group</h1>'+
     '<div style="text-align:center;margin:2mm 0 1mm">'+
-      mandalaSVG('20mm')+
+      '<img src="'+ASSET_DIR+'logo-kundomal.png" style="height:20mm;display:inline-block" '+
+      'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'inline-block\'">'+
+      '<span style="display:none">'+mandalaSVG('20mm')+'</span>'+
       '<div style="font-family:var(--serif);font-size:14pt;letter-spacing:.06em;color:var(--navy);margin-top:1.5mm">KUNDOMAL &amp; CO</div>'+
     '</div>'+
     '<div style="display:flex;margin-top:5mm">'+brackets+'</div>'+
@@ -2475,7 +2482,8 @@ function pgService(key){
 function pgBack(p){
   return page('<div class="backcover">'+
     '<div class="bt">'+p.coverT1+'<br><b>'+p.coverT2+'</b></div>'+
-    '<div class="bm"><div class="orn">'+ornamentSVG('15pt')+'</div><div class="nm">aurevya</div><div class="wm">WEALTH</div></div>'+
+    '<div class="bm"><div style="display:inline-block;background:#fff;border-radius:2.5mm;'+
+      'padding:3mm 4.5mm;line-height:0">'+logoImg('14mm')+'</div></div>'+
     '<div class="addr">'+BP.address+'<br><br>'+BP.contact+'</div>'+
     '<div class="ent">'+BP.enterprise+'</div>'+
     '<div class="lic">'+BP.licence+'</div>'+

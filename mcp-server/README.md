@@ -112,7 +112,34 @@ service (a redeploy, a crash, scaling to zero on the free tier), everyone
 signed in at that moment will just need to run the login line again. This
 is a known trade-off for v1, not a bug.
 
-### 4. Redeploying after a code change
+### 4. Making proposal download links permanent (recommended)
+
+By default, `create_proposal` links point at a PDF sitting on this
+container's local disk — which Railway wipes on every redeploy/restart, so
+those links also stop working after ~1 hour or the next `git push`,
+whichever comes first. To make them permanent instead, generated PDFs can
+be saved to Supabase Storage (the same Supabase project the portal already
+uses), which survives redeploys indefinitely:
+
+1. In the Supabase dashboard for this project, go to **Settings → API** and
+   copy the **`service_role`** secret key (not the `anon` key — this one
+   bypasses row-level security, which is exactly why it's only ever used
+   here for Storage file uploads, never for any database query. See the
+   comment at the top of `lib/proposalStorage.js`).
+2. In Railway, open this service's **Variables** tab and add a new
+   variable named `SUPABASE_SERVICE_ROLE_KEY`, pasting that key as the
+   value. **Paste it directly into Railway's own field — never into a
+   Claude chat.**
+3. Redeploy (Railway does this automatically after a variable change). The
+   server creates a `proposals` storage bucket on startup if one doesn't
+   already exist.
+
+Once this is set, `create_proposal` and `list_generated_proposals` both
+return links that never expire and survive every future redeploy. Without
+it, everything still works exactly as before (1-hour links, reset on every
+redeploy) — this step is optional, not required to use the server.
+
+### 5. Redeploying after a code change
 
 Any time this folder or `proposal-generator/` changes:
 ```bash
@@ -147,10 +174,10 @@ locally — see Option A if you want one shared URL instead.
 
 ## What it can do
 
-**Proposals** (no Supabase needed)
-- `quote_proposal` — instant fee quote for any AC/GBC/none × Trust × CIS × Nominee shareholder combination, or MFO / Fund Luxembourg / Accounting-only. Claude is instructed to ask about each optional component (Trust, CIS, Nominee shareholder — the latter only relevant for AC) explicitly rather than assume, and the result echoes back a `selections` object so you can confirm nothing was dropped before generating the final PDF.
-- `create_proposal` — generates the full HTML + PDF proposal, saved to `Generated Proposals/<client name>/`. Also returns `selections` for the same reason — check it matches what the client asked for before sharing the download link.
-- `list_generated_proposals` — what's been generated recently, each with its own fresh download link (in hosted mode; only covers files generated since the container last restarted, not a permanent archive).
+**Proposals**
+- `quote_proposal` — instant fee quote for any AC/GBC/none × Trust × CIS × Nominee shareholder combination, or MFO / Fund Luxembourg / Accounting-only. No Supabase needed. Claude is instructed to ask about each optional component (Trust, CIS, Nominee shareholder — the latter only relevant for AC) explicitly rather than assume, and the result echoes back a `selections` object so you can confirm nothing was dropped before generating the final PDF.
+- `create_proposal` — generates the full HTML + PDF proposal, saved to `Generated Proposals/<client name>/` locally. Also returns `selections` for the same reason — check it matches what the client asked for before sharing the download link. The link is permanent (Supabase Storage) if `SUPABASE_SERVICE_ROLE_KEY` is configured — see step 4 above — otherwise it's a 1-hour link to this container's local disk.
+- `list_generated_proposals` — what's been generated recently, each with its own download link (permanent if storage is configured, otherwise 1-hour and limited to what's been generated since the container last restarted).
 
 **Clients & entities** — `list_clients`, `get_client`, `list_entities`.
 
@@ -164,7 +191,8 @@ locally — see Option A if you want one shared URL instead.
 
 ## Security notes
 
-- **No shared secrets.** Every query runs *as the signed-in staff member*, using the same Supabase row-level-security policies the portal enforces (see `../supabase_schema.sql`). There is no service-role key anywhere in this server, hosted or local.
+- **No shared secrets for data.** Every query against client/entity/invoice/KYC data runs *as the signed-in staff member*, using the same Supabase row-level-security policies the portal enforces (see `../supabase_schema.sql`). The optional `SUPABASE_SERVICE_ROLE_KEY` (see step 4 above) is the one exception, and it's scoped narrowly — used only in `lib/proposalStorage.js`, only for Storage file uploads, never for a database query.
+- **Proposal PDFs in permanent storage are public-by-obscurity, not private.** The `proposals` Storage bucket is created as public so download links work with no login/token — the same trade-off the old 1-hour token links already made, just without an expiry. Anyone who obtains a link can open that one PDF; the path isn't guessable, but if a link leaks, that specific proposal is exposed. Don't rely on this bucket for anything more sensitive than what already goes into a client proposal.
 - **Client accounts are rejected.** `aurevya_login` checks the signed-in user's `role` and refuses `role = 'client'` — staff/admin only.
 - **Every write is logged** to the portal's own `audit_logs` table — one unified trail regardless of whether the action came from the browser, a local install, or the hosted server.
 - **Nothing here executes a real payment.** `mark_invoice_paid` only flips an internal status field.
@@ -177,6 +205,7 @@ Everything lives in a few small files:
 - `lib/supabaseClient.js` — auth/session handling.
 - `lib/sessionStore.js` — where per-connection sessions are kept.
 - `lib/proposal.js` — the headless-browser automation of `proposal-generator.html`.
+- `lib/proposalStorage.js` — optional permanent Storage upload/listing for generated PDFs (needs `SUPABASE_SERVICE_ROLE_KEY`).
 
 To add a tool, add an entry to the `TOOLS` array and a matching branch in
 `handle()` in `index.js` — the existing tools are good templates.

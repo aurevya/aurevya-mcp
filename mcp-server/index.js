@@ -11,6 +11,7 @@ import {
 
 import { login, logout, getAuthedClient, logAudit, AuthRequiredError, beginPairedLogin, claimPairedLogin } from './lib/supabaseClient.js';
 import { createProposal, quoteProposal, listGeneratedProposals } from './lib/proposal.js';
+import { ensureProposalsBucket, storageConfigured, uploadProposal, listStoredProposals } from './lib/proposalStorage.js';
 
 /* Hosted (HTTP) mode only: generated PDFs are registered here under a
    random token and served back over plain HTTPS (see the /files/:token
@@ -231,7 +232,7 @@ const TOOLS = [
   },
   {
     name: 'create_proposal',
-    description: 'Generates a full Aurevya Wealth proposal (PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download. Handles any combination of Authorised Company / GBC / none + Trust + CIS + Nominee shareholder, or the MFO / Fund Luxembourg / Accounting-only templates. Returns a download link for the PDF (valid for 1 hour) plus a "selections" object showing exactly what was applied inside the generator — read that back to the client before sharing the link, to confirm nothing was dropped or defaulted incorrectly. IMPORTANT: before calling this, explicitly ask the client (don\'t assume) whether they want a Trust, a CIS, and — if the company is an AC — a Nominee shareholder. Trust, CIS and Nominee shareholder all default to NOT included — only set them true if the client actually asked for them. Recommend running quote_proposal first with the same options to confirm the combination and fees look right before generating the final PDF.',
+    description: 'Generates a full Aurevya Wealth proposal (PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download. Handles any combination of Authorised Company / GBC / none + Trust + CIS + Nominee shareholder, or the MFO / Fund Luxembourg / Accounting-only templates. Returns a download link for the PDF (permanent — does not expire — as long as permanent storage is configured server-side; otherwise falls back to a 1-hour link) plus a "selections" object showing exactly what was applied inside the generator — read that back to the client before sharing the link, to confirm nothing was dropped or defaulted incorrectly. IMPORTANT: before calling this, explicitly ask the client (don\'t assume) whether they want a Trust, a CIS, and — if the company is an AC — a Nominee shareholder. Trust, CIS and Nominee shareholder all default to NOT included — only set them true if the client actually asked for them. Recommend running quote_proposal first with the same options to confirm the combination and fees look right before generating the final PDF.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -251,7 +252,7 @@ const TOOLS = [
   },
   {
     name: 'list_generated_proposals',
-    description: 'Lists recently generated proposal PDFs (from create_proposal), most recent first, each with its own fresh download link (valid for 1 hour — call this again to get a new link if an old one expired). Good for "can I get that proposal again" or "what have I generated recently" style requests, instead of re-running create_proposal. Note: on the hosted server this only sees files generated since the container last restarted (a redeploy resets it) — it is not a permanent archive.',
+    description: 'Lists recently generated proposal PDFs (from create_proposal), most recent first, each with its own download link. Good for "can I get that proposal again" or "what have I generated recently" style requests, instead of re-running create_proposal. If permanent storage is configured server-side, this is a real archive with permanent links that survive redeploys; otherwise it only sees files generated since the container last restarted, with links valid for 1 hour.',
     inputSchema: {
       type: 'object',
       properties: { limit: { type: 'number', default: 20 } },
@@ -296,21 +297,36 @@ async function handle(sessionId, name, args) {
     }
   }
 
-  // proposal tools don't touch Supabase at all
+  // proposal tools don't touch Supabase tables at all (quote_proposal
+  // writes nothing; create_proposal/list_generated_proposals only touch
+  // Supabase Storage, via a separate service-role client — see
+  // lib/proposalStorage.js — never the RLS-scoped one used everywhere else)
   if (name === 'quote_proposal') return ok(await quoteProposal(args));
   if (name === 'create_proposal') {
     const result = await createProposal(args);
+    if (storageConfigured()) {
+      // Permanent link — survives redeploys/restarts, never expires.
+      const downloadUrl = await uploadProposal(result.pdfPath, result.clientSlug, result.pdfFilename);
+      return ok({
+        label: result.label,
+        selections: result.selections,
+        filename: result.pdfFilename,
+        downloadUrl,
+        note: 'This link is permanent and does not expire. Read "selections" back to the client to confirm it matches what they asked for (trust/cis/nominee/company) before sharing it.',
+      });
+    }
     if (process.env.PORT) {
-      // Hosted mode: the file only exists on this container, which the
-      // staff member can never browse to directly — hand back a real
-      // clickable download URL instead of a path.
+      // Fallback: permanent storage isn't configured yet (no
+      // SUPABASE_SERVICE_ROLE_KEY in Railway), so this behaves like
+      // before — a link good for 1 hour, pointing at this container's
+      // local disk, which is wiped on the next redeploy/restart.
       const downloadUrl = fileDownloadUrl(result.pdfPath, result.pdfFilename);
       return ok({
         label: result.label,
         selections: result.selections,
         filename: result.pdfFilename,
         downloadUrl,
-        note: 'Before sharing the link, read "selections" back to the client to confirm it matches what they asked for (trust/cis/nominee/company) — click the link to download the PDF (valid for 1 hour).',
+        note: 'This link expires in 1 hour and will break after the next server redeploy (permanent storage isn\'t configured yet — see SUPABASE_SERVICE_ROLE_KEY in the README). Read "selections" back to the client to confirm it matches what they asked for before sharing it.',
       });
     }
     // Local (stdio) mode: the file is genuinely on this machine's disk.
@@ -323,12 +339,12 @@ async function handle(sessionId, name, args) {
     });
   }
   if (name === 'list_generated_proposals') {
+    const stored = storageConfigured() ? await listStoredProposals(args.limit) : null;
+    if (stored) return ok(stored); // permanent links, survives redeploys
     const files = listGeneratedProposals(args.limit);
     if (process.env.PORT) {
-      // Same reasoning as create_proposal: hand back clickable links, not
-      // server-local paths. A fresh token is minted every time this list
-      // is requested (each is good for an hour), so re-running this tool
-      // is the way to get a working link again after an old one expires.
+      // Fallback: only sees proposals generated since this container last
+      // restarted, and links expire in 1 hour — see note above.
       return ok(files.map((f) => ({
         client: f.client,
         file: f.file,
@@ -654,9 +670,11 @@ if (process.env.PORT) {
   app.listen(port, () => {
     console.error('[aurevya-mcp] listening on :' + port + ' (hosted/HTTP mode)');
   });
+  ensureProposalsBucket(); // fire-and-forget; create_proposal falls back gracefully if this hasn't run yet or isn't configured
 } else {
   const server = buildServer('local');
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('[aurevya-mcp] ready (local/stdio mode)');
+  ensureProposalsBucket();
 }

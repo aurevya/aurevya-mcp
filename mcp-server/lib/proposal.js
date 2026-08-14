@@ -141,7 +141,8 @@ export async function createProposal(opts) {
       selections: STATE.mode === 'structure' ? { ...STATE.entities } : { mode: STATE.mode },
     }));
 
-    const clientDir = path.join(OUTPUT_ROOT, slugify(opts.clientName));
+    const clientSlug = slugify(opts.clientName);
+    const clientDir = path.join(OUTPUT_ROOT, clientSlug);
     fs.mkdirSync(clientDir, { recursive: true });
 
     const htmlPath = path.join(clientDir, filename);
@@ -154,7 +155,7 @@ export async function createProposal(opts) {
 
     const pdfBase64 = fs.readFileSync(pdfPath).toString('base64');
 
-    return { htmlPath, pdfPath, pdfFilename, pdfBase64, label, filename, selections };
+    return { htmlPath, pdfPath, pdfFilename, pdfBase64, label, filename, selections, clientSlug };
   });
 }
 
