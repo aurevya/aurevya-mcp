@@ -514,8 +514,8 @@ table.deckfee tr.tot td{
           <span>Add a CIS — Protected Cell Company<span class="d">Fund vehicle layered beneath the structure</span></span>
         </label>
         <label class="checkline" id="fNomineeRow">
-          <input type="checkbox" id="fNominee" checked>
-          <span>Nominee shareholder (AC only)<span class="d">Optional add-on — untick if the client will hold the shares directly</span></span>
+          <input type="checkbox" id="fNominee">
+          <span>Nominee shareholder (AC only)<span class="d">Optional add-on — tick only if the client wants Aurevya to hold the shares as nominee</span></span>
         </label>
       </div>
       <div id="productBlurb" style="font-size:11px;color:#8D9AA5;line-height:1.45;margin-top:8px;"></div>
@@ -1336,7 +1336,7 @@ function currentSpec(){
 /* ═══════════════════════════════════════════════════════════════
    STATE + WIZARD
    ═══════════════════════════════════════════════════════════════ */
-let STATE={mode:'structure',entities:{company:'ac',trust:false,cis:false,nominee:true},fees:{setup:[],fixed:[]},sections:{},struct:{}};
+let STATE={mode:'structure',entities:{company:'ac',trust:false,cis:false,nominee:false},fees:{setup:[],fixed:[]},sections:{},struct:{}};
 
 function $(id){return document.getElementById(id);}
 function money(n,cur){

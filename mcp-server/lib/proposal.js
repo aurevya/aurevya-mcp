@@ -49,7 +49,7 @@ async function configurePage(page, opts) {
     company = 'ac',
     trust = false,
     cis = false,
-    nominee = true,
+    nominee = false,
     clientName = '',
     month = new Date().getMonth(),
     year = new Date().getFullYear(),
