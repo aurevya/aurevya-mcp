@@ -9,7 +9,7 @@ import {
   isInitializeRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { login, logout, getAuthedClient, logAudit, AuthRequiredError } from './lib/supabaseClient.js';
+import { login, logout, getAuthedClient, logAudit, AuthRequiredError, beginPairedLogin, claimPairedLogin } from './lib/supabaseClient.js';
 import { createProposal, quoteProposal, listGeneratedProposals } from './lib/proposal.js';
 
 /* Hosted (HTTP) mode only: generated PDFs are registered here under a
@@ -32,8 +32,19 @@ function registerDownload(path, filename) {
 
 const TOOLS = [
   {
+    name: 'aurevya_link',
+    description: 'RECOMMENDED way to sign in. Ask the user to open the login page in their browser (tell them the URL: this server\'s address + "/login"), sign in there with their own Aurevya staff email/password, and read back the 6-character code the page shows them. Pass that code here — never ask the user to type their password directly into chat. Required once before any other Aurevya tool works; cached for this connection until aurevya_logout or a long idle period.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'The 6-character code shown on the /login page after the user signs in there' },
+      },
+      required: ['code'],
+    },
+  },
+  {
     name: 'aurevya_login',
-    description: 'Sign in to the Aurevya portal with a staff/admin email + password. Required once before any other Aurevya tool works. The session is cached for this connection so it only needs to run again after aurevya_logout, a password change, or (on the hosted server) a long idle period.',
+    description: 'Alternate sign-in for local/stdio setups where a login web page isn\'t running. Takes a staff email + password directly. Prefer aurevya_link instead when this server is reachable over HTTP (hosted mode) — some Claude clients correctly refuse to call a tool with a raw password parameter, which is expected behavior, not a bug.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -258,6 +269,10 @@ async function handle(sessionId, name, args) {
 
   if (name === 'aurevya_login') {
     const profile = await login(sessionId, args.email, args.password);
+    return ok({ signedInAs: profile.full_name, email: profile.email, role: profile.role });
+  }
+  if (name === 'aurevya_link') {
+    const profile = claimPairedLogin(sessionId, args.code);
     return ok({ signedInAs: profile.full_name, email: profile.email, role: profile.role });
   }
   if (name === 'aurevya_logout') {
@@ -487,6 +502,63 @@ if (process.env.PORT) {
   const express = (await import('express')).default;
   const app = express();
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  const LOGIN_PAGE = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Aurevya — Sign in for Claude</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body{font-family:-apple-system,Segoe UI,Arial,sans-serif;background:#0b1220;color:#e6ecf5;
+    display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+  .card{background:#121b2e;border:1px solid #223050;border-radius:10px;padding:32px;max-width:380px;width:90%}
+  h1{font-size:18px;margin:0 0 6px}
+  p{color:#9fb0cc;font-size:13px;line-height:1.5;margin:0 0 20px}
+  label{display:block;font-size:12px;color:#9fb0cc;margin:14px 0 4px}
+  input{width:100%;box-sizing:border-box;padding:10px;border-radius:6px;border:1px solid #2c3c5e;
+    background:#0b1220;color:#e6ecf5;font-size:14px}
+  button{margin-top:20px;width:100%;padding:11px;border:none;border-radius:6px;background:#5b7fff;
+    color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+  .code{font-size:28px;letter-spacing:4px;font-weight:700;text-align:center;background:#0b1220;
+    border:1px solid #2c3c5e;border-radius:8px;padding:16px;margin:16px 0;color:#8fd694}
+  .err{background:#3a1620;border:1px solid #7a2c3c;color:#ff9fb0;padding:10px 12px;border-radius:6px;
+    font-size:13px;margin-bottom:14px}
+</style></head><body><div class="card">
+<h1>Sign in to Aurevya</h1>
+<p>Use your normal staff portal login. This gives Claude a short one-time code — it never sees your password.</p>
+{{BODY}}
+</div></body></html>`;
+
+  app.get('/login', (_req, res) => {
+    res.send(LOGIN_PAGE.replace('{{BODY}}', `
+      <form method="POST" action="/login">
+        <label>Email</label>
+        <input type="email" name="email" required autofocus>
+        <label>Password</label>
+        <input type="password" name="password" required>
+        <button type="submit">Sign in</button>
+      </form>`));
+  });
+
+  app.post('/login', async (req, res) => {
+    try {
+      const { code, profile } = await beginPairedLogin(req.body.email, req.body.password);
+      res.send(LOGIN_PAGE.replace('{{BODY}}', `
+        <p style="color:#8fd694">Signed in as ${profile.full_name}.</p>
+        <div class="code">${code}</div>
+        <p>Tell Claude: <b>"Link my Aurevya account with code ${code}"</b><br>
+        This code works once and expires in 10 minutes.</p>`));
+    } catch (e) {
+      res.status(401).send(LOGIN_PAGE.replace('{{BODY}}', `
+        <div class="err">${(e && e.message) || 'Login failed.'}</div>
+        <form method="POST" action="/login">
+          <label>Email</label>
+          <input type="email" name="email" required autofocus value="${(req.body.email || '').replace(/"/g, '&quot;')}">
+          <label>Password</label>
+          <input type="password" name="password" required>
+          <button type="submit">Sign in</button>
+        </form>`));
+    }
+  });
 
   const transports = {}; // mcp-session-id -> StreamableHTTPServerTransport
 

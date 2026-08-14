@@ -86,8 +86,23 @@ other `mcpServers` entries already there:
 }
 ```
 
-Restart Claude Desktop, then in a new chat: *"Log me into Aurevya with
-[email]"* — same as before, just no local install step first.
+Restart Claude Desktop, then in a new chat, sign in **without ever typing
+your password into Claude**:
+
+1. Open `https://YOUR-RAILWAY-URL.up.railway.app/login` in a normal
+   browser tab and sign in with your usual staff portal email/password —
+   this is a plain login page, nothing to do with Claude at that point.
+2. It shows you a 6-character code.
+3. Back in Claude, say: *"Link my Aurevya account with code ABC123"*
+   (calls the `aurevya_link` tool, which takes only that code).
+
+Claude never sees, stores, or is asked for a raw password this way —
+which matters because some Claude clients correctly *refuse* to call a
+tool that takes a password parameter directly (that's expected safety
+behavior, not a bug to work around). The old direct `aurevya_login(email,
+password)` tool still exists as a fallback for local/stdio setups, but
+`aurevya_link` is the one to use whenever this server is reachable over
+HTTP.
 
 **Note on sessions in hosted mode:** each Claude Desktop connection gets
 its own private session on the server, so logins never cross between
