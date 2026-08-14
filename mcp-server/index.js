@@ -522,11 +522,26 @@ if (process.env.PORT) {
         transport.onclose = () => { delete transports[sessionId]; };
         const server = buildServer(sessionId);
         await server.connect(transport);
+      } else if (existingId) {
+        // A session id was supplied but this process doesn't know it —
+        // almost always because the server restarted (a redeploy) since
+        // the client last talked to it. Per the MCP Streamable HTTP spec,
+        // an unrecognized session MUST get 404 (not 400) specifically so
+        // well-behaved clients treat it as "please reinitialize" and
+        // transparently start a fresh session, instead of silently
+        // retrying the same dead one forever.
+        console.error('[aurevya-mcp] unknown session %s — responding 404 so the client reinitializes', existingId);
+        res.status(404).json({
+          jsonrpc: '2.0',
+          error: { code: -32001, message: 'Session not found or expired — please reinitialize.' },
+          id: null,
+        });
+        return;
       } else {
-        console.error('[aurevya-mcp] rejecting: no matching session and not an initialize request');
+        console.error('[aurevya-mcp] rejecting: no session id and not an initialize request');
         res.status(400).json({
           jsonrpc: '2.0',
-          error: { code: -32000, message: 'Bad Request: missing or invalid mcp-session-id' },
+          error: { code: -32000, message: 'Bad Request: missing mcp-session-id and not an initialize request' },
           id: null,
         });
         return;
