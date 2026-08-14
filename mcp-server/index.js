@@ -12,6 +12,22 @@ import {
 import { login, logout, getAuthedClient, logAudit, AuthRequiredError } from './lib/supabaseClient.js';
 import { createProposal, quoteProposal, listGeneratedProposals } from './lib/proposal.js';
 
+/* Hosted (HTTP) mode only: generated PDFs are registered here under a
+   random token and served back over plain HTTPS (see the /files/:token
+   route further down), because embedding the PDF as a binary blob in the
+   tool result — while spec-legal — isn't actually rendered as a
+   downloadable attachment by Claude Desktop's chat UI in practice. A
+   plain link works in literally any client. Tokens expire after an hour
+   so the container's disk doesn't grow unbounded between redeploys. */
+const fileRegistry = new Map(); // token -> { path, filename }
+const FILE_TTL_MS = 60 * 60 * 1000;
+function registerDownload(path, filename) {
+  const token = randomUUID();
+  fileRegistry.set(token, { path, filename });
+  setTimeout(() => fileRegistry.delete(token), FILE_TTL_MS).unref?.();
+  return token;
+}
+
 /* ── tool catalogue ─────────────────────────────────────────────────── */
 
 const TOOLS = [
@@ -198,7 +214,7 @@ const TOOLS = [
   },
   {
     name: 'create_proposal',
-    description: 'Generates a full Aurevya Wealth proposal (PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download. Handles any combination of Authorised Company / GBC / none + Trust + CIS, or the MFO / Fund Luxembourg / Accounting-only templates. The PDF is returned as a downloadable attachment directly in the chat, ready to save or send on.',
+    description: 'Generates a full Aurevya Wealth proposal (PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download. Handles any combination of Authorised Company / GBC / none + Trust + CIS, or the MFO / Fund Luxembourg / Accounting-only templates. Returns a download link for the PDF (valid for 1 hour) — share that link with the user so they can click it to download.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -262,30 +278,27 @@ async function handle(sessionId, name, args) {
   if (name === 'quote_proposal') return ok(await quoteProposal(args));
   if (name === 'create_proposal') {
     const result = await createProposal(args);
-    // Return the PDF as a real downloadable attachment in the chat, not
-    // just a file path — on the hosted (Railway) server that path lives
-    // on a container the staff member can never actually open, so the
-    // attachment is the only way they get the file back.
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            label: result.label,
-            filename: result.pdfFilename,
-            note: 'PDF attached below — open/download it to review before sending to the client.',
-          }, null, 2),
-        },
-        {
-          type: 'resource',
-          resource: {
-            uri: 'attachment://' + result.pdfFilename,
-            mimeType: 'application/pdf',
-            blob: result.pdfBase64,
-          },
-        },
-      ],
-    };
+    if (process.env.PORT) {
+      // Hosted mode: the file only exists on this container, which the
+      // staff member can never browse to directly — hand back a real
+      // clickable download URL instead of a path.
+      const token = registerDownload(result.pdfPath, result.pdfFilename);
+      const domain = process.env.RAILWAY_PUBLIC_DOMAIN || 'aurevya-mcp-production.up.railway.app';
+      const downloadUrl = `https://${domain}/files/${token}`;
+      return ok({
+        label: result.label,
+        filename: result.pdfFilename,
+        downloadUrl,
+        note: 'Click the link to download the PDF (valid for 1 hour). Download it now — the link itself is not meant to be sent to the client.',
+      });
+    }
+    // Local (stdio) mode: the file is genuinely on this machine's disk.
+    return ok({
+      label: result.label,
+      htmlPath: result.htmlPath,
+      pdfPath: result.pdfPath,
+      note: 'Open the PDF to review before sending to the client.',
+    });
   }
   if (name === 'list_generated_proposals') return ok(listGeneratedProposals(args.limit));
 
@@ -478,6 +491,16 @@ if (process.env.PORT) {
   const transports = {}; // mcp-session-id -> StreamableHTTPServerTransport
 
   app.get('/', (_req, res) => res.status(200).send('aurevya-mcp is running'));
+
+  // One-time-ish download link for a create_proposal PDF — see
+  // registerDownload() above. Not behind Supabase auth (a plain link has
+  // to work from a browser click, not a logged-in tool call), but the
+  // token is an unguessable UUID and expires after an hour.
+  app.get('/files/:token', (req, res) => {
+    const entry = fileRegistry.get(req.params.token);
+    if (!entry) return res.status(404).send('This download link has expired or is invalid. Ask Claude to generate the proposal again.');
+    res.download(entry.path, entry.filename);
+  });
 
   app.all('/mcp', async (req, res) => {
     const existingId = req.headers['mcp-session-id'];
