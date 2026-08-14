@@ -198,7 +198,7 @@ const TOOLS = [
   },
   {
     name: 'create_proposal',
-    description: 'Generates a full Aurevya Wealth proposal (HTML + PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download. Handles any combination of Authorised Company / GBC / none + Trust + CIS, or the MFO / Fund Luxembourg / Accounting-only templates. Files are saved under "Generated Proposals/<client name>/" and the paths are returned.',
+    description: 'Generates a full Aurevya Wealth proposal (PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download. Handles any combination of Authorised Company / GBC / none + Trust + CIS, or the MFO / Fund Luxembourg / Accounting-only templates. The PDF is returned as a downloadable attachment directly in the chat, ready to save or send on.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -262,12 +262,30 @@ async function handle(sessionId, name, args) {
   if (name === 'quote_proposal') return ok(await quoteProposal(args));
   if (name === 'create_proposal') {
     const result = await createProposal(args);
-    return ok({
-      label: result.label,
-      htmlPath: result.htmlPath,
-      pdfPath: result.pdfPath,
-      note: 'Open the PDF to review before sending to the client.',
-    });
+    // Return the PDF as a real downloadable attachment in the chat, not
+    // just a file path — on the hosted (Railway) server that path lives
+    // on a container the staff member can never actually open, so the
+    // attachment is the only way they get the file back.
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            label: result.label,
+            filename: result.pdfFilename,
+            note: 'PDF attached below — open/download it to review before sending to the client.',
+          }, null, 2),
+        },
+        {
+          type: 'resource',
+          resource: {
+            uri: 'attachment://' + result.pdfFilename,
+            mimeType: 'application/pdf',
+            blob: result.pdfBase64,
+          },
+        },
+      ],
+    };
   }
   if (name === 'list_generated_proposals') return ok(listGeneratedProposals(args.limit));
 

@@ -105,9 +105,11 @@ export async function quoteProposal(opts) {
 
 /** Full proposal: same as clicking "Download HTML" + "Export PDF" in the
  *  app, just headless. Writes both files under
- *  "Generated Proposals/<client>/" next to the rest of the portal's files
- *  so staff (and this MCP's own list_generated_proposals tool) can find
- *  them without digging through a Downloads folder. */
+ *  "Generated Proposals/<client>/" (useful when running locally — see
+ *  README Option B — but on a hosted server like Railway that folder is
+ *  invisible to the staff member and gets wiped on every redeploy, so the
+ *  PDF's raw bytes are also returned here as base64 for index.js to hand
+ *  back as a real downloadable attachment in the chat itself). */
 export async function createProposal(opts) {
   return withPage(async (page) => {
     await configurePage(page, opts);
@@ -124,11 +126,14 @@ export async function createProposal(opts) {
     const htmlPath = path.join(clientDir, filename);
     fs.writeFileSync(htmlPath, html, 'utf8');
 
-    const pdfPath = path.join(clientDir, filename.replace(/\.html$/i, '.pdf'));
+    const pdfFilename = filename.replace(/\.html$/i, '.pdf');
+    const pdfPath = path.join(clientDir, pdfFilename);
     await page.emulateMediaType('print');
     await page.pdf({ path: pdfPath, format: 'A4', printBackground: true, preferCSSPageSize: true });
 
-    return { htmlPath, pdfPath, label, filename };
+    const pdfBase64 = fs.readFileSync(pdfPath).toString('base64');
+
+    return { htmlPath, pdfPath, pdfFilename, pdfBase64, label, filename };
   });
 }
 
