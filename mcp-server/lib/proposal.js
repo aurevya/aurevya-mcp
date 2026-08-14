@@ -71,8 +71,20 @@ async function configurePage(page, opts) {
     $('fYear').value = String(cfg.year);
     $('fCurrency').value = cfg.currency;
     // one change event on fMode fires onModeOrEntityChange(), which reads
-    // all the fields above off the DOM and rebuilds STATE + the preview.
+    // all the fields above off the DOM and rebuilds STATE (fees, sections,
+    // structure diagram) synchronously.
     $('fMode').dispatchEvent(new Event('change'));
+    // onModeOrEntityChange() does NOT touch the on-screen preview itself —
+    // that's normally handled by the app's own delegated sidebar listener,
+    // which calls liveBuild(), which defers the actual DOM rebuild via
+    // setTimeout (0ms for checkboxes/selects, but still a separate event
+    // loop tick). buildExportHTML() later clones #previewInner as-is, so
+    // if we returned here immediately, Puppeteer would export whatever was
+    // already on screen from BEFORE this change — stale content — even
+    // though STATE itself is already correct. Call the app's own build()
+    // synchronously right now so the preview (and therefore the export)
+    // is guaranteed to reflect the settings we just applied.
+    if (typeof build === 'function') build();
   }, { mode, company, trust, cis, nominee, clientName, month, year, currency });
 
   // extra CIS cells beyond the two the page seeds by default

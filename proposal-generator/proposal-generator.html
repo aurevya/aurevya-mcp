@@ -2607,8 +2607,16 @@ function buildExportHTML(){
     '<body><div id="previewInner">'+body+'</div></body></html>';
 }
 function exportFilename(){
+  // A timestamp suffix keeps every export unique — without it, two
+  // proposals for the same client + same entity combination (e.g. an
+  // earlier draft missing a Trust, then a corrected one) produce the exact
+  // same filename, which can lead to a browser/PDF viewer silently
+  // reopening or overwriting the older file instead of the new one.
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const stamp=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds());
   return 'AUREVYA_'+proposalSlug()+'_'+
-    ($('fClient').value||'PROPOSAL').replace(/[^a-zA-Z0-9]/g,'_')+'.html';
+    ($('fClient').value||'PROPOSAL').replace(/[^a-zA-Z0-9]/g,'_')+'_'+stamp+'.html';
 }
 function downloadHTML(){
   const doc=buildExportHTML();
