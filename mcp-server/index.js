@@ -280,6 +280,15 @@ function fail(message) {
  *  user, the person running Claude Desktop. */
 async function handle(sessionId, name, args) {
   args = args || {};
+  if (name === 'create_proposal' || name === 'quote_proposal') {
+    // Temporary debug aid: these two tools have been getting called
+    // without newer optional fields (shareholders/extraTrusts/
+    // cisCellNames) actually reaching the server, and the deploy logs
+    // otherwise only show that a tools/call happened, not what was in
+    // it — logging the full args here is the fastest way to tell whether
+    // that's a calling-client behavior issue or a real bug on this end.
+    console.error('[aurevya-mcp] %s args: %s', name, JSON.stringify(args));
+  }
 
   if (name === 'aurevya_login') {
     const profile = await login(sessionId, args.email, args.password);
