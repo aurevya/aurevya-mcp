@@ -49,6 +49,7 @@ async function configurePage(page, opts) {
     company = 'ac',
     trust = false,
     cis = false,
+    nominee = true,
     clientName = '',
     month = new Date().getMonth(),
     year = new Date().getFullYear(),
@@ -63,6 +64,7 @@ async function configurePage(page, opts) {
       if (co) co.value = cfg.company;
       const t = $('fTrust'); if (t) t.checked = cfg.trust;
       const c = $('fCis'); if (c) c.checked = cfg.cis;
+      const n = $('fNominee'); if (n) n.checked = cfg.nominee;
     }
     $('fClient').value = cfg.clientName;
     $('fMonth').value = String(cfg.month);
@@ -71,7 +73,7 @@ async function configurePage(page, opts) {
     // one change event on fMode fires onModeOrEntityChange(), which reads
     // all the fields above off the DOM and rebuilds STATE + the preview.
     $('fMode').dispatchEvent(new Event('change'));
-  }, { mode, company, trust, cis, clientName, month, year, currency });
+  }, { mode, company, trust, cis, nominee, clientName, month, year, currency });
 
   // extra CIS cells beyond the two the page seeds by default
   const extraCells = Math.max(0, (opts.cisCells || 0) - 2);
@@ -93,11 +95,17 @@ export async function quoteProposal(opts) {
       const p = currentSpec();
       return {
         label: p.label,
+        // Echo back exactly what was actually applied inside the generator
+        // (not just what was asked for) so a dropped/misread option — e.g.
+        // "trust: true" never making it into the tool call — is visible
+        // immediately in the quote instead of only showing up missing from
+        // a finished PDF.
+        selections: STATE.mode === 'structure' ? { ...STATE.entities } : { mode: STATE.mode },
         currency: document.getElementById('fCurrency').value,
         setupFees: STATE.fees.setup,
         fixedFees: STATE.fees.fixed,
-        setupTotal: STATE.fees.setup.reduce((s, f) => s + (Number(f.amt) || 0), 0),
-        fixedTotal: STATE.fees.fixed.reduce((s, f) => s + (Number(f.amt) || 0), 0),
+        setupTotal: STATE.fees.setup.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
+        fixedTotal: STATE.fees.fixed.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
       };
     });
   });
@@ -114,10 +122,11 @@ export async function createProposal(opts) {
   return withPage(async (page) => {
     await configurePage(page, opts);
 
-    const { html, filename, label } = await page.evaluate(() => ({
+    const { html, filename, label, selections } = await page.evaluate(() => ({
       html: buildExportHTML(),
       filename: exportFilename(),
       label: currentSpec().label,
+      selections: STATE.mode === 'structure' ? { ...STATE.entities } : { mode: STATE.mode },
     }));
 
     const clientDir = path.join(OUTPUT_ROOT, slugify(opts.clientName));
@@ -133,7 +142,7 @@ export async function createProposal(opts) {
 
     const pdfBase64 = fs.readFileSync(pdfPath).toString('base64');
 
-    return { htmlPath, pdfPath, pdfFilename, pdfBase64, label, filename };
+    return { htmlPath, pdfPath, pdfFilename, pdfBase64, label, filename, selections };
   });
 }
 

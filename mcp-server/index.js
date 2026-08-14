@@ -211,29 +211,31 @@ const TOOLS = [
   },
   {
     name: 'quote_proposal',
-    description: 'Fast fee quote for a Mauritius structure (any combination of Authorised Company / GBC / none, + Trust, + CIS) or for the MFO / Fund Luxembourg / Accounting-only templates — no files written, just the numbers. Good for "what would a GBC with a trust cost" style questions.',
+    description: 'Fast fee quote for a Mauritius structure (any combination of Authorised Company / GBC / none, + Trust, + CIS, + Nominee shareholder) or for the MFO / Fund Luxembourg / Accounting-only templates — no files written, just the numbers. Good for "what would a GBC with a trust cost" style questions, and also a good way to sanity-check a combination before calling create_proposal — the result echoes back a "selections" object showing exactly what was applied; compare it against what the client actually asked for before proceeding. IMPORTANT: for mode=structure, always ask the client explicitly whether they want a Trust, a CIS, and (if the company is an AC) a Nominee shareholder — never assume or silently default any of these. Pass every one of trust/cis/nominee explicitly based on their answer rather than omitting the ones that are "no", since an omitted field falls back to its default.',
     inputSchema: {
       type: 'object',
       properties: {
         mode: { type: 'string', enum: ['structure', 'mfo', 'fundlux', 'accounting'], default: 'structure' },
-        company: { type: 'string', enum: ['ac', 'gbc', 'none'], default: 'ac', description: 'Only used when mode=structure' },
-        trust: { type: 'boolean', default: false },
-        cis: { type: 'boolean', default: false },
+        company: { type: 'string', enum: ['ac', 'gbc', 'none'], default: 'ac', description: 'Only used when mode=structure. Ask which one the client wants.' },
+        trust: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a Trust wrapper? Pass true/false based on their actual answer.' },
+        cis: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a CIS (Protected Cell Company)? Pass true/false based on their actual answer.' },
+        nominee: { type: 'boolean', default: true, description: 'Only relevant when company=ac. Nominee shareholder is an OPTIONAL add-on (the client can hold the shares directly instead) — ask before assuming it should be included, even though it defaults to true to match historical proposals.' },
         currency: { type: 'string', enum: ['USD', 'EUR'], default: 'USD' },
       },
     },
   },
   {
     name: 'create_proposal',
-    description: 'Generates a full Aurevya Wealth proposal (PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download. Handles any combination of Authorised Company / GBC / none + Trust + CIS, or the MFO / Fund Luxembourg / Accounting-only templates. Returns a download link for the PDF (valid for 1 hour) — share that link with the user so they can click it to download.',
+    description: 'Generates a full Aurevya Wealth proposal (PDF) by driving the real proposal-generator tool headlessly — identical output to a staff member filling in the sidebar by hand and clicking Download. Handles any combination of Authorised Company / GBC / none + Trust + CIS + Nominee shareholder, or the MFO / Fund Luxembourg / Accounting-only templates. Returns a download link for the PDF (valid for 1 hour) plus a "selections" object showing exactly what was applied inside the generator — read that back to the client before sharing the link, to confirm nothing was dropped or defaulted incorrectly. IMPORTANT: before calling this, explicitly ask the client (don\'t assume) whether they want a Trust, a CIS, and — if the company is an AC — a Nominee shareholder (an optional add-on; the client can hold shares directly instead). Pass trust/cis/nominee explicitly based on their actual answers; recommend running quote_proposal first with the same options to confirm the combination and fees look right before generating the final PDF.',
     inputSchema: {
       type: 'object',
       properties: {
         clientName: { type: 'string', description: 'e.g. "Mr. Peter Nguyen" — used in the document title and filename' },
         mode: { type: 'string', enum: ['structure', 'mfo', 'fundlux', 'accounting'], default: 'structure' },
-        company: { type: 'string', enum: ['ac', 'gbc', 'none'], default: 'ac', description: 'Only used when mode=structure' },
-        trust: { type: 'boolean', default: false },
-        cis: { type: 'boolean', default: false },
+        company: { type: 'string', enum: ['ac', 'gbc', 'none'], default: 'ac', description: 'Only used when mode=structure. Ask which one the client wants.' },
+        trust: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a Trust wrapper? Pass true/false based on their actual answer — never leave this out if they said yes.' },
+        cis: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a CIS (Protected Cell Company)? Pass true/false based on their actual answer.' },
+        nominee: { type: 'boolean', default: true, description: 'Only relevant when company=ac. Nominee shareholder is an OPTIONAL add-on — ask before assuming it should be included, even though it defaults to true to match historical proposals.' },
         cisCells: { type: 'number', description: 'Total CIS cells to show on the diagram (defaults to the standard 2 if cis=true)' },
         month: { type: 'number', description: '0-11, defaults to current month' },
         year: { type: 'number', description: 'defaults to current year' },
@@ -302,17 +304,19 @@ async function handle(sessionId, name, args) {
       const downloadUrl = `https://${domain}/files/${token}`;
       return ok({
         label: result.label,
+        selections: result.selections,
         filename: result.pdfFilename,
         downloadUrl,
-        note: 'Click the link to download the PDF (valid for 1 hour). Download it now — the link itself is not meant to be sent to the client.',
+        note: 'Before sharing the link, read "selections" back to the client to confirm it matches what they asked for (trust/cis/nominee/company) — click the link to download the PDF (valid for 1 hour).',
       });
     }
     // Local (stdio) mode: the file is genuinely on this machine's disk.
     return ok({
       label: result.label,
+      selections: result.selections,
       htmlPath: result.htmlPath,
       pdfPath: result.pdfPath,
-      note: 'Open the PDF to review before sending to the client.',
+      note: 'Confirm "selections" matches what the client asked for, then open the PDF to review before sending to the client.',
     });
   }
   if (name === 'list_generated_proposals') return ok(listGeneratedProposals(args.limit));

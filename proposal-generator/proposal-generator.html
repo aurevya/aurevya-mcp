@@ -513,6 +513,10 @@ table.deckfee tr.tot td{
           <input type="checkbox" id="fCis">
           <span>Add a CIS — Protected Cell Company<span class="d">Fund vehicle layered beneath the structure</span></span>
         </label>
+        <label class="checkline" id="fNomineeRow">
+          <input type="checkbox" id="fNominee" checked>
+          <span>Nominee shareholder (AC only)<span class="d">Optional add-on — untick if the client will hold the shares directly</span></span>
+        </label>
       </div>
       <div id="productBlurb" style="font-size:11px;color:#8D9AA5;line-height:1.45;margin-top:8px;"></div>
     </div>
@@ -965,7 +969,6 @@ const PRICEBOOK = {
       {t:'desc',l:'Registered agent'},{t:'desc',l:'Data Protection Officer'},
       {t:'item',l:'Bank account opening',v:7250},
       {t:'grp',l:'ACCOUNTING'},{t:'item',l:'Accounting',v:3000},
-      {t:'grp',l:'NOMINEE SHAREHOLDER'},{t:'item',l:'Nominee shareholder',v:2000},
       {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
       {t:'item',l:'FSC Processing Fee',v:600},{t:'item',l:'FSC Annual License Fee',v:1400},
       {t:'item',l:'Government Levy',v:100},{t:'item',l:'Data Protection fee',v:100}],
@@ -977,10 +980,15 @@ const PRICEBOOK = {
       {t:'desc',l:'Filing of returns with Revenue Authority'},
       {t:'item',l:'Filing of Financial Summary',v:7250},
       {t:'grp',l:'ACCOUNTING'},{t:'item',l:'Accounting',v:3000},
-      {t:'grp',l:'NOMINEE SHAREHOLDER'},{t:'item',l:'Nominee shareholder',v:2000},
       {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
       {t:'item',l:'FSC Annual License Fee',v:1400},{t:'item',l:'Government Levy',v:100},
       {t:'item',l:'Data protection fee',v:100}]},
+
+  /* optional add-on, AC only — split out so it can be switched off
+     per-proposal (fNominee checkbox / nominee param) instead of being
+     baked permanently into the AC price book */
+  nominee:{ setup:[{t:'grp',l:'NOMINEE SHAREHOLDER'},{t:'item',l:'Nominee shareholder',v:2000}],
+    fixed:[{t:'grp',l:'NOMINEE SHAREHOLDER'},{t:'item',l:'Nominee shareholder',v:2000}]},
 
   gbc:{ setup:[
       {t:'grp',l:'SET UP OF GLOBAL BUSINESS COMPANY (GBC)'},
@@ -1188,6 +1196,7 @@ function priceKeysFor(ent){
   const k=[];
   if(ent.trust)k.push('trust');
   if(ent.company!=='none')k.push(ent.company);
+  if(ent.company==='ac'&&ent.nominee)k.push('nominee');
   if(ent.cis)k.push('cis');
   return k;
 }
@@ -1327,7 +1336,7 @@ function currentSpec(){
 /* ═══════════════════════════════════════════════════════════════
    STATE + WIZARD
    ═══════════════════════════════════════════════════════════════ */
-let STATE={mode:'structure',entities:{company:'ac',trust:false,cis:false},fees:{setup:[],fixed:[]},sections:{},struct:{}};
+let STATE={mode:'structure',entities:{company:'ac',trust:false,cis:false,nominee:true},fees:{setup:[],fixed:[]},sections:{},struct:{}};
 
 function $(id){return document.getElementById(id);}
 function money(n,cur){
@@ -1345,6 +1354,7 @@ function initWizard(){
   $('fCompany').addEventListener('change',onModeOrEntityChange);
   $('fTrust').addEventListener('change',onModeOrEntityChange);
   $('fCis').addEventListener('change',onModeOrEntityChange);
+  $('fNominee').addEventListener('change',onModeOrEntityChange);
   $('fCurrency').addEventListener('change',()=>{renderFeeEditor();});
   onModeOrEntityChange();
 }
@@ -1357,10 +1367,13 @@ function onModeOrEntityChange(){
     STATE.entities.company=$('fCompany').value;
     STATE.entities.trust=$('fTrust').checked;
     STATE.entities.cis=$('fCis').checked;
+    STATE.entities.nominee=$('fNominee').checked;
     if(STATE.entities.company==='none'&&!STATE.entities.trust&&!STATE.entities.cis){
       /* never allow a completely empty structure — fall back to AC */
       STATE.entities.company='ac';$('fCompany').value='ac';
     }
+    const nomRow=$('fNomineeRow');
+    if(nomRow)nomRow.style.display=(STATE.entities.company==='ac')?'':'none';
   }
   const p=currentSpec();
   $('productBlurb').textContent=p.blurb;
