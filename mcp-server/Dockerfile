@@ -3,7 +3,7 @@
 # drive the real Proposal Generator headlessly. On Railway: set
 # "Root Directory" to wherever the repo checks out (usually blank/"/"),
 # and "Dockerfile Path" to mcp-server/Dockerfile.
-FROM node:20-slim
+FROM node:22-slim
 
 # Chromium's runtime libraries — Puppeteer's bundled Chromium won't launch
 # on a bare slim image without these.
