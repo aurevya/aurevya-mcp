@@ -1,0 +1,5 @@
+node_modules/
+*.pdf
+*.skill
+*.docx
+Generated Proposals/
