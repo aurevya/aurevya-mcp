@@ -24,7 +24,16 @@ async function withPage(fn) {
   if (!fs.existsSync(GENERATOR_PATH)) {
     throw new Error('Could not find proposal-generator.html at ' + GENERATOR_PATH);
   }
-  const browser = await puppeteer.launch({ headless: 'new' });
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    // Running as root inside the Railway/Docker container — Chromium's
+    // own sandbox refuses to start as root, so it's disabled here instead
+    // (safe: the only thing this browser ever loads is our own local
+    // proposal-generator.html, never arbitrary/untrusted pages).
+    // --disable-dev-shm-usage avoids crashes from Docker's small default
+    // /dev/shm size.
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
   try {
     const page = await browser.newPage();
     await page.goto(pathToFileURL(GENERATOR_PATH).href, { waitUntil: 'load' });
