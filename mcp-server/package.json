@@ -1,0 +1,22 @@
+{
+  "name": "aurevya-mcp",
+  "version": "1.0.0",
+  "description": "MCP server giving Aurevya Wealth staff Claude access to the client portal (clients, entities, invoices, KYC, compliance deadlines, messages) and the Proposal Generator, without opening a browser.",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "aurevya-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.0",
+    "@supabase/supabase-js": "^2.45.4",
+    "express": "^4.21.1",
+    "puppeteer": "^23.9.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

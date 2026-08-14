@@ -1,0 +1,1238 @@
+{
+  "named": {
+    "cover-photograph": "cover-photograph.png",
+    "contents-photograph": "contents-photograph.png",
+    "about-photograph": "about-photograph.png",
+    "whatwedo-private": "whatwedo-private.png",
+    "whatwedo-enterprise": "whatwedo-enterprise.png",
+    "whatwedo-institutions": "whatwedo-institutions.png",
+    "whatwedo-sovereigns": "whatwedo-sovereigns.png",
+    "whatwedo-extra": "whatwedo-extra.png",
+    "divider-photograph": "divider-photograph.png",
+    "structure-portrait": "structure-portrait.png",
+    "keyfeatures-photograph": "keyfeatures-photograph.png",
+    "leaf-plain": "leaf-plain.png",
+    "leaf-board": "leaf-board.png",
+    "leaf-accounting": "leaf-accounting.png",
+    "leaf-legal": "leaf-legal.png",
+    "leaf-compliance": "leaf-compliance.png",
+    "leaf-it": "leaf-it.png",
+    "leaf-concierge": "leaf-concierge.png",
+    "gbc-divider-photograph": "gbc-divider-photograph.png",
+    "gbc-cityscape": "gbc-cityscape.png",
+    "cis-divider-photograph": "cis-divider-photograph.png",
+    "trust-validity-photograph": "trust-validity-photograph.png"
+  },
+  "decks": {
+    "ac": {
+      "source": "C:\\Aurevya Portal\\AWL AI Automation\\Sample Proposals\\AWL_PROPOSAL_AC_20260805.pdf",
+      "pages": 23,
+      "images": [
+        {
+          "page": 1,
+          "index": 0,
+          "file": "cover-photograph.png",
+          "width": 702,
+          "height": 781,
+          "transparent": false
+        },
+        {
+          "page": 1,
+          "index": 1,
+          "file": "raw/ac/p01_1.png",
+          "width": 226,
+          "height": 198,
+          "transparent": true
+        },
+        {
+          "page": 3,
+          "index": 1,
+          "file": "contents-photograph.png",
+          "width": 638,
+          "height": 618,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 1,
+          "file": "about-photograph.png",
+          "width": 491,
+          "height": 288,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 2,
+          "file": "raw/ac/p06_2.png",
+          "width": 175,
+          "height": 153,
+          "transparent": true
+        },
+        {
+          "page": 7,
+          "index": 0,
+          "file": "whatwedo-private.png",
+          "width": 88,
+          "height": 77,
+          "transparent": true
+        },
+        {
+          "page": 7,
+          "index": 1,
+          "file": "whatwedo-enterprise.png",
+          "width": 254,
+          "height": 115,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 2,
+          "file": "whatwedo-institutions.png",
+          "width": 254,
+          "height": 115,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 3,
+          "file": "whatwedo-sovereigns.png",
+          "width": 254,
+          "height": 115,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 4,
+          "file": "whatwedo-extra.png",
+          "width": 254,
+          "height": 115,
+          "transparent": false
+        },
+        {
+          "page": 8,
+          "index": 0,
+          "file": "divider-photograph.png",
+          "width": 1537,
+          "height": 974,
+          "transparent": false
+        },
+        {
+          "page": 9,
+          "index": 1,
+          "file": "structure-portrait.png",
+          "width": 420,
+          "height": 778,
+          "transparent": false
+        },
+        {
+          "page": 10,
+          "index": 0,
+          "file": "raw/ac/p10_0.png",
+          "width": 1537,
+          "height": 974,
+          "transparent": false
+        },
+        {
+          "page": 11,
+          "index": 1,
+          "file": "keyfeatures-photograph.png",
+          "width": 853,
+          "height": 569,
+          "transparent": false
+        },
+        {
+          "page": 16,
+          "index": 2,
+          "file": "leaf-plain.png",
+          "width": 1397,
+          "height": 884,
+          "transparent": true
+        },
+        {
+          "page": 17,
+          "index": 1,
+          "file": "leaf-board.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 18,
+          "index": 1,
+          "file": "leaf-accounting.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 19,
+          "index": 1,
+          "file": "leaf-legal.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 20,
+          "index": 1,
+          "file": "leaf-compliance.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 21,
+          "index": 1,
+          "file": "leaf-it.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 21,
+          "index": 3,
+          "file": "raw/ac/p21_3.png",
+          "width": 238,
+          "height": 238,
+          "transparent": true
+        },
+        {
+          "page": 22,
+          "index": 1,
+          "file": "leaf-concierge.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 23,
+          "index": 2,
+          "file": "raw/ac/p23_2.png",
+          "width": 144,
+          "height": 127,
+          "transparent": true
+        }
+      ]
+    },
+    "gbc": {
+      "source": "C:\\Aurevya Portal\\AWL AI Automation\\Sample Proposals\\AUREVYA_WEALTH_PROPOSAL_GBC_20260805.pdf",
+      "pages": 25,
+      "images": [
+        {
+          "page": 1,
+          "index": 2,
+          "file": "raw/gbc/p01_2.png",
+          "width": 676,
+          "height": 752,
+          "transparent": false
+        },
+        {
+          "page": 2,
+          "index": 0,
+          "file": "raw/gbc/p02_0.png",
+          "width": 632,
+          "height": 612,
+          "transparent": false
+        },
+        {
+          "page": 5,
+          "index": 0,
+          "file": "raw/gbc/p05_0.png",
+          "width": 494,
+          "height": 291,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 1,
+          "file": "raw/gbc/p06_1.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 2,
+          "file": "raw/gbc/p06_2.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 3,
+          "file": "raw/gbc/p06_3.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 4,
+          "file": "raw/gbc/p06_4.png",
+          "width": 254,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 1,
+          "file": "raw/gbc/p07_1.png",
+          "width": 407,
+          "height": 751,
+          "transparent": false
+        },
+        {
+          "page": 8,
+          "index": 1,
+          "file": "gbc-divider-photograph.png",
+          "width": 1185,
+          "height": 751,
+          "transparent": false
+        },
+        {
+          "page": 9,
+          "index": 1,
+          "file": "raw/gbc/p09_1.png",
+          "width": 1093,
+          "height": 736,
+          "transparent": false
+        },
+        {
+          "page": 10,
+          "index": 1,
+          "file": "gbc-cityscape.png",
+          "width": 513,
+          "height": 523,
+          "transparent": false
+        },
+        {
+          "page": 16,
+          "index": 1,
+          "file": "raw/gbc/p16_1.png",
+          "width": 1182,
+          "height": 750,
+          "transparent": false
+        }
+      ]
+    },
+    "gbc_trust": {
+      "source": "C:\\Aurevya Portal\\AWL AI Automation\\Sample Proposals\\AUREVYA_WEALTH_PROPOSAL_GBC+TRUST_OPTION_A_20260729.pdf",
+      "pages": 29,
+      "images": [
+        {
+          "page": 1,
+          "index": 2,
+          "file": "raw/gbc_trust/p01_2.png",
+          "width": 676,
+          "height": 752,
+          "transparent": false
+        },
+        {
+          "page": 2,
+          "index": 1,
+          "file": "raw/gbc_trust/p02_1.png",
+          "width": 632,
+          "height": 612,
+          "transparent": false
+        },
+        {
+          "page": 5,
+          "index": 0,
+          "file": "raw/gbc_trust/p05_0.png",
+          "width": 494,
+          "height": 291,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 1,
+          "file": "raw/gbc_trust/p06_1.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 2,
+          "file": "raw/gbc_trust/p06_2.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 3,
+          "file": "raw/gbc_trust/p06_3.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 4,
+          "file": "raw/gbc_trust/p06_4.png",
+          "width": 254,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 1,
+          "file": "raw/gbc_trust/p07_1.png",
+          "width": 407,
+          "height": 751,
+          "transparent": false
+        },
+        {
+          "page": 8,
+          "index": 1,
+          "file": "raw/gbc_trust/p08_1.png",
+          "width": 527,
+          "height": 235,
+          "transparent": false
+        },
+        {
+          "page": 9,
+          "index": 1,
+          "file": "raw/gbc_trust/p09_1.png",
+          "width": 527,
+          "height": 234,
+          "transparent": false
+        },
+        {
+          "page": 10,
+          "index": 1,
+          "file": "raw/gbc_trust/p10_1.png",
+          "width": 527,
+          "height": 514,
+          "transparent": false
+        },
+        {
+          "page": 11,
+          "index": 1,
+          "file": "raw/gbc_trust/p11_1.png",
+          "width": 1185,
+          "height": 751,
+          "transparent": false
+        },
+        {
+          "page": 12,
+          "index": 1,
+          "file": "raw/gbc_trust/p12_1.png",
+          "width": 1093,
+          "height": 736,
+          "transparent": false
+        },
+        {
+          "page": 13,
+          "index": 1,
+          "file": "raw/gbc_trust/p13_1.png",
+          "width": 513,
+          "height": 523,
+          "transparent": false
+        },
+        {
+          "page": 20,
+          "index": 1,
+          "file": "raw/gbc_trust/p20_1.png",
+          "width": 1182,
+          "height": 750,
+          "transparent": false
+        }
+      ]
+    },
+    "trust_cis": {
+      "source": "C:\\Aurevya Portal\\AWL AI Automation\\Sample Proposals\\AUREVYA_WEALTH_TRUST+GBC+CIS(PCC)_DP_21052026.pdf",
+      "pages": 32,
+      "images": [
+        {
+          "page": 1,
+          "index": 1,
+          "file": "raw/trust_cis/p01_1.png",
+          "width": 676,
+          "height": 752,
+          "transparent": false
+        },
+        {
+          "page": 2,
+          "index": 1,
+          "file": "raw/trust_cis/p02_1.png",
+          "width": 632,
+          "height": 612,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 0,
+          "file": "raw/trust_cis/p06_0.png",
+          "width": 494,
+          "height": 291,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 1,
+          "file": "raw/trust_cis/p07_1.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 2,
+          "file": "raw/trust_cis/p07_2.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 3,
+          "file": "raw/trust_cis/p07_3.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 4,
+          "file": "raw/trust_cis/p07_4.png",
+          "width": 254,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 8,
+          "index": 1,
+          "file": "raw/trust_cis/p08_1.png",
+          "width": 407,
+          "height": 751,
+          "transparent": false
+        },
+        {
+          "page": 9,
+          "index": 0,
+          "file": "raw/trust_cis/p09_0.png",
+          "width": 1185,
+          "height": 751,
+          "transparent": false
+        },
+        {
+          "page": 10,
+          "index": 1,
+          "file": "raw/trust_cis/p10_1.png",
+          "width": 1093,
+          "height": 736,
+          "transparent": false
+        },
+        {
+          "page": 11,
+          "index": 1,
+          "file": "raw/trust_cis/p11_1.png",
+          "width": 513,
+          "height": 523,
+          "transparent": false
+        },
+        {
+          "page": 13,
+          "index": 0,
+          "file": "cis-divider-photograph.png",
+          "width": 1184,
+          "height": 752,
+          "transparent": false
+        },
+        {
+          "page": 16,
+          "index": 1,
+          "file": "raw/trust_cis/p16_1.png",
+          "width": 527,
+          "height": 235,
+          "transparent": false
+        },
+        {
+          "page": 17,
+          "index": 1,
+          "file": "raw/trust_cis/p17_1.png",
+          "width": 527,
+          "height": 234,
+          "transparent": false
+        },
+        {
+          "page": 18,
+          "index": 1,
+          "file": "trust-validity-photograph.png",
+          "width": 527,
+          "height": 514,
+          "transparent": false
+        },
+        {
+          "page": 23,
+          "index": 1,
+          "file": "raw/trust_cis/p23_1.png",
+          "width": 1182,
+          "height": 750,
+          "transparent": false
+        }
+      ]
+    },
+    "mfo": {
+      "source": "C:\\Aurevya Portal\\AWL AI Automation\\Sample Proposals\\20260610_AWL_PROPOSAL_MFO_MB.pdf",
+      "pages": 66,
+      "images": [
+        {
+          "page": 1,
+          "index": 0,
+          "file": "raw/mfo/p01_0.png",
+          "width": 163,
+          "height": 150,
+          "transparent": false
+        },
+        {
+          "page": 1,
+          "index": 1,
+          "file": "raw/mfo/p01_1.png",
+          "width": 1351,
+          "height": 1503,
+          "transparent": false
+        },
+        {
+          "page": 2,
+          "index": 0,
+          "file": "raw/mfo/p02_0.png",
+          "width": 1263,
+          "height": 1223,
+          "transparent": false
+        },
+        {
+          "page": 4,
+          "index": 0,
+          "file": "raw/mfo/p04_0.png",
+          "width": 8000,
+          "height": 4500,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 0,
+          "file": "raw/mfo/p06_0.png",
+          "width": 513,
+          "height": 236,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 1,
+          "file": "raw/mfo/p06_1.png",
+          "width": 507,
+          "height": 236,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 2,
+          "file": "raw/mfo/p06_2.png",
+          "width": 510,
+          "height": 232,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 3,
+          "file": "raw/mfo/p06_3.png",
+          "width": 507,
+          "height": 236,
+          "transparent": false
+        },
+        {
+          "page": 8,
+          "index": 0,
+          "file": "raw/mfo/p08_0.png",
+          "width": 597,
+          "height": 1030,
+          "transparent": false
+        },
+        {
+          "page": 9,
+          "index": 0,
+          "file": "raw/mfo/p09_0.png",
+          "width": 2369,
+          "height": 1503,
+          "transparent": false
+        },
+        {
+          "page": 10,
+          "index": 0,
+          "file": "raw/mfo/p10_0.png",
+          "width": 1014,
+          "height": 1043,
+          "transparent": false
+        },
+        {
+          "page": 11,
+          "index": 0,
+          "file": "raw/mfo/p11_0.png",
+          "width": 1558,
+          "height": 1046,
+          "transparent": false
+        },
+        {
+          "page": 12,
+          "index": 0,
+          "file": "raw/mfo/p12_0.png",
+          "width": 1018,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 13,
+          "index": 0,
+          "file": "raw/mfo/p13_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 14,
+          "index": 0,
+          "file": "raw/mfo/p14_0.png",
+          "width": 1018,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 15,
+          "index": 0,
+          "file": "raw/mfo/p15_0.png",
+          "width": 1554,
+          "height": 1046,
+          "transparent": false
+        },
+        {
+          "page": 16,
+          "index": 0,
+          "file": "raw/mfo/p16_0.png",
+          "width": 1004,
+          "height": 1046,
+          "transparent": false
+        },
+        {
+          "page": 17,
+          "index": 0,
+          "file": "raw/mfo/p17_0.png",
+          "width": 1554,
+          "height": 1043,
+          "transparent": false
+        },
+        {
+          "page": 19,
+          "index": 0,
+          "file": "raw/mfo/p19_0.png",
+          "width": 1554,
+          "height": 1045,
+          "transparent": false
+        },
+        {
+          "page": 21,
+          "index": 0,
+          "file": "raw/mfo/p21_0.png",
+          "width": 1553,
+          "height": 1045,
+          "transparent": false
+        },
+        {
+          "page": 24,
+          "index": 0,
+          "file": "raw/mfo/p24_0.png",
+          "width": 1553,
+          "height": 1046,
+          "transparent": false
+        },
+        {
+          "page": 25,
+          "index": 0,
+          "file": "raw/mfo/p25_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 26,
+          "index": 0,
+          "file": "raw/mfo/p26_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 27,
+          "index": 0,
+          "file": "raw/mfo/p27_0.png",
+          "width": 1554,
+          "height": 1046,
+          "transparent": false
+        },
+        {
+          "page": 28,
+          "index": 0,
+          "file": "raw/mfo/p28_0.png",
+          "width": 1026,
+          "height": 1039,
+          "transparent": false
+        },
+        {
+          "page": 29,
+          "index": 0,
+          "file": "raw/mfo/p29_0.png",
+          "width": 1026,
+          "height": 1041,
+          "transparent": false
+        },
+        {
+          "page": 30,
+          "index": 0,
+          "file": "raw/mfo/p30_0.png",
+          "width": 1553,
+          "height": 1046,
+          "transparent": false
+        },
+        {
+          "page": 31,
+          "index": 0,
+          "file": "raw/mfo/p31_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 32,
+          "index": 0,
+          "file": "raw/mfo/p32_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 33,
+          "index": 0,
+          "file": "raw/mfo/p33_0.png",
+          "width": 1554,
+          "height": 1009,
+          "transparent": false
+        },
+        {
+          "page": 34,
+          "index": 0,
+          "file": "raw/mfo/p34_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 35,
+          "index": 0,
+          "file": "raw/mfo/p35_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 36,
+          "index": 0,
+          "file": "raw/mfo/p36_0.png",
+          "width": 1554,
+          "height": 1046,
+          "transparent": false
+        },
+        {
+          "page": 37,
+          "index": 0,
+          "file": "raw/mfo/p37_0.png",
+          "width": 1026,
+          "height": 975,
+          "transparent": false
+        },
+        {
+          "page": 38,
+          "index": 0,
+          "file": "raw/mfo/p38_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 39,
+          "index": 0,
+          "file": "raw/mfo/p39_0.png",
+          "width": 1553,
+          "height": 1046,
+          "transparent": false
+        },
+        {
+          "page": 40,
+          "index": 0,
+          "file": "raw/mfo/p40_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 41,
+          "index": 0,
+          "file": "raw/mfo/p41_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 42,
+          "index": 0,
+          "file": "raw/mfo/p42_0.png",
+          "width": 1551,
+          "height": 1046,
+          "transparent": false
+        },
+        {
+          "page": 43,
+          "index": 0,
+          "file": "raw/mfo/p43_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 44,
+          "index": 0,
+          "file": "raw/mfo/p44_0.png",
+          "width": 1554,
+          "height": 1041,
+          "transparent": false
+        },
+        {
+          "page": 45,
+          "index": 0,
+          "file": "raw/mfo/p45_0.png",
+          "width": 1026,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 46,
+          "index": 0,
+          "file": "raw/mfo/p46_0.png",
+          "width": 2077,
+          "height": 1504,
+          "transparent": false
+        },
+        {
+          "page": 47,
+          "index": 0,
+          "file": "raw/mfo/p47_0.png",
+          "width": 1553,
+          "height": 1040,
+          "transparent": false
+        },
+        {
+          "page": 48,
+          "index": 0,
+          "file": "raw/mfo/p48_0.png",
+          "width": 1026,
+          "height": 1043,
+          "transparent": false
+        },
+        {
+          "page": 54,
+          "index": 0,
+          "file": "raw/mfo/p54_0.png",
+          "width": 2363,
+          "height": 1499,
+          "transparent": false
+        },
+        {
+          "page": 66,
+          "index": 0,
+          "file": "raw/mfo/p66_0.png",
+          "width": 107,
+          "height": 99,
+          "transparent": false
+        }
+      ]
+    },
+    "fund_lux": {
+      "source": "C:\\Aurevya Portal\\AWL AI Automation\\Sample Proposals\\AUREVYA_FUND_LUXEMBOURG_19052026.pdf",
+      "pages": 29,
+      "images": [
+        {
+          "page": 1,
+          "index": 2,
+          "file": "raw/fund_lux/p01_2.png",
+          "width": 676,
+          "height": 752,
+          "transparent": false
+        },
+        {
+          "page": 2,
+          "index": 1,
+          "file": "raw/fund_lux/p02_1.png",
+          "width": 632,
+          "height": 612,
+          "transparent": false
+        },
+        {
+          "page": 4,
+          "index": 0,
+          "file": "raw/fund_lux/p04_0.png",
+          "width": 494,
+          "height": 291,
+          "transparent": false
+        },
+        {
+          "page": 5,
+          "index": 1,
+          "file": "raw/fund_lux/p05_1.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 5,
+          "index": 2,
+          "file": "raw/fund_lux/p05_2.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 5,
+          "index": 3,
+          "file": "raw/fund_lux/p05_3.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 5,
+          "index": 4,
+          "file": "raw/fund_lux/p05_4.png",
+          "width": 254,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 1,
+          "file": "raw/fund_lux/p06_1.png",
+          "width": 407,
+          "height": 751,
+          "transparent": false
+        },
+        {
+          "page": 7,
+          "index": 1,
+          "file": "raw/fund_lux/p07_1.png",
+          "width": 407,
+          "height": 751,
+          "transparent": false
+        },
+        {
+          "page": 8,
+          "index": 1,
+          "file": "raw/fund_lux/p08_1.png",
+          "width": 927,
+          "height": 618,
+          "transparent": false
+        },
+        {
+          "page": 9,
+          "index": 1,
+          "file": "raw/fund_lux/p09_1.png",
+          "width": 938,
+          "height": 626,
+          "transparent": false
+        },
+        {
+          "page": 10,
+          "index": 1,
+          "file": "raw/fund_lux/p10_1.png",
+          "width": 860,
+          "height": 555,
+          "transparent": false
+        },
+        {
+          "page": 11,
+          "index": 0,
+          "file": "raw/fund_lux/p11_0.png",
+          "width": 1541,
+          "height": 978,
+          "transparent": false
+        },
+        {
+          "page": 13,
+          "index": 1,
+          "file": "raw/fund_lux/p13_1.png",
+          "width": 512,
+          "height": 489,
+          "transparent": false
+        },
+        {
+          "page": 14,
+          "index": 1,
+          "file": "raw/fund_lux/p14_1.png",
+          "width": 512,
+          "height": 489,
+          "transparent": false
+        },
+        {
+          "page": 19,
+          "index": 1,
+          "file": "raw/fund_lux/p19_1.png",
+          "width": 1182,
+          "height": 750,
+          "transparent": false
+        },
+        {
+          "page": 21,
+          "index": 1,
+          "file": "raw/fund_lux/p21_1.png",
+          "width": 110,
+          "height": 108,
+          "transparent": true
+        },
+        {
+          "page": 21,
+          "index": 2,
+          "file": "raw/fund_lux/p21_2.png",
+          "width": 98,
+          "height": 98,
+          "transparent": true
+        },
+        {
+          "page": 23,
+          "index": 1,
+          "file": "raw/fund_lux/p23_1.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 24,
+          "index": 1,
+          "file": "raw/fund_lux/p24_1.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 25,
+          "index": 1,
+          "file": "raw/fund_lux/p25_1.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 25,
+          "index": 3,
+          "file": "raw/fund_lux/p25_3.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 26,
+          "index": 2,
+          "file": "raw/fund_lux/p26_2.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 27,
+          "index": 2,
+          "file": "raw/fund_lux/p27_2.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        },
+        {
+          "page": 27,
+          "index": 4,
+          "file": "raw/fund_lux/p27_4.png",
+          "width": 238,
+          "height": 238,
+          "transparent": true
+        },
+        {
+          "page": 28,
+          "index": 2,
+          "file": "raw/fund_lux/p28_2.png",
+          "width": 851,
+          "height": 538,
+          "transparent": true
+        }
+      ]
+    },
+    "accounting": {
+      "source": "C:\\Aurevya Portal\\AWL AI Automation\\Sample Proposals\\AUREVYA_WEALTH_PROPOSAL_ACCOUNTING_SERVICES.pdf",
+      "pages": 12,
+      "images": [
+        {
+          "page": 1,
+          "index": 2,
+          "file": "raw/accounting/p01_2.png",
+          "width": 676,
+          "height": 752,
+          "transparent": false
+        },
+        {
+          "page": 2,
+          "index": 1,
+          "file": "raw/accounting/p02_1.png",
+          "width": 632,
+          "height": 612,
+          "transparent": false
+        },
+        {
+          "page": 5,
+          "index": 0,
+          "file": "raw/accounting/p05_0.png",
+          "width": 494,
+          "height": 291,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 1,
+          "file": "raw/accounting/p06_1.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 2,
+          "file": "raw/accounting/p06_2.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 3,
+          "file": "raw/accounting/p06_3.png",
+          "width": 257,
+          "height": 118,
+          "transparent": false
+        },
+        {
+          "page": 6,
+          "index": 4,
+          "file": "raw/accounting/p06_4.png",
+          "width": 254,
+          "height": 118,
+          "transparent": false
+        }
+      ]
+    }
+  }
+}

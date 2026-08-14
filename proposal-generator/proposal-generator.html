@@ -1,0 +1,2714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aurevya Wealth — Proposal Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   AUREVYA WEALTH — DESIGN TOKENS
+   Derived from the sample proposal decks.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --plum:#2A0A2E;          /* cover / divider / back-cover panel */
+  --plum-deep:#1E0722;
+  --gold:#C9A84C;          /* headings, rules, accents */
+  --gold-bar:#B8983F;      /* fee-table header bar */
+  --gold-pale:#E8D9A8;
+  --navy:#2B3E50;          /* body headings */
+  --slate:#4E6679;         /* body copy */
+  --hair:#D8DEE3;          /* hairline rules */
+  --paper:#FFFFFF;
+  --paper-alt:#F4F4F2;     /* disclaimer page bg */
+
+  --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --sans:'Jost','Avenir Next',Avenir,'Segoe UI',Helvetica,Arial,sans-serif;
+
+  /* Page geometry — landscape deck */
+  --pw:297mm;
+  --ph:186mm;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  background:#E9EBED;
+  color:var(--navy);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APP CHROME  (hidden when printing)
+   ═══════════════════════════════════════════════════════════════ */
+#app{display:flex;min-height:100vh;}
+
+#sidebar{
+  width:390px;flex-shrink:0;background:#fff;border-right:1px solid #D5D9DD;
+  height:100vh;overflow-y:auto;position:sticky;top:0;
+}
+#sidebar header{
+  background:var(--plum);color:#fff;padding:18px 20px;
+}
+#sidebar header .logo{
+  font-family:var(--serif);font-size:26px;letter-spacing:.02em;color:#fff;line-height:1;
+}
+#sidebar header .logo span{color:var(--gold);}
+#sidebar header .sub{
+  font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-top:5px;
+}
+.panel{padding:16px 20px;border-bottom:1px solid #E6E9EC;}
+.panel h3{
+  font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+  margin:0 0 12px;font-weight:600;
+}
+label.f{display:block;margin-bottom:12px;}
+label.f > span{
+  display:block;font-size:11px;font-weight:500;color:var(--navy);margin-bottom:4px;
+}
+label.f > span .hint{font-weight:400;color:#9AA7B2;font-size:10px;}
+input[type=text],input[type=number],select,textarea{
+  width:100%;padding:8px 10px;border:1px solid #CDD4DA;border-radius:5px;
+  font-family:var(--sans);font-size:13px;color:var(--navy);background:#fff;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,168,76,.45);border-color:var(--gold);}
+textarea{min-height:60px;resize:vertical;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+
+.checkline{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:12px;color:var(--navy);}
+.checkline input{margin-top:2px;flex-shrink:0;}
+.checkline .d{display:block;color:#94A3AE;font-size:10.5px;margin-top:1px;}
+
+button.primary{
+  width:100%;padding:11px;background:var(--plum);color:#fff;border:none;border-radius:6px;
+  font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:.04em;cursor:pointer;
+}
+button.primary:hover{background:#3D1142;}
+button.ghost{
+  width:100%;padding:9px;background:#fff;color:var(--navy);border:1px solid #CDD4DA;
+  border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;margin-top:8px;
+}
+button.ghost:hover{border-color:var(--gold);color:var(--gold);}
+
+/* fee editor */
+table.fees{width:100%;border-collapse:collapse;font-size:11.5px;}
+table.fees th{
+  text-align:left;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:#94A3AE;font-weight:600;padding:4px 3px;border-bottom:1px solid #E6E9EC;
+}
+table.fees td{padding:2px 3px;vertical-align:middle;}
+table.fees td.grp{
+  font-weight:600;color:var(--gold);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;padding-top:9px;
+}
+table.fees input[type=number]{padding:4px 6px;font-size:11.5px;text-align:right;}
+table.fees input[type=text]{padding:4px 6px;font-size:11.5px;}
+.feetot{
+  display:flex;justify-content:space-between;font-size:12px;font-weight:700;
+  color:var(--navy);border-top:2px solid var(--gold);margin-top:8px;padding-top:6px;
+}
+
+/* preview area */
+#preview{flex:1;padding:26px;overflow-y:auto;height:100vh;}
+#previewInner{max-width:1180px;margin:0 auto;}
+.emptyState{
+  text-align:center;color:#8D9AA5;padding:90px 20px;font-size:14px;
+}
+.emptyState .big{font-size:44px;margin-bottom:14px;opacity:.35;}
+
+/* ═══════════════════════════════════════════════════════════════
+   THE DECK — page primitives
+   ═══════════════════════════════════════════════════════════════ */
+.page{
+  width:var(--pw);height:var(--ph);background:var(--paper);
+  margin:0 auto 22px;position:relative;overflow:hidden;
+  box-shadow:0 3px 16px rgba(0,0,0,.14);
+  page-break-after:always;break-after:page;
+}
+.page:last-child{page-break-after:auto;break-after:auto;}
+
+/* running footer */
+.pfoot{
+  position:absolute;left:0;right:0;bottom:6mm;
+  display:flex;align-items:center;padding:0 10mm;
+  font-size:5.6pt;letter-spacing:.09em;text-transform:uppercase;
+}
+.pfoot .l{color:var(--gold);flex:0 0 auto;}
+.pfoot .c{flex:1;text-align:center;color:var(--slate);}
+.pfoot .r{color:var(--slate);flex:0 0 auto;}
+.pfoot .n{color:var(--gold);margin-left:9mm;flex:0 0 auto;font-weight:600;}
+.page.dark .pfoot .c,.page.dark .pfoot .r{color:rgba(255,255,255,.55);}
+
+/* crest */
+.crest{position:absolute;top:8mm;right:10mm;text-align:center;}
+.logoimg{max-width:32mm;object-fit:contain;}
+.crest .mk{font-family:var(--serif);font-size:15pt;color:var(--navy);line-height:.95;letter-spacing:.01em;}
+.crest .wm{font-size:4.4pt;letter-spacing:.42em;color:var(--slate);margin-top:1px;}
+.page.dark .crest .mk{color:#fff;}
+.page.dark .crest .wm{color:var(--gold);}
+.crest .orn{color:var(--gold);font-size:9pt;line-height:1;margin-bottom:1px;}
+
+/* page titles */
+h1.ptitle{
+  font-family:var(--serif);font-size:27pt;font-weight:400;color:var(--gold);
+  margin:0;line-height:1.02;letter-spacing:.005em;
+}
+h1.ptitle em{font-style:italic;}
+.psub{
+  font-family:var(--serif);font-size:16pt;color:var(--navy);font-weight:400;
+  margin-top:1mm;line-height:1.1;
+}
+.peyebrow{
+  font-size:6.4pt;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);
+  margin-bottom:1.5mm;
+}
+.plead{
+  font-size:9.2pt;color:var(--gold);margin-top:3mm;line-height:1.4;
+}
+.pbody{padding:12mm 10mm 14mm;height:100%;display:flex;flex-direction:column;}
+
+/* generic column grid */
+.cols{display:grid;gap:6mm;margin-top:6mm;}
+.cols.c2{grid-template-columns:repeat(2,1fr);}
+.cols.c3{grid-template-columns:repeat(3,1fr);}
+.cols.c4{grid-template-columns:repeat(4,1fr);}
+.col h4{
+  font-size:7.6pt;font-weight:600;letter-spacing:.055em;text-transform:uppercase;
+  color:var(--gold);margin:0 0 1.6mm;line-height:1.25;
+}
+.col h4.navy{color:var(--navy);}
+.col h4.ruled{border-bottom:.7px solid var(--gold);padding-bottom:1.4mm;margin-bottom:2.4mm;}
+.col p{font-size:7.4pt;line-height:1.44;color:var(--slate);margin:0 0 2.4mm;}
+.col ul{margin:0 0 2.6mm;padding-left:3.4mm;}
+.col li{font-size:7.4pt;line-height:1.42;color:var(--slate);margin-bottom:1.1mm;}
+.col .term{font-size:7.4pt;font-weight:600;color:var(--navy);margin-bottom:.5mm;}
+.col .def{font-size:7.1pt;line-height:1.36;color:var(--slate);margin-bottom:2.6mm;}
+
+/* Image slot.
+   The real photograph is layered ON TOP of a tonal gradient. If the asset
+   file is missing the url() simply fails and the gradient shows through —
+   so the deck degrades gracefully instead of showing broken images. */
+.imgslot{
+  background-color:#241028;
+  background-image:linear-gradient(150deg,#3E2436 0%,#241028 55%,#160A1C 100%);
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  position:relative;overflow:hidden;
+}
+.imgslot.light{
+  background-color:#C6CFD6;
+  background-image:linear-gradient(150deg,#DDE3E7 0%,#C6CFD6 100%);
+}
+/* slot label only shows while the real image is absent */
+.imgslot::after{
+  content:attr(data-slot);position:absolute;left:0;right:0;bottom:3mm;text-align:center;
+  font-size:4.6pt;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.16);
+}
+.imgslot.light::after{color:rgba(0,0,0,.13);}
+.imgslot.hasimg::after{display:none;}
+
+/* "contain" variant — for logos and the leaf wheel, which must not crop */
+.imgslot.contain{
+  background-size:contain;background-color:transparent;background-image:none;
+}
+.imgslot.contain::after{display:none;}
+
+/* ── COVER ─────────────────────────────────────────────── */
+.cover{display:grid;grid-template-columns:63% 37%;height:100%;}
+.cover .art{position:relative;}
+.cover .art .tag{
+  position:absolute;left:9mm;bottom:9mm;color:#fff;font-family:var(--serif);
+  font-size:13.5pt;font-weight:300;letter-spacing:.01em;
+}
+.cover .pane{
+  background:var(--plum);color:#fff;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:12mm 9mm;position:relative;
+}
+.cover .pane .mark{margin-bottom:11mm;}
+.cover .pane .mark .orn{color:var(--gold);font-size:19pt;line-height:1;}
+.cover .pane .mark .nm{font-family:var(--serif);font-size:31pt;color:#fff;line-height:.95;margin-top:1mm;}
+.cover .pane .mark .wm{font-size:6pt;letter-spacing:.52em;color:#fff;margin-top:1.5mm;}
+.cover .pane .t1{font-size:13pt;font-weight:300;line-height:1.32;}
+.cover .pane .t2{font-size:13pt;font-weight:600;line-height:1.32;}
+.cover .pane .rule{width:22mm;height:.8px;background:var(--gold);margin:6mm auto;}
+.cover .pane .pf{font-size:8.4pt;font-weight:300;margin-bottom:1mm;}
+.cover .pane .cn{font-size:11pt;font-weight:600;}
+.cover .pane .dt{font-size:8.6pt;font-weight:300;margin-top:6mm;}
+.cover .pane .ent{
+  position:absolute;right:8mm;bottom:7mm;font-size:5.2pt;letter-spacing:.08em;color:rgba(255,255,255,.85);
+}
+.cover .pane .ent b{font-weight:600;}
+
+/* ── SECTION DIVIDER ───────────────────────────────────── */
+.divider{position:relative;height:100%;display:flex;align-items:center;}
+.divider .dtitle{
+  position:relative;z-index:2;margin-left:auto;margin-right:14mm;text-align:left;max-width:46%;
+}
+.divider .dtitle h2{
+  font-family:var(--serif);font-size:33pt;font-weight:400;color:#fff;line-height:1.04;margin:0;
+}
+.divider .dtitle .ds{
+  font-size:7.4pt;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-top:3mm;
+}
+.divider .dtitle .drule{width:26mm;height:.8px;background:var(--gold);margin:3mm 0;}
+
+/* ── CONTENTS ──────────────────────────────────────────── */
+.contents{display:grid;grid-template-columns:52% 48%;height:100%;}
+.contents .list{padding:14mm 11mm 14mm 10mm;display:flex;flex-direction:column;justify-content:center;}
+.toc{margin-top:7mm;}
+.toc .ti{
+  display:flex;align-items:baseline;justify-content:space-between;gap:4mm;
+  border-bottom:.6px solid var(--hair);padding:2.6mm 0;
+}
+.toc .ti .tt{font-family:var(--serif);font-size:12pt;color:var(--navy);}
+.toc .ti .tn{font-family:var(--serif);font-size:12pt;color:var(--gold);}
+
+/* ── DISCLAIMER ────────────────────────────────────────── */
+.disclaimerbox{
+  border:1px solid var(--gold);padding:6mm 7mm;margin-top:auto;
+}
+.disclaimerbox h4{
+  font-size:8pt;font-weight:600;color:var(--gold);margin:0 0 3mm;letter-spacing:.02em;
+}
+.disclaimerbox .dc{columns:2;column-gap:8mm;}
+.disclaimerbox p{
+  font-size:7.1pt;line-height:1.5;color:var(--slate);margin:0 0 2.6mm;text-align:justify;
+}
+
+/* ── STRUCTURE DIAGRAM ─────────────────────────────────── */
+.structpage{display:grid;grid-template-columns:32% 68%;height:100%;}
+.structpage .lp{
+  background:var(--plum);position:relative;padding:12mm 8mm;
+}
+.structpage .lp h2{
+  font-family:var(--serif);font-size:23pt;color:var(--gold);font-weight:400;line-height:1.05;margin:0;
+}
+.structpage .lp .ss{
+  font-size:6.6pt;letter-spacing:.19em;text-transform:uppercase;color:#fff;margin-top:2.5mm;
+}
+.structpage .lp .aw{
+  position:absolute;left:8mm;bottom:8mm;font-size:5.2pt;letter-spacing:.16em;color:rgba(255,255,255,.75);
+}
+.structpage .rp{padding:14mm 12mm;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+
+.diagram{width:100%;display:flex;flex-direction:column;align-items:center;gap:0;}
+.dgrow{display:flex;align-items:stretch;justify-content:center;gap:7mm;width:100%;}
+.node{
+  border:.9px solid var(--navy);background:#fff;color:var(--navy);
+  padding:3.4mm 5mm;text-align:center;font-size:8pt;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;line-height:1.22;min-width:38mm;
+  display:flex;align-items:center;justify-content:center;
+}
+.node.filled{background:var(--gold-bar);border-color:var(--gold-bar);color:#fff;}
+.node.plain{border:none;background:none;font-weight:600;padding:1mm 2mm;}
+.node .cap{
+  display:block;font-family:var(--serif);font-style:italic;font-size:7.4pt;
+  font-weight:400;text-transform:none;letter-spacing:0;color:var(--slate);margin-top:1.5mm;
+}
+.node.cell{padding:1.6mm 2mm;font-size:6.2pt;min-width:0;}
+.dragnode{user-select:none;}
+.dragnode:active{cursor:grabbing !important;}
+
+/* on-canvas "add" toolbar — screen-editing only, never in the PDF or
+   the downloaded HTML (see .noprint / downloadHTML()) */
+.structToolbar{position:absolute;top:0;left:0;display:flex;gap:1.5mm;z-index:5;}
+.structAddBtn{
+  font-family:var(--sans);font-size:5.6pt;font-weight:600;letter-spacing:.03em;
+  color:var(--navy);background:#fff;border:.8px solid var(--gold);border-radius:20px;
+  padding:1.4mm 3mm 1.4mm 2.2mm;cursor:pointer;display:flex;align-items:center;gap:1mm;
+  box-shadow:0 1px 3px rgba(0,0,0,.14);white-space:nowrap;
+}
+.structAddBtn:hover{background:var(--gold);color:#fff;}
+.structAddBtn .plus{font-size:8pt;font-weight:700;line-height:1;}
+
+/* on-canvas delete badge — same screen-only, never-in-the-PDF treatment
+   as the add toolbar above */
+.nodeDelBtn{
+  position:absolute;width:5.2mm;height:5.2mm;border-radius:50%;
+  border:.8px solid var(--gold);background:#fff;color:var(--navy);
+  font-size:6pt;line-height:1;cursor:pointer;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);z-index:6;
+}
+.nodeDelBtn:hover{background:#B23B3B;border-color:#B23B3B;color:#fff;}
+.nodewrap{display:flex;flex-direction:column;align-items:center;}
+.nodecap{
+  font-family:var(--serif);font-style:italic;font-size:8pt;color:var(--navy);margin-top:2mm;
+}
+.personicon{
+  width:13mm;height:13mm;border:.9px solid var(--gold);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;margin-bottom:3mm;color:var(--gold);font-size:13pt;
+}
+.connector{display:flex;flex-direction:column;align-items:center;position:relative;height:16mm;justify-content:center;}
+.connector .ln{width:.9px;background:var(--navy);flex:1;}
+.connector .ar{
+  width:0;height:0;border-left:1.5mm solid transparent;border-right:1.5mm solid transparent;
+  border-top:2.4mm solid var(--navy);
+}
+.connector .lb{
+  position:absolute;left:calc(50% + 3mm);top:50%;transform:translateY(-50%);
+  font-family:var(--serif);font-style:italic;font-size:10pt;font-weight:600;color:var(--gold);white-space:nowrap;
+}
+.hbar{height:.9px;background:var(--navy);width:100%;}
+.hbarwrap{width:100%;display:flex;flex-direction:column;align-items:center;}
+.harrow{display:flex;align-items:center;gap:2mm;margin:4mm 0;}
+.harrow .hl{height:.9px;background:var(--navy);width:26mm;}
+.harrow .hr{
+  width:0;height:0;border-top:1.5mm solid transparent;border-bottom:1.5mm solid transparent;
+  border-left:2.4mm solid var(--navy);
+}
+.harrow .hlbl{
+  font-family:var(--serif);font-style:italic;font-size:7.6pt;color:var(--navy);text-align:center;line-height:1.2;
+}
+.dgnote{
+  font-size:6.4pt;color:var(--slate);font-style:italic;margin-top:7mm;text-align:center;max-width:80%;line-height:1.4;
+}
+
+/* ── DOCUMENTATION PROCESS ─────────────────────────────── */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:5mm;margin-top:5mm;flex:1;}
+.step .sn{
+  font-family:var(--serif);font-size:23pt;color:var(--gold);font-weight:400;line-height:1;margin-bottom:2.5mm;
+}
+.step .sh{
+  font-size:7pt;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--navy);
+  border-top:.8px solid var(--gold);border-bottom:.8px solid var(--gold);
+  padding:2mm 0;margin-bottom:3mm;min-height:12mm;line-height:1.25;
+}
+.step ul{margin:0;padding:0;list-style:none;}
+.step li{font-size:6.6pt;line-height:1.38;color:var(--slate);margin-bottom:1.8mm;}
+
+/* ── FEE TABLE ─────────────────────────────────────────── */
+.feewrap{margin-top:6mm;width:64%;}
+table.deckfee{width:100%;border-collapse:collapse;}
+table.deckfee thead th{
+  background:var(--gold-bar);color:#fff;font-size:7.4pt;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;padding:2.6mm 3.5mm;text-align:left;
+}
+table.deckfee thead th.r{text-align:right;}
+table.deckfee td{padding:1.1mm 3.5mm;font-size:7.6pt;color:var(--navy);vertical-align:middle;}
+table.deckfee td.r{text-align:right;white-space:nowrap;}
+table.deckfee tr.grp td{
+  color:var(--gold);font-weight:600;font-size:7.4pt;letter-spacing:.05em;
+  text-transform:uppercase;padding-top:3.4mm;
+}
+table.deckfee tr.rule td{border-bottom:.6px solid var(--hair);}
+table.deckfee tr.tot td{
+  border-top:.9px solid var(--gold);border-bottom:.9px solid var(--gold);
+  font-weight:700;font-size:8.4pt;padding-top:2.2mm;padding-bottom:2.2mm;
+}
+.feenote{font-size:6.2pt;color:var(--slate);font-style:italic;line-height:1.45;margin-top:3.5mm;width:64%;}
+
+/* ── SERVICE PAGES (leaf wheel) ────────────────────────── */
+.svcpage{display:grid;grid-template-columns:1fr 30%;height:100%;gap:6mm;}
+.leafwheel{position:relative;align-self:center;}
+.leafwheel .lf{
+  font-size:5pt;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+  color:#fff;text-align:center;line-height:1.15;padding:2mm 2.5mm;border-radius:50% 8% 50% 8%;
+  background:linear-gradient(135deg,#D9BE6A,#B8983F);margin-bottom:2.5mm;
+}
+.leafwheel .lf.on{background:linear-gradient(135deg,#7A2E2E,#4E1A1A);}
+
+/* ── BACK COVER ────────────────────────────────────────── */
+.backcover{background:var(--plum);height:100%;padding:16mm 12mm;color:#fff;position:relative;}
+.backcover .bt{font-size:13pt;font-weight:300;line-height:1.35;}
+.backcover .bt b{font-weight:600;}
+.backcover .bm{position:absolute;left:12mm;bottom:34mm;}
+.backcover .bm .orn{color:var(--gold);font-size:15pt;line-height:1;}
+.backcover .bm .nm{font-family:var(--serif);font-size:22pt;color:#fff;line-height:.95;}
+.backcover .bm .wm{font-size:4.6pt;letter-spacing:.5em;color:#fff;margin-top:1mm;}
+.backcover .addr{position:absolute;left:12mm;bottom:16mm;font-size:6.8pt;line-height:1.6;color:rgba(255,255,255,.92);}
+.backcover .addr b{font-weight:600;}
+.backcover .ent{position:absolute;left:12mm;bottom:8mm;font-size:5.2pt;letter-spacing:.08em;color:rgba(255,255,255,.85);}
+.backcover .lic{position:absolute;right:12mm;bottom:8mm;font-size:5.2pt;color:rgba(255,255,255,.75);}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRINT
+   ═══════════════════════════════════════════════════════════════ */
+@page{size:297mm 186mm;margin:0;}
+@media print{
+  body{background:#fff;}
+  #sidebar,#toolbar,.noprint{display:none !important;}
+  #app{display:block;}
+  #preview{padding:0;height:auto;overflow:visible;}
+  #previewInner{max-width:none;}
+  .page{margin:0;box-shadow:none;}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+
+#toolbar{
+  position:sticky;top:0;z-index:20;background:rgba(233,235,237,.94);
+  backdrop-filter:blur(6px);padding:0 0 16px;margin:-26px -26px 20px;
+  padding:14px 26px;border-bottom:1px solid #D5D9DD;display:flex;gap:10px;align-items:center;
+}
+#toolbar .ti{font-size:12px;color:var(--slate);flex:1;}
+#toolbar button{
+  padding:8px 15px;border-radius:6px;font-family:var(--sans);font-size:12px;
+  font-weight:600;cursor:pointer;border:1px solid #CDD4DA;background:#fff;color:var(--navy);
+}
+#toolbar button.go{background:var(--plum);color:#fff;border-color:var(--plum);}
+
+/* live-preview affordances */
+.liveband{
+  display:flex;align-items:center;gap:7px;font-size:11px;color:var(--slate);
+  background:#F5F2E9;border:1px solid #E4DAC2;border-radius:5px;
+  padding:7px 9px;margin-bottom:10px;line-height:1.3;
+}
+.liveband .dot{
+  width:7px;height:7px;border-radius:50%;background:#22A559;flex-shrink:0;
+  box-shadow:0 0 0 0 rgba(34,165,89,.55);animation:pulse 2.2s infinite;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(34,165,89,.5);}
+  70%{box-shadow:0 0 0 6px rgba(34,165,89,0);}
+  100%{box-shadow:0 0 0 0 rgba(34,165,89,0);}
+}
+#previewInner{transition:opacity .12s ease;}
+#previewInner.busy{opacity:.55;}
+#tbLive{
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#22A559;
+  font-weight:600;margin-right:10px;opacity:0;transition:opacity .2s;
+}
+#tbLive.on{opacity:1;}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ══════════════ SIDEBAR / WIZARD ══════════════ -->
+  <aside id="sidebar" class="noprint">
+    <header>
+      <div class="logo">aurevya<span>.</span></div>
+      <div class="sub">Proposal Generator</div>
+    </header>
+
+    <div class="panel">
+      <h3>1 · Proposal Type</h3>
+      <label class="f">
+        <span>Proposal type</span>
+        <select id="fMode">
+          <option value="structure">Mauritius Structure — build your own</option>
+          <option value="mfo">Multiple Family Office (MFO)</option>
+          <option value="fundlux">Luxembourg Fund Platform</option>
+          <option value="accounting">Accounting Services</option>
+        </select>
+      </label>
+      <div id="entityFields">
+        <label class="f">
+          <span>Company type</span>
+          <select id="fCompany">
+            <option value="ac">Authorised Company (AC)</option>
+            <option value="gbc">Global Business Company (GBC)</option>
+            <option value="none">None — no company layer</option>
+          </select>
+        </label>
+        <label class="checkline">
+          <input type="checkbox" id="fTrust">
+          <span>Add a Trust<span class="d">Wraps the company — Settlor → Trust → Company</span></span>
+        </label>
+        <label class="checkline">
+          <input type="checkbox" id="fCis">
+          <span>Add a CIS — Protected Cell Company<span class="d">Fund vehicle layered beneath the structure</span></span>
+        </label>
+      </div>
+      <div id="productBlurb" style="font-size:11px;color:#8D9AA5;line-height:1.45;margin-top:8px;"></div>
+    </div>
+
+    <div class="panel">
+      <h3>2 · Client</h3>
+      <label class="f">
+        <span>Prepared for <span class="hint">— appears on cover</span></span>
+        <input type="text" id="fClient" placeholder="Mr. Peter" />
+      </label>
+      <div class="row2">
+        <label class="f">
+          <span>Month</span>
+          <select id="fMonth"></select>
+        </label>
+        <label class="f">
+          <span>Year</span>
+          <input type="number" id="fYear" value="2026" />
+        </label>
+      </div>
+      <label class="f">
+        <span>Currency</span>
+        <select id="fCurrency">
+          <option value="USD">USD — US$</option>
+          <option value="EUR">EUR — €</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="panel">
+      <h3>3 · Structure</h3>
+      <div id="structFields"></div>
+    </div>
+
+    <div class="panel">
+      <h3>4 · Sections</h3>
+      <div id="sectionToggles"></div>
+    </div>
+
+    <div class="panel">
+      <h3>5 · Setup Fee <span style="float:right;font-weight:400;text-transform:none;letter-spacing:0;color:#94A3AE;">one off</span></h3>
+      <table class="fees"><tbody id="feeSetup"></tbody></table>
+      <div class="feetot"><span>TOTAL</span><span id="feeSetupTotal">—</span></div>
+    </div>
+
+    <div class="panel">
+      <h3>6 · Fixed Fee <span style="float:right;font-weight:400;text-transform:none;letter-spacing:0;color:#94A3AE;">year one onwards</span></h3>
+      <table class="fees"><tbody id="feeFixed"></tbody></table>
+      <div class="feetot"><span>TOTAL</span><span id="feeFixedTotal">—</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="liveband"><span class="dot"></span> Live preview — every change updates the deck</div>
+      <button class="primary" onclick="window.print()">Export PDF</button>
+      <button class="ghost" onclick="downloadHTML()">Download HTML</button>
+      <button class="ghost" onclick="resetFees();liveBuild()">Reset fees to price book</button>
+    </div>
+  </aside>
+
+  <!-- ══════════════ PREVIEW ══════════════ -->
+  <main id="preview">
+    <div id="toolbar" class="noprint">
+      <div class="ti" id="tbInfo">Loading…</div>
+      <span id="tbLive">● updating</span>
+      <button onclick="zoom(-1)">−</button>
+      <button onclick="zoom(1)">+</button>
+      <button class="go" onclick="window.print()">Export PDF</button>
+    </div>
+    <div id="previewInner">
+      <div class="emptyState">
+        <div class="big">◈</div>
+        <div>Your proposal will appear here.</div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SHARED BOILERPLATE  — identical across all Aurevya decks
+   Text transcribed verbatim from the sample proposals.
+   ═══════════════════════════════════════════════════════════════ */
+const BP = {};
+
+BP.tagline = 'Growing wealth into a lasting legacy';
+BP.enterprise = 'A <b>KUNDOMAL &amp; CO</b> ENTERPRISE';
+BP.address = 'Capital Manor, Cnr Sir Pierre Simonet &amp; Sir Victor De la Faye, Floreal,<br>Mauritius 74110';
+BP.contact = '+230 660 1234 (MU) | <b>aurevya</b>.com';
+BP.licence = 'Licensed by the Financial Services Commission';
+
+BP.disclaimer = [
+  'This document has been prepared by Aurevya Wealth Ltd, a management company licensed and regulated by the Financial Services Commission of Mauritius. The information contained herein is provided strictly for discussion and illustration purposes and does not constitute legal, tax, financial, or investment advice.',
+  'While care has been taken to ensure the accuracy of the information presented, Aurevya Wealth Ltd makes no representation or warranty, express or implied, as to its completeness or reliability. Recipients should not act or rely on any part of this document without obtaining independent professional advice suited to their own circumstances.',
+  'Tax implications referred to in this document are of a general nature and based on current laws and practice in Mauritius, which may be subject to change without notice. The actual tax treatment of any structure or transaction may vary depending on individual facts and the interpretation of law by the relevant authorities.',
+  'Aurevya Wealth Ltd and its affiliates disclaim any liability for any direct or consequential loss arising from the use or reliance upon this document or any part thereof.'
+];
+
+/* Glossary — base set (Mauritius corporate). Trust and fund terms are
+   appended conditionally per product. */
+BP.glossaryBase = [
+  ['AML/CFT','Anti Money-Laundering/Combating the Financing of Terrorism.'],
+  ['AFS','Audited Financial Statements as per the International Financial Reporting Standard.'],
+  ['BEPS','Base Erosion and Profit Shifting.'],
+  ['CDD','Customer Due Diligence.'],
+  ['CRS','Means Common Reporting Standard as established by the OECD.'],
+  ['CTC','A Certified True Copy done in accordance with Section 4.3, appropriate certification under the FSC Code on the Prevention of Money Laundering and Terrorist Financing.'],
+  ['EU','European Union.'],
+  ['FATCA','Foreign Account Tax Compliance Act.'],
+  ['FIAMLA','Financial Intelligence and Anti-money Laundering Act of the Republic of Mauritius.'],
+  ['FSA','Financial Services Act of the Republic of Mauritius.'],
+  ['FSC','Financial Services Commission of the Republic of Mauritius.'],
+  ['FSC Regulations','Refers to regulations made by the Minister under section 94 of the Financial Services Act of the Republic of Mauritius.'],
+  ['FX','Foreign Exchange.'],
+  ['GBC','Global Business Company of the Financial Services of the Republic of Mauritius.'],
+  ['HNWIs','High Net Worth Individual.'],
+  ['IAL','An Investment Advisor License as defined by section 30 of the Securities Act of the Republic of Mauritius.'],
+  ['ICT','Information and Communications Technology.'],
+  ['IFRS','International Financial Reporting Standard.'],
+  ['MFO','Multiple Family Office licensed under the Financial Services Act of the Republic of Mauritius to manage assets of multiple unrelated families.'],
+  ['MRA','Mauritius Revenue Authority.'],
+  ['NGF','Next Generation Firewall.'],
+  ['PE','Means the place of Permanent Establishment for tax purposes.'],
+  ['PEP','Politically Exposed Person as defined under the guidance of FIAMLA.'],
+  ['SECURITIES ACT','The Securities Act 2005 of the Republic of Mauritius.'],
+  ['SBLC','Stand By Letter of Credit.'],
+  ['UBO','Ultimate Beneficial Owner which comprises any person who directly or indirectly, for his own account and not as nominee for a third party, owns an effective interest in the shareholding or voting rights of the corporate body.'],
+  ['UTM','Unified Threat Management.']
+];
+
+BP.glossaryTrust = [
+  ['SETTLOR','The person or entity who settles assets into the trust and determines in advance how those assets should be managed and used.'],
+  ['TRUSTEE','The party holding and managing trust assets for the beneficiaries under powers vested by the settlor and defined in the trust deed.'],
+  ['PROTECTOR','A person appointed under the trust deed whose function is to advise and, where provided, supervise the trustee.'],
+  ['ENFORCER','A person appointed in respect of a purpose trust whose duty is to enforce the trust according to its terms and purpose.'],
+  ['BENEFICIARIES','The individuals or class of persons entitled to the assets of the trust.'],
+  ['LETTERS OR MEMORANDA OF WISHES','Non-binding written guidance from the settlor to the trustee regarding the exercise of the trustee’s discretion.'],
+  ['TRUST INSTRUMENT','The written instrument creating the trust, naming the trustee, the settlor’s intention, the object of the trust, the beneficiaries, the trust property and the duration of the trust.']
+];
+
+BP.glossaryFund = [
+  ['AIF','Alternative Investment Fund as defined under the Alternative Investment Fund Managers Directive (AIFMD).'],
+  ['AIFM','Alternative Investment Fund Manager authorised or registered under the AIFMD.'],
+  ['CIS','Collective Investment Scheme licensed under the Securities Act of the Republic of Mauritius.'],
+  ['CSSF','Commission de Surveillance du Secteur Financier, the financial regulator of Luxembourg.'],
+  ['GP','General Partner of a limited partnership, bearing unlimited liability and responsible for management.'],
+  ['LP','Limited Partner of a limited partnership, whose liability is limited to its commitment.'],
+  ['PCC','Protected Cell Company — a company whose assets and liabilities may be segregated into legally ring-fenced cells.'],
+  ['RAIF','Reserved Alternative Investment Fund, a Luxembourg fund vehicle not itself subject to CSSF product approval.'],
+  ['SCSp','Société en Commandite Spéciale — the Luxembourg special limited partnership.'],
+  ['SIF','Specialised Investment Fund regulated under the Luxembourg law of 13 February 2007.'],
+  ['SPV','Special Purpose Vehicle.'],
+  ['SUB-THRESHOLD AIF','An AIF whose manager falls below the AIFMD authorisation thresholds and is therefore subject to registration only.']
+];
+
+BP.ourGroupEntities = [
+  {cat:'Financial Services',name:'Aurevya Wealth',logo:'aurevya',
+   txt:'a globally recognised, award-winning boutique firm established over ten years ago, specializes in corporate and legacy management for institutions and high-net-worth individuals. Guided by the values of Innovation, Integrity, and Excellence, Aurevya offers holistic support that extends beyond finance, helping clients manage and preserve both their business and personal legacies.',
+   ops:['Mauritius','United Arab Emirates']},
+  {cat:'',name:'Gulf Management Services (GMS)',logo:'gms',
+   txt:'is a corporate service provider headquartered in the United Arab Emirates. As a Registered Agent for RAK ICC, we offer a wide range of Corporate services, as well as Private Wealth solutions, across multiple global jurisdictions. Our team of experienced professionals is well-positioned to assist with your day-to-day legal entity management and global entity governance.',
+   ops:['Mauritius','United Arab Emirates']},
+  {cat:'',name:'Sanatan Dharma Private Wealth Limited (SDPW)',logo:'sdpw',
+   txt:'is a duly licensed DFSA Category 3C firm operating from the Dubai International Financial Centre (DIFC). Today, the Dubai Financial Services Authority has granted a licence to SDPW, establishing a pioneering values-based financial institution grounded in the timeless principles of Sanatan Dharma (commonly referred to as Hinduism), a universal ethical framework expressed in the Vedas and Upanishads.',
+   ops:['United Arab Emirates','Canada']},
+  {cat:'Energy',name:'AFK Petroleum FZC',logo:'afk',
+   txt:'is an independent energy infrastructure company developing a 500-tons-per-day condensate oil refinery in Hamriyah Free Zone, Sharjah, UAE, one of the region’s most established energy and logistics hubs. The refinery is designed to produce high-value refined petroleum products—naphtha, diesel, kerosene and HFO—targeting both regional and international markets with strong and recurring demand.',
+   ops:['United Arab Emirates']},
+  {cat:'Healthcare',name:'Atelier Clinic',logo:'atelier',
+   txt:'was conceptualised to provide the highest quality of care in both medical and aesthetic services and is driven by a multi-talented team who have come together to enrich the lives of others. With a diverse group of individuals, who are experts in their respective fields, we have established this facility to encompass a unified medical service offering with Mauritius.',
+   ops:['Mauritius','United Arab Emirates']},
+  {cat:'Technology',name:'IgKnight',logo:'igknight',
+   txt:'At IgKnight, we develop technology-driven solutions to protect both digital and physical environments. In collaboration with NEC, we deliver cybersecurity, public safety, health, and energy solutions to counter threats from cyberattacks to health risks. Our cost-efficient systems enhance safety and security coverage, helping detect and deter potential threats with greater presence and reliability.',
+   ops:['Mauritius'],partner:'Official Strategic Partner — NEC',partnerLogo:'nec'}
+];
+
+BP.aboutValues = [
+  ['CLARITY','Aurevya Wealth is a strategic solutions firm based in Mauritius, tailored for ultra and high net worth individuals as well as global corporates. We specialise in designing and sustaining sophisticated structures that offer clarity, resilience, and long-term value in an increasingly complex world.'],
+  ['PURPOSEFUL ACTIONS','Our clients engage with us not merely for execution, but for insight and the ability to translate ambition into actionable frameworks that align seamlessly with broader strategic objectives. We thrive in nuance, operating with discretion and foresight at every turn.'],
+  ['INSIGHTFUL STRATEGIES','From the very first engagement, we commit to deep understanding. Through strategic dialogue and precise structuring, we craft adaptive models that evolve with you, ensuring continued relevance and strength.'],
+  ['RELIABLE STRATEGIC PARTNER','With Aurevya Wealth, your enterprise or legacy gains a strategic partner invested in its integrity and future. We measure success by the confidence you feel in your structure, your positioning, and the freedom you gain to pursue what matters most.']
+];
+
+BP.whatWeDo = [
+  {h:'PRIVATE CLIENTS',items:[
+    ['ASSET PROTECTION','Strategies for securing your wealth through the use of trust or foundations. Asset protection is a planning strategy which is intended to protect your assets from any claim.'],
+    ['WEALTH &amp; LIFESTYLE MANAGEMENT','Grow your wealth in line with your risk profile while accommodating your lifestyle needs through our Family Office Services.'],
+    ['SUCCESSION PLANNING','Plan your succession by ensuring your family values are transmitted together with your wealth.']]},
+  {h:'ENTERPRISE SOLUTIONS',items:[
+    ['COMPANY FORMATION','Our global reach allows to incorporate structures in most major jurisdictions from Mauritius.'],
+    ['LEGAL, ACCOUNTING &amp; FINANCIAL SOLUTIONS','Drafting and reviewing agreements, Provision of treasury services, negotiating with banks to secure financial instruments (such as SBLC)'],
+    ['CORPORATE SOLUTIONS','Business support and corporate secretarial services, opening of international bank accounts and advice on structuring.']]},
+  {h:'FINANCIAL INSTITUTIONS',items:[
+    ['INVESTMENT DEALER / BROKER COMPANIES','Mauritius has the advantage of having a modern and flexible securities law, it issues clear Investment Dealer licenses within a reasonable time, requires reasonable minimum capital requirement, charges reasonably.'],
+    ['FUND SERVICES','Aurevya Wealth offers a comprehensive range of fund administration services to a wide variety of fund types: Our areas of expertise include fund establishment, Fund accounting and financial reporting, Net asset value calculations, Corporate governance and company secretarial.']]},
+  {h:'SOVEREIGNS',items:[
+    ['SOVEREIGN WEALTH FUND','Aurevya Wealth has expertise in structuring and administering Sovereign Wealth Fund. We focus on those states who wish to improve or maintain the standards of living of their population with the competing interest which their depleting natural resources pose as a threat to state’s wealth.']]}
+];
+
+BP.kyc = {
+  lead:'We kindly request you to enclose the following documents as applicable:',
+  individual:['CTC of your passport (including the signature page).',
+    'Bank Reference Letter (the bank account has to have been opened for at least two years and it must state that the account has been maintained in a satisfactory manner).',
+    'Proof of Address (has to be less than three months old and a P.O. Box is not acceptable).',
+    'Signed CV (including detailed employment history).'],
+  corporate:['Corporate Documents - certified copy of each of the following, if applicable:',
+    'Memorandum and Articles of Association (or equivalent).',
+    'Certificate of Incorporation (or equivalent).',
+    'Certificate of Good Standing (or equivalent).',
+    'Copy of Register of Directors.','Copy of Register of Members.',
+    'Copy of Authorised Signatory list.',
+    'Full documentations for each director and beneficial owner according to the nature of the party (whether individual, corporate, etc.).',
+    'Current Financial Statement (if any).'],
+  certifications:['The certification has to be executed as per the requirements of the Code on the Prevention of Money Laundering &amp; terrorist Financing 2017 and should have the following details:',
+    'A statement confirming that the document is a true copy of original and that it has been seen and verified by the certifier (if you will be sending us a passport copy, the certification should also mention that the photo is of true likeness);',
+    'Certifiers signature, date and rubber stamp;','Name in block beneath signature;',
+    'Indication of the profession, designation or capacity; and','Contact number/ email address.']
+};
+
+BP.leaves = ['BOARD SERVICES &amp; DIRECTORSHIP','ACCOUNTING &amp; FINANCE','COMPLIANCE','LEGAL &amp; GOVERNANCE','IT MANAGEMENT &amp; CYBERSECURITY','CONCIERGE SERVICES'];
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SERVICE PAGES — shared detail content
+   ═══════════════════════════════════════════════════════════════ */
+BP.services = {
+  board:{title:'Board Services',pair:'Directorship',leaf:'BOARD SERVICES &amp; DIRECTORSHIP',
+    colA:[['COMPANIES ACT 2001','Section 163'],['SECRETARY','Section 187'],['REGISTERED OFFICE','Section 190'],
+          ['COMPANY RECORDS','Section 193'],['ACCOUNTING RECORDS TO BE KEPT','Financial Services Act 2007'],
+          ['SECTION 71 (3)(A)','(iii) Global Business Corporation'],['NATIONAL CODE OF CORPORATE GOVERNANCE','']],
+    colAh:'LEGAL REQUIREMENTS',
+    colBh:'SERVICES',
+    colB:['Company Secretarial Services','Statutory filings and compliance, including Certificates of Good Standing and Incumbency',
+      'Maintenance of statutory registers and annual bank reviews','Director and shareholder changes with relevant authorities',
+      'Preparation of board packs, agendas, and meeting minutes','Organisation of board meetings and Annual General Meetings',
+      'Drafting and vetting of board resolutions','Circulation of decisions to stakeholders and authorities',
+      'Setup and support of board committees (e.g., Audit, Risk, Remuneration)','Preparation of board charters and code of ethics',
+      'Stakeholder communication framework','Director training and board evaluations','Legislative updates and governance training'],
+    colCh:'COMPANIES ACT 2001',
+    colC:[['SECTION 143','Duties of Directors'],['INCOME TAX ACT 1995','SECTION 79 — Provisions applying to agents']],
+    colCbul:['Provision of two local directors.','Local directors’ duties and responsibilities extend to personal liability for the income tax payable by the Company']},
+
+  accounting:{title:'Accounting &amp; Finance',leaf:'ACCOUNTING &amp; FINANCE',
+    colAh:'FINANCIAL SERVICES ACT 2007',
+    colA:[['SECTION 30','Audited FS'],['SECTION 71','Global Business Corporation'],['SECTION 73','Conduct of global business']],
+    colBh:'ACCOUNTING SERVICES',
+    colB:['Payment processing','Maintenance of accounting books and records in accordance with International Accounting Standards',
+      'Assist in preparing set yearly budgets and forecasts','Developing a proper and adequate format for monthly or quarterly reporting',
+      'Preparation of management or quarterly accounts','Manage an audit process by providing the external auditors with all transactions.',
+      'Handling communication with tax authorities from preparation of documents to negotiating settlements','Application for tax rulings',
+      'Discussion of ad-hoc transactions with tax authorities and regulators',
+      'Coordinated Portfolio Investment Survey (CPIS) (half yearly) External Sector Statistics &amp; the National Accounts (ESSNAC) Survey (yearly)',
+      'Coordinated Portfolio Direct Investment Survey (CPDIS) (half yearly)','IMF Monetary and Financial Statistics (MFS) Survey (quarterly)'],
+    colCh:'FINANCIAL SERVICES',
+    colC:['Manage relationships with the banks and other financial institutions','FX rate negotiation','Trade Finance',
+      '(Assist with the issuance of SBLC, Bank guarantees etc...)','Treasury management (Optimising cash flows, maintaining liquidity etc...)']},
+
+  legal:{title:'Legal',pair:'Governance',leaf:'LEGAL &amp; GOVERNANCE',
+    colAh:'LEGAL SERVICES (THROUGH EITHER INTERNAL OR EXTERNAL BARRISTER):',
+    colA:['Preparation, analysis, and negotiation of commercial, corporate, and operational agreements to ensure legal clarity and risk mitigation.',
+      'Strategic support on legal and corporate governance matters, ensuring adherence to Mauritian laws and international regulatory frameworks.',
+      'Delivery of well-researched legal opinions under Mauritian jurisdiction to guide business decisions and mitigate risks.',
+      'Legal guidance on entity formation, mergers, acquisitions, and restructuring to optimize operational and tax efficiency.',
+      'Advisory on IP registration, licensing, and enforcement strategies to safeguard proprietary assets.',
+      'Conducting legal due diligence for investments, partnerships, and acquisitions to identify and mitigate potential risks.',
+      'Designing internal legal policies and procedures to strengthen governance and operational integrity.'],
+    colBh:'NATIONAL CODE OF CORPORATE GOVERNANCE 2016',
+    colBsub:'FSC Circular Letter CL280218 issued on 28th February 2018',
+    colB:['Provide induction to directors on Mauritian laws and the Code of Corporate Governance',
+      'Conduct board evaluation that result in more effective, higher-performing boards','Director recruitment']},
+
+  compliance:{title:'Compliance',leaf:'COMPLIANCE',
+    colAh:'FINANCIAL INTELLIGENCE AND ANTI-MONEY LAUNDERING REGULATIONS 2018',
+    amlTitle:'AML/CFT CODE:',amlSub:'4.1 Customer Due Diligence Measures - “CDD Measures”',
+    amlP:['Licensees such as Aurevya Wealth Ltd must, when establishing a business relationship with an Applicant for Business and on an ongoing basis, using a risk-based approach apply appropriate Customer Due Diligence measures on the business relationship, including identifying and verifying the identity of the Applicant for Business.',
+      'The need for Licensees to know their customers is essential to the prevention of money laundering and combating the financing of terrorism. CDD is a key element of an internal AML/CFT system.',
+      'FSC Communiqué issued by the CEO of the Financial Services Commission on the 24th November 2017.'],
+    colBh:'Compliance services:',
+    colB:['Transaction monitoring','Verifying the true identity of all customers and other persons with whom the company conducts transactions.',
+      'Carrying out regular compliance reviews and producing timely reports','Regular review to ensure the statutory records are updated',
+      'Ensuring due diligence documents of client are still valid','Maintenance of compliance report',
+      'Ensuring activities conducted by company are in line with business plan of company'],
+    advTitle:'Adverse media monitoring services:',
+    advLead:'Identifying and verifying of Adverse media by gathering news or articles via Google alert or results from compliance search engine',
+    adv:['Vetting the publisher’s credibility','Publication ideology','Identifying the background of the author',
+      'Assessing the quality of the argument of the author','Assessing the quality of the explanation of the author',
+      'Research/investigation on the adverse media of clients','Reporting procedures to the FSC'],
+    ormTitle:'ONLINE REPUTATION MANAGEMENT:',
+    orm:[['Risk Scan:','Spot reputational threats early.'],['Privacy Guard:','Protect HNWI digital footprints.'],
+      ['Image Curation:','Elevate brand and personal prestige.'],['Crisis Control:','Contain financial fallout fast.'],
+      ['SERM:','Boost positives, bury negatives.'],['Exec Profiles:','Build trust in leadership online.'],
+      ['Media Liaison:','Ensure accurate coverage.'],['Social Watch:','Track and counter misinformation.'],
+      ['Sentiment Intel:','Decode public and investor mood.'],['Rebuild Trust:','Recover from reputational hits.']]},
+
+  it:{title:'IT Management &amp; Cybersecurity',leaf:'IT MANAGEMENT &amp; CYBERSECURITY',
+    colAh:'CYBERSECURITY SOLUTIONS',
+    colA:[['Threat Detection &amp; Response:','Real-time monitoring and mitigation of cyber threats using AI-driven analytics and threat intelligence.'],
+      ['Network &amp; Endpoint Security:','Comprehensive protection for IT infrastructure, including firewalls, intrusion prevention systems, and endpoint detection.'],
+      ['Data Protection &amp; Encryption:','Securing sensitive data through advanced encryption, access control, and secure storage solutions.'],
+      ['Cyber Risk Assessments:','Evaluating vulnerabilities and providing tailored strategies to strengthen digital resilience.']],
+    colB:'In partnership with NEC, we deliver comprehensive solutions in cybersecurity, public safety, healthcare, and energy, addressing a wide range of threats from cyber-attacks to health risks. Our solutions provide unparalleled safety and security coverage, ensuring enhanced cost efficiency and a broader presence to effectively deter and detect potential threats within your environment.'},
+
+  concierge:{title:'Concierge Services',leaf:'CONCIERGE SERVICES',
+    lead:'Bespoke Lifestyle &amp; Asset Solutions for the Discerning Few',
+    intro:'As part of our family office, legal structuring, and fiduciary ecosystem, Aurevya Wealth extends a tailored Concierge Division, designed exclusively for our ultra-high-net-worth clientele. Our approach merges precision, discretion, and excellence, ensuring every experience reflects the Aurevya hallmark.',
+    blocks:[
+      ['JET BROKERAGE &amp; AVIATION ADVISORY','Through our alliance with Vimana Private Jets, clients gain privileged access to:',
+        ['Global jet charter and acquisition services','Flight planning, crew management, and aircraft registration solutions',
+         'Off-market transactions for private and corporate aviation assets','24/7 concierge flight desk with dedicated route optimisation and ground handling']],
+      ['YACHTING &amp; MARITIME SERVICES','In collaboration with select European and UAE yacht management houses, Aurevya provides:',
+        ['Yacht purchase, charter, and registration advisory (Cayman, Malta, Marshall Islands)',
+         'Crew sourcing and payroll structuring through Aurevya’s managed entities',
+         'Tax-efficient ownership solutions integrated with trust or holding structures']],
+      ['REAL ESTATE CURATION &amp; PRIVATE ACQUISITIONS','Our global property network covers Mauritius, London, Dubai, and the Mediterranean. We specialise in:',
+        ['Turnkey acquisition advisory and due diligence','Lifestyle properties and investment-grade developments',
+         'Integration of ownership within family offices or private trusts','Discreet buyer representation for off-market assets']],
+      ['ART, COLLECTIBLES &amp; PHILANTHROPY','Through our Art &amp; Legacy desk, we assist clients in:',
+        ['Art acquisition, valuation, and succession planning','Establishment of private foundations and philanthropic trusts',
+         'Cultural asset protection, insurance, and cross-border movement compliance']],
+      ['PRIVATE HEALTHCARE &amp; WELLNESS ACCESS','In partnership with Atelier Clinic and international medical networks:',
+        ['VIP health screenings and regenerative medicine programmes','Priority access to global medical specialists',
+         'Bespoke wellness retreats, mindfulness residencies, and longevity programmes']],
+      ['EXECUTIVE LIFESTYLE MANAGEMENT','Our private office team curates:',
+        ['Discreet travel, dining, and event arrangements','Personal staffing and relocation support',
+         'Education planning, school and university placements','Cross-border mobility and residency advisory']]]},
+
+  media:{title:'Media Monitoring &amp; Communication',leaf:'MEDIA MONITORING &amp; COMMUNICATION',
+    colAh:'MEDIA MONITORING',
+    colA:['Continuous monitoring of print, broadcast, online and social channels for mentions of the client and its structures',
+      'Early identification of reputational risk and adverse coverage','Verification of publisher credibility and author background',
+      'Periodic reporting with sentiment analysis','Escalation protocols for material findings'],
+    colBh:'COMMUNICATION',
+    colB:['Preparation of holding statements and reactive lines','Media liaison and accurate-coverage management',
+      'Executive profile development','Crisis communication planning and rehearsal','Stakeholder messaging frameworks']}
+};
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCT-SPECIFIC CONTENT
+   ═══════════════════════════════════════════════════════════════ */
+const GBC_OVERVIEW = {
+  divider:{h:'GLOBAL BUSINESS COMPANY (GBC)<br>IN MAURITIUS',s:'A COMPREHENSIVE OVERVIEW'},
+  intro:'<b>Mauritius is a trusted international financial centre offering a stable legal environment, competitive tax regime, and access to global markets.</b> The Global Business Company (GBC) is a licensed corporate vehicle used for cross-border investment, wealth structuring, and international operations.',
+  blocks:[
+    {h:'TAX RESIDENCY &amp; TREATY ACCESS',items:[
+      'A GBC is considered tax resident in Mauritius upon obtaining a Tax Residence Certificate (TRC) from the Mauritius Revenue Authority (MRA).',
+      'This status grants access to 46+ Double Taxation Avoidance Agreements (DTAAs) with key global jurisdictions.']},
+    {h:'PERMITTED BUSINESS ACTIVITIES',lead:'GBCs may conduct a wide range of non-resident and international activities, including:',items:[
+      'Investment holding and structuring','Fund and asset management','Private equity and venture capital',
+      'International trading and logistics','Financial services (e.g. investment dealer, insurance broker, credit finance)',
+      'Wealth management and family office services','Intellectual property management','Aircraft and ship leasing',
+      'Global headquarters administration','Fintech and digital services (subject to additional licensing)']},
+    {h:'SHARE CAPITAL &amp; SHAREHOLDING',items:[
+      'No minimum capital requirement: capital may be denominated in any currency except the Mauritian Rupee',
+      'Shares must be registered (bearer shares are prohibited)','Minimum of one shareholder (individual or corporate)',
+      'Multiple share classes and no restriction on foreign ownership','Share buybacks permitted, subject to solvency tests']},
+    {h:'LICENSING &amp; MANAGEMENT REQUIREMENTS',lead:'To qualify as a GBC and maintain tax residency, the company must be managed and controlled from Mauritius, demonstrated by:',items:[
+      'At least two resident directors with appropriate expertise and independence',
+      'A principal bank account maintained in Mauritius','Accounting records kept at the registered office in Mauritius',
+      'Preparation and audit of financial statements in Mauritius',
+      'Board meetings held in Mauritius with at least two resident directors present',
+      'Administration by a licensed Management Company']},
+    {h:'LEGAL &amp; REGULATORY FRAMEWORK',items:[
+      '<b>GBCs are governed by:</b> Financial Services Act 2007, Companies Act 2001, Income Tax Act',
+      '<b>Regulated by:</b> The Financial Services Commission, The Mauritius Revenue Authority',
+      '<b>Mauritius complies with:</b> OECD BEPS standards, AML/CFT regulations, International tax transparency protocols']},
+    {h:'TAXATION FRAMEWORK',items:[
+      'Corporate Tax Rate: 15%','GBCs may claim foreign tax credits to mitigate double taxation, subject to documentation',
+      'No capital gains tax, no withholding tax on dividends, interest, or royalties',
+      'No stamp duties, no inheritance tax, and no capital taxes','GBCs are exempt from the Fair-Share Contribution',
+      'GBCs forming part of large multinational enterprise groups may fall under Global Minimum Tax (Pillar Two) rules']}],
+  note:'Activities must be primarily conducted with non-residents and in foreign currency, unless otherwise approved by the Financial Services Commission (FSC).',
+  substance:{h:'ECONOMIC SUBSTANCE REQUIREMENTS',
+    lead:'GBCs must demonstrate economic substance through local expenditure and employment, based on their activity type:',
+    rows:[['Investment Holding (excl. IP)','—','12,000','Not specified'],
+      ['Non-Financial','Non-Investment Holding','15,000','1 (&lt; USD 100M turnover), 2 (&gt; USD 100M)'],
+      ['','CIS/Asset Manager','—','1 (&lt; USD 100M AUM), 2 (USD 100M–500M), 3 (&gt; USD 500M)'],
+      ['','Institutions (e.g. leasing, insurance)','—','1 (&lt; USD 50M turnover), 2 (USD 50M–100M), 3 (&gt; USD 100M)'],
+      ['Financial','Institutions','30,000','1'],['','Others (e.g. advisers, brokers)','25,000','1']],
+    foot:'GBCs holding Intellectual Property must incur proportionate R&amp;D expenditure in Mauritius.'}
+};
+
+const TRUST_CONTENT = {
+  keyFacts:{title:'Key Facts about the Mauritius Trust',
+    box:['A trust is a legal arrangement whereby powers are vested by the settlor to the trustee to hold, administer and manage assets for the benefits of the beneficiaries.',
+      'This arrangement is enforced by a trust deed. Mauritian Trusts are regulated by the Trust Act 2001.'],
+    h:'MAIN REASONS TO CREATE A TRUST',
+    items:[
+      ['Succession Planning','A trust is an efficient vehicle to ensure a smooth succession and planning for future generations. A settlor, who has achieved a successful family business, can ensure that his assets and business continue for several generations as per his wishes and with the help of trustees.'],
+      ['Estate Planning','In the event of death, a trust enables anonymous and discrete transfer of assets often without probate and also avoiding inheritance tax.'],
+      ['Forced Heirship','There are few countries where the legislation dictates the specificities of wealth distribution post the death of the owner. In such cases, a trust avoids forced heirship in countries where legislation dictates wealth distribution as the trust prevails over the legislation.'],
+      ['Mitigation of Taxation Liabilities','Transferring assets to a trust can be an effective method of reducing taxes. A Mauritian trust can choose to be tax resident in Mauritius and hold a global business license. Such a trust benefits from multiple advantages in Double Taxation Treaties which Mauritius has. Furthermore, a trust where the settlor and beneficiaries are not resident in Mauritius, is not subject to taxation for income derived outside of Mauritius.'],
+      ['High Degree of Confidentiality','There is no requirement to disclose the trust assets and any other details to third parties. Hence, the privacy of the trust remains enclosed to the parties of the trust only.'],
+      ['Charitable and Philanthropic Purpose','Many High Net Worth Individuals (HNWIs) have personal interest in philanthropy and charity. A trust gives structure to donation and expense strategy enforcing the wishes of the settlor.'],
+      ['TRUST DEED OR TRUST INSTRUMENT','A trust is created by an instrument in writing and contain the name of the Trustee, the intention of the settlor to create the trust, the object of the trust, the name of the beneficiaries or class of beneficiaries, the property or asset being held and the duration of the trust.']]},
+  parties:{title:'Key Parties to a Trust',
+    items:[
+      ['SETTLOR','A settlor is the person or entity who or which settles the assets into the trusts and decides in prior how the assets should be managed and used. The settlor may also be a trustee, a beneficiary, a protector or an enforcer, but shall not be the sole beneficiary of a trust of which he is a settlor. In case where the Settlor is a corporate entity, there is no requirement for the Beneficiaries of the trust to be the corporate entity’s shareholders or connected persons.'],
+      ['TRUSTEE','The primary duty of the trustee is to hold and manage the assets of the trust for the beneficiaries through the powers vested in him by the settlor and as defined in the trust deed. A trustee is under an equitable obligation to hold properties of the settlor for the benefit of the beneficiaries. The trustees will be required to do various things with the trust property, for e.g. trustees have the duty to invest the trust property safely so that it makes reasonable returns, pay over the capital to a person for his life and so on. A trust may comprise of a maximum of four Trustees, including at least one qualified trustee (licensed by the Financial Services Commission). The terms of the trust can also provide for the appointment of a Custodian Trustee and a Managing Trustee. The Custodian Trustee has the sole function of holding the trust assets and the same are managed by the Managing Trustee. <b>Aurevya Wealth Ltd is a licensed corporate trustee by the Financial Services Commission in Mauritius.</b>'],
+      ['PROTECTOR','The trust deed can stipulate the appointment of a protector of the trust, whose function is to advise the trustee. A protector can be, any person of full age and of sound mind, including the settlor, or any corporate, partnership or group of persons, whether incorporate or unincorporate.'],
+      ['ENFORCER','A purpose trust requires the appointment of an enforcer whose duty is to enforce the trust accordingly to its terms and purpose. No person is allowed to act as trustee and enforcer of the same trust at any given time.'],
+      ['BENEFICIARIES','A beneficiary is the individual who is entitled to the assets of the trust. A settlor cannot be the sole beneficiary of the trust. The trust instrument is allowed to provide for the addition of a person as beneficiary, or for the exclusion from benefit of a beneficiary or to impose an obligation upon a beneficiary as a condition of benefit.'],
+      ['OBJECTS OF THE TRUST','A trust may hold any type of asset including stocks, bank accounts and movable or immovable property.']]},
+  validity:{title:'Trust Validity',
+    quote:'In structuring a trust, it is critical to ensure that <b>no single party retains excessive powers</b>, especially <b>the settlor</b> or <b>protector</b>, as this may compromise the fiduciary nature of the trust and risk it being deemed a <b>sham</b> or <b>illusory</b>.',
+    body:['Under the <i>Mauritius Trusts Act 2001</i>, while the <b>protector</b> may be granted powers such as removing trustees, changing the proper law, or withholding consent to trustee actions <b>(Section 24)</b>, these powers must be exercised independently and not serve as a mechanism for the settlor to retain indirect control.',
+      'Courts are increasingly striking down trusts where <b>settlors or protectors retain excessive control</b>, undermining trustee independence. In <i>Islam v Islam [2024] EWHC 1082 (Ch)</i>, the High Court in London examined whether trust deeds were a façade to conceal ownership. While the trust was upheld, the court reaffirmed that a sham requires a <b>common intention to mislead</b>, and scrutinised the settlor’s influence. More decisively, a <b>2024 Swiss appellate decision</b> declared a lifetime trust a <b>sham</b>, citing retained settlor control, lack of trustee independence, and nominal asset transfers.']}
+};
+
+const AC_KEYFEATURES = {
+  title:'Key Features Of An Authorised Company',
+  divider:{h:'Key<br>Features<br><i>of An</i><br>Authorised<br>Company',s:''},
+  blocks:[
+    {h:'AUTHORISED COMPANY (AC)',p:'An authorised company is treated as non-resident for taxation purposes in Mauritius provided that its place of effective management is outside Mauritius; its business activities are conducted principally outside of Mauritius; and it is controlled by a majority of shareholders who are not citizens of Mauritius.'},
+    {h:'BUSINESS ACTIVITY',p:'An authorised company can carry any business activity such as international trade, procurement services, consultancy services, investment holding, etc.. However, an authorised company is not allowed to carry the following activities:'}],
+  prohibited:['Financial services','Banking','Provision of trusteeship services','Provision of nominee services, registered office services, directorship or secretarial services.'],
+  tail:['An Authorised Company will be treated as a non-resident for tax purposes in Mauritius.',
+    'An Authorised Company is required to file a return of income to the Mauritius Revenue Authority (MRA) within six months of its year-end.']
+};
+
+const CIS_CONTENT = {
+  divider:{h:'COLLECTIVE INVESTMENT<br>SCHEME',s:'A COMPREHENSIVE OVERVIEW'},
+  blocks:[
+    {h:'COLLECTIVE INVESTMENT SCHEME (CIS)',p:'A Collective Investment Scheme is a licensed vehicle under the Securities Act 2005 which pools contributions from investors for collective investment, with returns distributed in proportion to holdings. The scheme is administered by a licensed CIS Manager and its assets are held by an appointed custodian.'},
+    {h:'PROTECTED CELL COMPANY (PCC)',p:'A Protected Cell Company is a single legal entity whose assets and liabilities may be segregated into legally ring-fenced cells under the Protected Cell Companies Act 1999. Each cell operates independently: the assets of one cell are not available to meet the liabilities of another, while the company retains a single corporate identity and a single licence.'},
+    {h:'KEY ADVANTAGES',items:['Segregation of assets and liabilities between cells','Single legal entity — lower cost than multiple standalone funds',
+      'Each cell may have its own investment strategy, investors and currency','New cells may be added without incorporating a new company',
+      'Core capital supports the structure while cell assets remain protected']},
+    {h:'REGULATORY REQUIREMENTS',items:['Licensed by the Financial Services Commission under the Securities Act 2005',
+      'Appointment of a CIS Manager, Custodian and Administrator','Preparation of a compliant offering document per cell',
+      'Annual audited financial statements per cell and for the company','Ongoing reporting to the FSC and to investors']}]
+};
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   PRICE BOOK  — editable defaults, transcribed from sample decks
+   type: 'grp' = gold group header, 'item' = priced line,
+         'desc' = unpriced description line rolled into next price
+   ═══════════════════════════════════════════════════════════════ */
+const PRICEBOOK = {
+
+  ac:{ setup:[
+      {t:'grp',l:'AUTHORISED COMPANY (AC)'},
+      {t:'item',l:'Onboarding',v:1500},
+      {t:'desc',l:'Compliance Review'},{t:'desc',l:'Company Formation'},
+      {t:'desc',l:'Application of license'},{t:'desc',l:'Registered address'},
+      {t:'desc',l:'Registered agent'},{t:'desc',l:'Data Protection Officer'},
+      {t:'item',l:'Bank account opening',v:7250},
+      {t:'grp',l:'ACCOUNTING'},{t:'item',l:'Accounting',v:3000},
+      {t:'grp',l:'NOMINEE SHAREHOLDER'},{t:'item',l:'Nominee shareholder',v:2000},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
+      {t:'item',l:'FSC Processing Fee',v:600},{t:'item',l:'FSC Annual License Fee',v:1400},
+      {t:'item',l:'Government Levy',v:100},{t:'item',l:'Data Protection fee',v:100}],
+    fixed:[
+      {t:'grp',l:'AUTHORISED COMPANY (AC)'},
+      {t:'desc',l:'Registered address'},{t:'desc',l:'Registered agent'},
+      {t:'desc',l:'Data Protection Officer'},{t:'desc',l:'Legal and compliance for annual review'},
+      {t:'desc',l:'Archiving and Maintenance of Bank records'},
+      {t:'desc',l:'Filing of returns with Revenue Authority'},
+      {t:'item',l:'Filing of Financial Summary',v:7250},
+      {t:'grp',l:'ACCOUNTING'},{t:'item',l:'Accounting',v:3000},
+      {t:'grp',l:'NOMINEE SHAREHOLDER'},{t:'item',l:'Nominee shareholder',v:2000},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
+      {t:'item',l:'FSC Annual License Fee',v:1400},{t:'item',l:'Government Levy',v:100},
+      {t:'item',l:'Data protection fee',v:100}]},
+
+  gbc:{ setup:[
+      {t:'grp',l:'SET UP OF GLOBAL BUSINESS COMPANY (GBC)'},
+      {t:'desc',l:'Due diligence and on-boarding fee'},
+      {t:'item',l:'Licensing engagement process with authorities',v:4500},
+      {t:'desc',l:'Provision of company secretary'},{t:'desc',l:'Provision of 2 resident directors'},
+      {t:'desc',l:'Provision of registered office'},{t:'desc',l:'Registration for Data protection officer'},
+      {t:'desc',l:'Tax Residency Certificate application'},{t:'desc',l:'Provision of Authorized officer with Regulators'},
+      {t:'desc',l:'Legal and Compliance for annual review (annual)'},{t:'desc',l:'Archiving and Maintenance of Bank records'},
+      {t:'item',l:'Ongoing daily administration (as required)',v:16000},
+      {t:'item',l:'Bank Account Opening (per Account)',v:4000},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
+      {t:'item',l:'FSC Processing Fee (GBC)',v:600},{t:'item',l:'FSC Annual License Fee (GBC)',v:2600},
+      {t:'item',l:'Government Levy',v:350},{t:'item',l:'Data protection fee',v:100},
+      {t:'item',l:'Tax residence Certificate',v:200}],
+    fixed:[
+      {t:'grp',l:'MAINTENANCE OF GLOBAL BUSINESS COMPANY (GBC)'},
+      {t:'desc',l:'Provision of company secretary'},{t:'desc',l:'Provision of 2 resident directors'},
+      {t:'desc',l:'Provision of registered office'},{t:'desc',l:'Provision of Authorized officer with Regulators'},
+      {t:'desc',l:'Legal and Compliance for annual review (annual)'},{t:'desc',l:'Archiving and Maintenance of Bank records'},
+      {t:'desc',l:'Data Protection'},
+      {t:'item',l:'Ongoing daily administration (as required)',v:16000},
+      {t:'desc',l:'Accounting'},{t:'desc',l:'Preparation and Filing of Audited Financial Statements'},
+      {t:'item',l:'Filing of Tax Returns',v:3000},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
+      {t:'item',l:'FSC Annual License Fee',v:2600},{t:'item',l:'Government Levy',v:350},
+      {t:'item',l:'Data protection fee',v:100},{t:'item',l:'Tax residence Certificate',v:200}]},
+
+  trust:{ setup:[{t:'grp',l:'ESTABLISHMENT OF A TRUST'},{t:'item',l:'Establishment of a Trust',v:6000},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES'},{t:'item',l:'Registration fee',v:200}],
+    fixed:[{t:'grp',l:'MAINTENANCE OF A TRUST'},{t:'item',l:'Maintenance of a Trust',v:5000}]},
+
+  cis:{ setup:[
+      {t:'grp',l:'COLLECTIVE INVESTMENT SCHEME (PCC)'},
+      {t:'desc',l:'CIS licence application'},{t:'desc',l:'Preparation of offering document'},
+      {t:'item',l:'PCC incorporation and first cell',v:12000},
+      {t:'item',l:'Each additional cell',v:3500},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
+      {t:'item',l:'FSC Processing Fee (CIS)',v:1000},{t:'item',l:'FSC Annual License Fee (CIS)',v:3000},
+      {t:'item',l:'FSC Annual Fee per cell',v:500}],
+    fixed:[
+      {t:'grp',l:'MAINTENANCE OF COLLECTIVE INVESTMENT SCHEME (PCC)'},
+      {t:'desc',l:'Fund administration and NAV calculation'},{t:'desc',l:'Registrar and transfer agency'},
+      {t:'item',l:'Ongoing CIS administration',v:14000},
+      {t:'item',l:'Per additional cell (annual)',v:2500},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
+      {t:'item',l:'FSC Annual License Fee (CIS)',v:3000},{t:'item',l:'FSC Annual Fee per cell',v:500}]},
+
+  mfo:{ setup:[
+      {t:'grp',l:'MULTIPLE FAMILY OFFICE (MFO) LICENCE'},
+      {t:'desc',l:'Due diligence and on-boarding'},{t:'desc',l:'Business plan and financial projections'},
+      {t:'item',l:'Licensing engagement process with the FSC',v:15000},
+      {t:'desc',l:'Provision of company secretary'},{t:'desc',l:'Provision of 2 resident directors'},
+      {t:'desc',l:'Provision of registered office'},{t:'desc',l:'Compliance Officer and MLRO'},
+      {t:'item',l:'Ongoing daily administration',v:28000},
+      {t:'item',l:'Bank Account Opening (per Account)',v:4000},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
+      {t:'item',l:'FSC Processing Fee',v:2500},{t:'item',l:'FSC Annual License Fee',v:6000},
+      {t:'item',l:'Government Levy',v:350},{t:'item',l:'Data protection fee',v:100}],
+    fixed:[
+      {t:'grp',l:'MAINTENANCE OF MULTIPLE FAMILY OFFICE (MFO)'},
+      {t:'desc',l:'Provision of company secretary'},{t:'desc',l:'Provision of 2 resident directors'},
+      {t:'desc',l:'Provision of registered office'},{t:'desc',l:'Compliance Officer and MLRO'},
+      {t:'desc',l:'Legal and Compliance for annual review'},
+      {t:'item',l:'Ongoing daily administration',v:28000},
+      {t:'desc',l:'Accounting'},{t:'desc',l:'Preparation and Filing of Audited Financial Statements'},
+      {t:'item',l:'Filing of Tax Returns',v:6000},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
+      {t:'item',l:'FSC Annual License Fee',v:6000},{t:'item',l:'Government Levy',v:350},
+      {t:'item',l:'Data protection fee',v:100}]},
+
+  fundlux:{ setup:[
+      {t:'grp',l:'PHASE 1 — INITIAL LUXEMBOURG STRUCTURE SET-UP'},
+      {t:'desc',l:'Incorporation of GP (S.à r.l.)'},{t:'desc',l:'Establishment of SCSp limited partnership'},
+      {t:'desc',l:'Drafting of LPA and constitutive documents'},
+      {t:'item',l:'Structuring, incorporation and registration',v:35000},
+      {t:'item',l:'Registered office and domiciliation (year one)',v:9000},
+      {t:'grp',l:'DISBURSEMENTS'},
+      {t:'item',l:'Notary and RCS registration fees',v:3500},
+      {t:'item',l:'Legal opinion',v:6000}],
+    fixed:[
+      {t:'grp',l:'PHASE 2 — TRANSITION TO LUXEMBOURG AIF PLATFORM'},
+      {t:'desc',l:'AIFM registration (sub-threshold)'},{t:'desc',l:'Central administration and NAV'},
+      {t:'desc',l:'Depositary appointment and oversight'},
+      {t:'item',l:'Annual platform administration',v:48000},
+      {t:'item',l:'Domiciliation and corporate secretarial',v:9000},
+      {t:'grp',l:'DISBURSEMENTS'},
+      {t:'item',l:'CSSF annual fee',v:4000},{t:'item',l:'Audit fee (estimate)',v:12000}]},
+
+  accounting:{ setup:[
+      {t:'grp',l:'ACCOUNTING SERVICES — SET-UP'},
+      {t:'desc',l:'Onboarding and file review'},{t:'desc',l:'Chart of accounts design'},
+      {t:'desc',l:'Opening balance migration'},
+      {t:'item',l:'Set-up and migration',v:2500}],
+    fixed:[
+      {t:'grp',l:'ACCOUNTING SERVICES — ANNUAL'},
+      {t:'desc',l:'Maintenance of accounting books and records'},{t:'desc',l:'Preparation of management accounts'},
+      {t:'desc',l:'Preparation and filing of Audited Financial Statements'},{t:'desc',l:'Filing of Tax Returns'},
+      {t:'item',l:'Annual accounting services',v:3000}]}
+};
+
+/* Composite products stitch several price-book blocks together */
+function composeFees(keys,which){
+  let out=[];
+  keys.forEach(k=>{ (PRICEBOOK[k]&&PRICEBOOK[k][which]||[]).forEach(r=>out.push(Object.assign({},r))); });
+  return out;
+}
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCT DEFINITIONS
+   ═══════════════════════════════════════════════════════════════ */
+const PRODUCTS = {
+
+  mfo:{ label:'Multiple Family Office (MFO)',
+    blurb:'FSC-licensed Multiple Family Office. Large deck (66pp) with a 13-chapter family-office guide.',
+    coverT1:'Proposal for the setup of a',coverT2:'Multiple Family Office',
+    running:'PROPOSAL FOR THE SETUP OF A MULTIPLE FAMILY OFFICE',
+    priceKeys:['mfo'],glossary:['base'],
+    sections:['contents','glossary','ourgroup','about','whatwedo','structure','gbcdivider','gbcoverview',
+              'docprocess','kyc','feesetup','feefixed','leaf','svc_board','svc_accounting','svc_legal',
+              'svc_compliance','svc_it','svc_media','back'],
+    structure:{title:'Tailored Solution',sub:'PROPOSED STRUCTURE',canvasW:175,canvasH:150,
+      nodes:[{id:'sh',kind:'shareholder',label:'FAMILY / FAMILIES',x:73.5,y:10,primary:false,cap:''},
+             {id:'e1',kind:'box',label:'MULTIPLE FAMILY<br>OFFICE',x:63.5,y:44,primary:true,cap:'FSC licensed'}],
+      edges:[{id:'e1',from:'sh',to:'e1',label:'100%'}]},
+    docprocess:'gbc'},
+
+  fundlux:{ label:'Luxembourg Fund Platform',
+    blurb:'Luxembourg GP/LP pre-fund set-up and sub-threshold AIF. EUR fees. No Mauritius content.',
+    coverT1:'Request for Legal Structuring &amp; Set-Up',coverT2:'Luxembourg Investment Platform',
+    coverT3:'– Pre-Fund GP/LP set-up &amp; Sub-Threshold AIF',
+    running:'REQUEST FOR LEGAL STRUCTURING &amp; SET-UP — LUXEMBOURG INVESTMENT PLATFORM',
+    priceKeys:['fundlux'],glossary:['fund'],currency:'EUR',
+    sections:['contents','glossary','ourgroup','about','whatwedo','structure','kyc','feesetup','feefixed',
+              'leaf','svc_board','svc_accounting','svc_legal','svc_compliance','svc_it','svc_concierge','back'],
+    structure:{title:'Bespoke Solution',sub:'PROPOSED STRUCTURE',canvasW:175,canvasH:150,
+      nodes:[{id:'sp',kind:'shareholder',label:'SPONSORS',x:73.5,y:10,primary:false,cap:''},
+             {id:'gp',kind:'box',label:'GENERAL PARTNER<br>(S.à r.l.) LUXEMBOURG',x:63.5,y:44,primary:false,cap:''},
+             {id:'lp',kind:'box',label:'INVESTORS SCSp / LP',x:63.5,y:78,primary:true,cap:'Deal-by-deal AIF'}],
+      edges:[{id:'e1',from:'sp',to:'gp',label:''},{id:'e2',from:'gp',to:'lp',label:''}],
+      note:'Final regulatory, tax and structural architecture remains subject to Luxembourg legal, regulatory and tax confirmation, including target jurisdiction analysis.'},
+    docprocess:null},
+
+  accounting:{ label:'Accounting Services',
+    blurb:'Services-only proposal. No entity formed — no structure diagram, no service leaf pages. 12-page deck.',
+    coverT1:'Proposal for',coverT2:'Accounting &amp; Finance Services',
+    running:'PROPOSAL FOR ACCOUNTING &amp; FINANCE SERVICES',
+    priceKeys:['accounting'],glossary:['base'],
+    sections:['contents','glossary','ourgroup','about','whatwedo','svc_accounting','kyc','feesetup','feefixed','back'],
+    structure:null,docprocess:null}
+};
+
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULAR STRUCTURE BUILDER
+   "Mauritius Structure" mode replaces the old fixed list of named
+   combinations (AC / GBC / Trust+GBC / Trust+GBC+CIS) with three
+   independent choices that compose freely:
+     — Company type: Authorised Company, Global Business Company, or none
+     — Trust wrapper: on/off
+     — CIS (Protected Cell Company): on/off
+   Every combination — a bare Trust, GBC+CIS with no Trust, AC+Trust,
+   a standalone CIS, and so on — is generated from the same building
+   blocks below, rather than needing a new PRODUCTS entry each time a
+   client needs something the fixed list didn't cover.
+   MFO, the Luxembourg Fund Platform and Accounting Services stay as
+   their own modes (see PRODUCTS above) since their content isn't
+   really "composable" with the Mauritius entities — different
+   jurisdiction, currency, licence and deck shape entirely.
+   ═══════════════════════════════════════════════════════════════ */
+const ENTITY_META = {
+  trust:{article:'a',name:'Trust',short:'Trust'},
+  ac:{article:'an',name:'Authorised Company',short:'AC'},
+  gbc:{article:'a',name:'Global Business Company',short:'GBC'},
+  cis:{article:'a',name:'Collective Investment Scheme (PCC)',short:'CIS (PCC)'}
+};
+
+/* returns the selected entity keys in canonical deck order: trust, then
+   the company (if any), then cis */
+function entityOrder(ent){
+  const list=[];
+  if(ent.trust)list.push('trust');
+  if(ent.company!=='none')list.push(ent.company);
+  if(ent.cis)list.push('cis');
+  return list;
+}
+
+/* "a Trust, a Global Business Company and a Collective Investment
+   Scheme (PCC)" — or the upper-case running-footer equivalent */
+function joinPhrase(list,upper){
+  const parts=list.map(k=>{
+    const m=ENTITY_META[k];
+    return (upper?m.article.toUpperCase():m.article)+' '+(upper?m.name.toUpperCase():m.name);
+  });
+  if(parts.length===0)return '';
+  if(parts.length===1)return parts[0];
+  if(parts.length===2)return parts[0]+' and '+parts[1];
+  return parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1];
+}
+
+function priceKeysFor(ent){
+  const k=[];
+  if(ent.trust)k.push('trust');
+  if(ent.company!=='none')k.push(ent.company);
+  if(ent.cis)k.push('cis');
+  return k;
+}
+
+function glossaryScopeStructure(ent){
+  const g=['base'];
+  if(ent.trust)g.push('trust');
+  if(ent.cis)g.push('fund');
+  return g;
+}
+
+/* canonical page sequence for whatever combination is selected —
+   every branch below reuses an existing emit() case, so no renderer
+   changes are needed when new combinations are picked */
+function structureSections(ent){
+  const s=['contents','glossary','ourgroup','about','whatwedo','structure'];
+  if(ent.trust)s.push('trustfacts','trustparties','trustvalidity');
+  if(ent.company==='ac')s.push('ackeydivider','ackeyfeatures');
+  if(ent.company==='gbc')s.push('gbcdivider','gbcoverview');
+  if(ent.cis)s.push('cisdivider','cisoverview');
+  if(ent.trust)s.push('docprocess_trust');
+  if(ent.company!=='none')s.push('docprocess_company');
+  if(ent.cis)s.push('docprocess_cis');
+  s.push('kyc','feesetup','feefixed','leaf','svc_board','svc_accounting','svc_legal','svc_compliance','svc_it');
+  s.push(ent.company==='gbc'?'svc_media':'svc_concierge');
+  s.push('back');
+  return s;
+}
+
+/* ── freeform structure canvas ────────────────────────────────────
+   The structure diagram is a small editable org-chart: nodes sit at
+   an (x,y) position in mm on a fixed-size canvas and can be dragged;
+   any node can be added/removed from the sidebar (shareholders,
+   generic entity boxes for trusts/companies/anything else, and CIS
+   cells), and connections between them are editable too. Only three
+   visual "kinds" exist — the label text is whatever the user types.
+     shareholder — plain text + circle icon, never filled
+     box         — the standard outline box; filled gold only if
+                   it's the diagram's one "primary" (headline) entity
+     ciscell     — a small chip, used for individual CIS/PCC cells
+   ───────────────────────────────────────────────────────────────── */
+const NODE_DIM={shareholder:{w:28,h:22},box:{w:48,h:16},ciscell:{w:26,h:11}};
+const KIND_LABEL={shareholder:'Shareholder',box:'Entity',ciscell:'CIS Cell'};
+
+/* shared with addCoreEntity() below, which splices Trust/CIS into an
+   already-customised diagram — the heading needs to update the same
+   way whether the diagram was just (re)seeded or edited incrementally */
+function structTitleFor(ent){
+  const activeCount=(ent.trust?1:0)+(ent.company!=='none'?1:0)+(ent.cis?1:0);
+  const complex=ent.trust&&ent.company!=='none'&&ent.cis;
+  const simple=activeCount<=1;
+  return{title:simple?'Your Tailored<br>Solution':(complex?'Bespoke Solution':'Tailored Solution'),
+    sub:simple?'':'PROPOSED STRUCTURE'};
+}
+
+/* the default chain: Settlor/Shareholder → Trust (if any) → Company
+   (if any) → CIS (if any), with two starter cells under the CIS.
+   Whichever entity is last in the chain is drawn filled/gold. */
+function buildStructureSpec(ent){
+  const W=175;
+  const nodes=[],edges=[];
+  const cx=W/2;
+  let y=10;
+  const place=(kind,label,id,cap)=>{
+    const d=NODE_DIM[kind];
+    nodes.push({id:id,kind:kind,label:label,x:cx-d.w/2,y:y,primary:false,cap:cap||''});
+    y+=(kind==='shareholder'?32:34);
+    return id;
+  };
+  let prev;
+  if(ent.trust){
+    prev=place('shareholder','SETTLOR','settlor');
+    const tid=place('box','TRUST','trust');
+    edges.push({id:'e1',from:prev,to:tid,label:''});
+    prev=tid;
+  }else{
+    prev=place('shareholder','SHAREHOLDER','sh');
+  }
+  if(ent.company!=='none'){
+    const label=ent.company==='gbc'?'GLOBAL BUSINESS<br>COMPANY':'AUTHORISED<br>COMPANY';
+    const cid=place('box',label,ent.company);
+    edges.push({id:'e2',from:prev,to:cid,label:'100%'});
+    prev=cid;
+  }
+  let primaryId=prev;
+  if(ent.cis){
+    const cisId=place('box','CIS — PROTECTED<br>CELL COMPANY','cis');
+    edges.push({id:'e3',from:prev,to:cisId,label:'100%'});
+    primaryId=cisId;
+    const cd=NODE_DIM.ciscell,cellY=y+2;
+    nodes.push({id:'cellA',kind:'ciscell',label:'CELL A',x:cx-cd.w-4,y:cellY,primary:false,cap:''});
+    nodes.push({id:'cellB',kind:'ciscell',label:'CELL B',x:cx+4,y:cellY,primary:false,cap:''});
+    edges.push({id:'e4',from:cisId,to:'cellA',label:''});
+    edges.push({id:'e5',from:cisId,to:'cellB',label:''});
+    y=cellY+cd.h+10;
+  }
+  nodes.forEach(n=>{n.primary=(n.id===primaryId);});
+  const t=structTitleFor(ent);
+  return{
+    title:t.title,sub:t.sub,
+    canvasW:W,canvasH:Math.max(150,y+8),
+    nodes:nodes,edges:edges
+  };
+}
+
+/* human-readable label for the sidebar dropdown blurb and export filename,
+   e.g. "AC + Trust" or "Trust + GBC + CIS (PCC)" */
+function structureLabel(list){
+  return list.length?list.map(k=>ENTITY_META[k].short).join(' + '):'Mauritius Structure';
+}
+
+/* Builds a PRODUCTS-shaped spec on the fly for "Mauritius Structure" mode;
+   for every other mode, just returns the matching static PRODUCTS entry
+   (their keys — mfo, fundlux, accounting — match the mode names exactly). */
+function currentSpec(){
+  if(STATE.mode!=='structure')return PRODUCTS[STATE.mode];
+  const ent=STATE.entities;
+  const list=entityOrder(ent);
+  return{
+    label:structureLabel(list),
+    blurb:list.length
+      ? 'Custom Mauritius structure — '+structureLabel(list)+'. Sections, structure diagram and fees adjust automatically for whatever is selected.'
+      : 'Choose a company type, and optionally add a Trust and/or a CIS (PCC), to build this proposal.',
+    coverT1:'Proposal for setting up',
+    coverT2:joinPhrase(list,false),
+    running:'PROPOSAL FOR SETTING UP '+joinPhrase(list,true),
+    priceKeys:priceKeysFor(ent),
+    glossary:glossaryScopeStructure(ent),
+    sections:structureSections(ent),
+    structure:buildStructureSpec(ent),
+    docKeyCompany:ent.company==='none'?null:ent.company
+  };
+}
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   STATE + WIZARD
+   ═══════════════════════════════════════════════════════════════ */
+let STATE={mode:'structure',entities:{company:'ac',trust:false,cis:false},fees:{setup:[],fixed:[]},sections:{},struct:{}};
+
+function $(id){return document.getElementById(id);}
+function money(n,cur){
+  if(n===''||n===null||n===undefined||isNaN(n))return '';
+  return Number(n).toLocaleString('en-US');
+}
+function curSym(){return $('fCurrency').value==='EUR'?'€':'US$';}
+
+function initWizard(){
+  const ms=$('fMonth');
+  MONTHS.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=m;ms.appendChild(o);});
+  ms.value=new Date().getMonth();
+  $('fYear').value=new Date().getFullYear();
+  $('fMode').addEventListener('change',onModeOrEntityChange);
+  $('fCompany').addEventListener('change',onModeOrEntityChange);
+  $('fTrust').addEventListener('change',onModeOrEntityChange);
+  $('fCis').addEventListener('change',onModeOrEntityChange);
+  $('fCurrency').addEventListener('change',()=>{renderFeeEditor();});
+  onModeOrEntityChange();
+}
+
+function onModeOrEntityChange(){
+  STATE.mode=$('fMode').value;
+  const isStructure=STATE.mode==='structure';
+  $('entityFields').style.display=isStructure?'':'none';
+  if(isStructure){
+    STATE.entities.company=$('fCompany').value;
+    STATE.entities.trust=$('fTrust').checked;
+    STATE.entities.cis=$('fCis').checked;
+    if(STATE.entities.company==='none'&&!STATE.entities.trust&&!STATE.entities.cis){
+      /* never allow a completely empty structure — fall back to AC */
+      STATE.entities.company='ac';$('fCompany').value='ac';
+    }
+  }
+  const p=currentSpec();
+  $('productBlurb').textContent=p.blurb;
+  if(p.currency)$('fCurrency').value=p.currency;
+  resetFees();
+  renderSectionToggles();
+  renderStructFields();
+  syncCellFees();
+}
+
+function resetFees(){
+  const p=currentSpec();
+  STATE.fees.setup=composeFees(p.priceKeys,'setup');
+  STATE.fees.fixed=composeFees(p.priceKeys,'fixed');
+  renderFeeEditor();
+}
+
+function renderFeeEditor(){
+  ['setup','fixed'].forEach(which=>{
+    const tb=$(which==='setup'?'feeSetup':'feeFixed');
+    tb.innerHTML='';
+    STATE.fees[which].forEach((r,i)=>{
+      const tr=document.createElement('tr');
+      if(r.t==='grp'){
+        tr.innerHTML='<td class="grp" colspan="2">'+r.l+'</td>';
+      }else{
+        const priced=r.t==='item';
+        tr.innerHTML='<td><input type="text" value="'+r.l.replace(/"/g,'&quot;')+'" '+
+          'oninput="STATE.fees.'+which+'['+i+'].l=this.value"/></td>'+
+          '<td style="width:78px">'+(priced?
+            '<input type="number" value="'+(r.v||0)+'" oninput="STATE.fees.'+which+'['+i+'].v=+this.value;feeTotals()"/>':
+            '<span style="color:#C3CCD3;font-size:10px;">incl.</span>')+'</td>';
+      }
+      tb.appendChild(tr);
+    });
+  });
+  feeTotals();
+}
+
+function feeTotal(which){
+  return STATE.fees[which].reduce((s,r)=>s+(r.t==='item'?(+r.v||0):0),0);
+}
+function feeTotals(){
+  $('feeSetupTotal').textContent=curSym()+' '+money(feeTotal('setup'));
+  $('feeFixedTotal').textContent=curSym()+' '+money(feeTotal('fixed'));
+}
+
+const SECTION_LABELS={
+  disclaimer:['Disclaimer','Legal disclaimer page — absent from most current decks'],
+  contents:['Contents','Table of contents'],
+  glossary:['Glossary of Terms','Auto-scoped to the product'],
+  ourgroup:['Our Group','Kundomal & Co group companies'],
+  about:['About Aurevya','Four values panel'],
+  whatwedo:['What We Do','Four client segments'],
+  structdivider:['Structure divider','Full-bleed section divider'],
+  structure:['Tailored Solution','The structure diagram'],
+  ackeydivider:['Key Features divider',''],
+  ackeyfeatures:['Key Features of an AC',''],
+  gbcdivider:['GBC divider',''],
+  gbcoverview:['GBC Comprehensive Overview','3 pages'],
+  cisdivider:['CIS divider',''],
+  cisoverview:['CIS / PCC Overview','Newly authored — absent from source deck'],
+  trustfacts:['Key Facts about the Trust',''],
+  trustparties:['Key Parties to a Trust',''],
+  trustvalidity:['Trust Validity',''],
+  docprocess_trust:['Documentation Process — Trust',''],
+  docprocess_company:['Documentation Process — Company',''],
+  docprocess_cis:['Documentation Process — CIS / PCC',''],
+  docprocess:['Documentation Process',''],
+  kyc:['KYC Documents',''],
+  feesetup:['Setup Fee table',''],
+  feefixed:['Fixed Fee table',''],
+  leaf:['Our Services','Leaf wheel overview'],
+  svc_board:['— Board Services & Directorship',''],
+  svc_accounting:['— Accounting & Finance',''],
+  svc_legal:['— Legal & Governance',''],
+  svc_compliance:['— Compliance',''],
+  svc_it:['— IT Management & Cybersecurity',''],
+  svc_concierge:['— Concierge Services',''],
+  svc_media:['— Media Monitoring & Communication',''],
+  back:['Back cover','']
+};
+
+function renderSectionToggles(){
+  const p=currentSpec();
+  const box=$('sectionToggles');box.innerHTML='';
+  STATE.sections={};
+  const all=p.sections.slice();
+  if(!all.includes('disclaimer'))all.unshift('disclaimer');
+  all.forEach(s=>{
+    const on=p.sections.includes(s);
+    STATE.sections[s]=on;
+    const lbl=SECTION_LABELS[s]||[s,''];
+    const d=document.createElement('label');d.className='checkline';
+    d.innerHTML='<input type="checkbox" '+(on?'checked':'')+
+      ' onchange="STATE.sections[\''+s+'\']=this.checked">'+
+      '<span>'+lbl[0]+(lbl[1]?'<span class="d">'+lbl[1]+'</span>':'')+'</span>';
+    box.appendChild(d);
+  });
+}
+
+function renderStructFields(){
+  const p=currentSpec();
+  if(!p.structure){$('structFields').innerHTML='<div style="font-size:11px;color:#94A3AE;">This proposal type has no structure diagram.</div>';STATE.struct=null;return;}
+  /* only re-seed the default layout when the proposal type/entities
+     change (i.e. whenever this function runs) — drag positions, added
+     nodes and edited labels otherwise survive every other edit, since
+     nothing else calls renderStructFields */
+  STATE.struct=JSON.parse(JSON.stringify(p.structure));
+  renderStructEditorUI();
+}
+
+/* redraw the sidebar's node/edge list for whatever STATE.struct
+   currently is — called after every add/remove, independently of the
+   full renderStructFields() reset above */
+function renderStructEditorUI(){
+  const box=$('structFields');
+  const st=STATE.struct;
+  if(!st||!st.nodes){box.innerHTML='<div style="font-size:11px;color:#94A3AE;">This proposal type has no structure diagram.</div>';return;}
+
+  let html='<div style="font-size:10.5px;color:#8D9AA5;line-height:1.4;margin-bottom:8px;">Drag any box directly on the diagram to reposition it.</div>';
+
+  st.nodes.forEach((n,i)=>{
+    const isCore=CORE_NODE_IDS.includes(n.id);
+    html+='<label class="f"><span>'+KIND_LABEL[n.kind]+' '+(i+1)+
+      (isCore?' <span class="hint">— Section 1</span>':'')+'</span>'+
+      '<div style="display:flex;gap:5px;align-items:center">'+
+      '<input type="text" style="flex:1" value="'+n.label.replace(/<br>/g,' ').replace(/"/g,'&quot;')+'" '+
+      'oninput="STATE.struct.nodes['+i+'].label=this.value;redrawStructure()">'+
+      (st.nodes.length>1?'<button type="button" class="ghost" style="width:auto;padding:6px 9px;margin:0" onclick="removeAnyNode(\''+n.id+'\')">✕</button>':'')+
+      '</div></label>';
+  });
+
+  if(st.edges.length){
+    html+='<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:10px 0 6px;">Connections</div>';
+    st.edges.forEach((e,i)=>{
+      html+='<div class="row2" style="align-items:end;margin-bottom:4px">'+
+        '<label class="f" style="margin-bottom:0"><span>From</span>'+nodeSelect('STATE.struct.edges['+i+'].from',e.from,st.nodes)+'</label>'+
+        '<label class="f" style="margin-bottom:0"><span>To</span>'+nodeSelect('STATE.struct.edges['+i+'].to',e.to,st.nodes)+'</label>'+
+        '</div>'+
+        '<div style="display:flex;gap:5px;align-items:center;margin-bottom:10px">'+
+        '<input type="text" style="flex:1" placeholder="Label, e.g. 100%" value="'+(e.label||'').replace(/"/g,'&quot;')+'" '+
+        'oninput="STATE.struct.edges['+i+'].label=this.value;redrawStructure()">'+
+        '<button type="button" class="ghost" style="width:auto;padding:6px 9px;margin:0" onclick="removeStructEdge(\''+e.id+'\')">✕</button>'+
+        '</div>';
+    });
+  }
+
+  const ent=STATE.entities||{};
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px">'+
+    '<button type="button" class="ghost" style="margin:0" onclick="addStructNode(\'shareholder\')">+ Shareholder</button>'+
+    '<button type="button" class="ghost" style="margin:0" onclick="addStructNode(\'box\')">+ Entity box</button>'+
+    (STATE.mode==='structure'&&!ent.trust?'<button type="button" class="ghost" style="margin:0" onclick="addCoreEntity(\'trust\')">+ Trust</button>':'')+
+    (STATE.mode==='structure'&&!ent.cis?'<button type="button" class="ghost" style="margin:0" onclick="addCoreEntity(\'cis\')">+ CIS</button>':'')+
+    (STATE.mode==='structure'&&ent.cis?'<button type="button" class="ghost" style="margin:0" onclick="addStructNode(\'ciscell\')">+ CIS Cell</button>':'')+
+    '<button type="button" class="ghost" style="margin:0" onclick="addStructEdge()">+ Connection</button>'+
+    '</div>'+
+    '<button type="button" class="ghost" onclick="resetStructure()">Reset diagram to default</button>'+
+    '<label class="f" style="margin-top:10px"><span>Diagram note <span class="hint">(optional)</span></span>'+
+    '<textarea oninput="STATE.struct.note=this.value;redrawStructure()">'+(st.note||'')+'</textarea></label>';
+
+  box.innerHTML=html;
+}
+
+function nodeSelect(path,val,nodes){
+  return '<select onchange="'+path+'=this.value;redrawStructure()">'+
+    nodes.map(n=>'<option value="'+n.id+'"'+(n.id===val?' selected':'')+'>'+n.label.replace(/<br>/g,' ')+'</option>').join('')+
+    '</select>';
+}
+
+/* re-render the live preview without re-seeding the diagram — used by
+   every sidebar edit (label text, connections, add/remove buttons) */
+function redrawStructure(){liveBuild(0);}
+
+/* these ids come straight from Section 1 (Company/Trust/CIS toggles),
+   so they're not removable from the diagram directly — deleting one
+   there without also unchecking Section 1 would leave the fee table,
+   the glossary and the document sections out of sync with what the
+   diagram shows. Everything else added from the diagram's own "+"
+   controls (extra shareholders, entity boxes, CIS cells) is fair game. */
+const CORE_NODE_IDS=['ac','gbc','trust','cis'];
+
+let _structSeq=1;
+function newStructId(){return 'x'+(_structSeq++)+'_'+Date.now().toString(36);}
+
+/* Keeps the price book's "Each additional cell" line in step with how
+   many CIS cell boxes are actually on the diagram. The base PRICEBOOK.cis
+   entry already covers the first cell (in "PCC incorporation and first
+   cell"); this line only covers cells beyond that one. If the user has
+   already retyped that line into something else, it's left alone — once
+   someone takes manual control of a fee line we stop auto-managing it. */
+function syncCellFees(){
+  if(STATE.mode!=='structure'||!STATE.entities.cis||!STATE.struct)return;
+  const cellCount=STATE.struct.nodes.filter(n=>n.kind==='ciscell').length;
+  const extra=Math.max(0,cellCount-1);
+  ['setup','fixed'].forEach(which=>{
+    const base=(PRICEBOOK.cis[which]||[]).find(r=>r.t==='item'&&/each additional cell/i.test(r.l));
+    const line=STATE.fees[which].find(r=>r.t==='item'&&/each additional cell/i.test(r.l));
+    if(!base||!line)return;
+    if(extra>0){line.l='Each additional cell (× '+extra+')';line.v=base.v*extra;}
+    else{line.l='Each additional cell';line.v=0;}
+  });
+  renderFeeEditor();
+}
+
+function defaultConnectTarget(st,kind){
+  if(kind==='ciscell'){
+    const cis=st.nodes.find(n=>n.kind==='box'&&/CIS/.test(n.label));
+    return cis?cis.id:(st.nodes[st.nodes.length-1]?st.nodes[st.nodes.length-1].id:null);
+  }
+  const anchor=st.nodes.find(n=>n.kind==='box');
+  return anchor?anchor.id:(st.nodes[0]?st.nodes[0].id:null);
+}
+
+/* every node reachable by following edges forward from startId,
+   including startId itself — used to shift a whole downstream branch
+   out of the way when a new box gets spliced into the middle of it */
+function collectDownstream(st,startId){
+  const seen=new Set(),queue=[startId];
+  while(queue.length){
+    const cur=queue.pop();
+    if(seen.has(cur))continue;
+    seen.add(cur);
+    st.edges.filter(e=>e.from===cur).forEach(e=>queue.push(e.to));
+  }
+  return seen;
+}
+
+/* "+ Trust" / "+ CIS" on the canvas toolbar — unlike a generic "+ Entity"
+   box, these are real Section-1 entities: they need the actual Trust/CIS
+   document sections, glossary terms and price-book fees to switch on,
+   not just an inert box. So this flips the same STATE.entities flag the
+   Section 1 checkbox does (and checks that checkbox to match), then
+   splices the node into whatever diagram is already there instead of
+   reseeding the whole thing — existing shareholders, entity boxes, cells
+   and drag positions are left untouched. */
+function addCoreEntity(kind){
+  if(STATE.mode!=='structure'||!STATE.struct||STATE.entities[kind])return;
+  STATE.entities[kind]=true;
+  const cb=$(kind==='trust'?'fTrust':'fCis');if(cb)cb.checked=true;
+  resetFees();
+  renderSectionToggles();
+  spliceCoreNode(kind);
+  syncCellFees();
+  renderStructEditorUI();
+  redrawStructure();
+}
+
+function spliceCoreNode(kind){
+  const st=STATE.struct,bd=NODE_DIM.box;
+  if(kind==='trust'){
+    if(st.nodes.some(n=>n.id==='trust'))return;
+    const sh=st.nodes.find(n=>n.kind==='shareholder')||st.nodes[0];
+    const outEdge=st.edges.find(e=>e.from===sh.id);
+    if(outEdge){
+      collectDownstream(st,outEdge.to).forEach(id=>{
+        const n=st.nodes.find(x=>x.id===id);if(n)n.y+=34;
+      });
+    }
+    const cx=sh.x+(NODE_DIM.shareholder.w/2);
+    const node={id:'trust',kind:'box',label:'TRUST',x:cx-bd.w/2,y:sh.y+34,primary:false,cap:''};
+    st.nodes.push(node);
+    st.edges.push({id:newStructId(),from:sh.id,to:'trust',label:''});
+    if(outEdge)outEdge.from='trust';else node.primary=true;
+    if(sh.label==='SHAREHOLDER')sh.label='SETTLOR';
+  }else if(kind==='cis'){
+    if(st.nodes.some(n=>n.id==='cis'))return;
+    const anchor=st.nodes.find(n=>n.primary)||st.nodes.find(n=>n.kind==='shareholder')||st.nodes[0];
+    const ad=NODE_DIM[anchor.kind]||bd;
+    const cx=anchor.x+ad.w/2;
+    const y=anchor.y+34;
+    const node={id:'cis',kind:'box',label:'CIS — PROTECTED<br>CELL COMPANY',x:cx-bd.w/2,y:y,primary:true,cap:''};
+    anchor.primary=false;
+    st.nodes.push(node);
+    st.edges.push({id:newStructId(),from:anchor.id,to:'cis',label:'100%'});
+    const cd=NODE_DIM.ciscell,cellY=y+bd.h+2;
+    st.nodes.push({id:'cellA',kind:'ciscell',label:'CELL A',x:cx-cd.w-4,y:cellY,primary:false,cap:''});
+    st.nodes.push({id:'cellB',kind:'ciscell',label:'CELL B',x:cx+4,y:cellY,primary:false,cap:''});
+    st.edges.push({id:newStructId(),from:'cis',to:'cellA',label:''});
+    st.edges.push({id:newStructId(),from:'cis',to:'cellB',label:''});
+  }
+  const t=structTitleFor(STATE.entities);
+  st.title=t.title;st.sub=t.sub;
+  st.canvasH=Math.max(st.canvasH,st.nodes.reduce((m,n)=>Math.max(m,n.y+(NODE_DIM[n.kind]||bd).h),0)+14);
+}
+
+/* the reverse of addCoreEntity() — deleting Trust, CIS, or the Company
+   box directly from the canvas. It unchecks the matching Section 1
+   control, rebuilds fees/sections the same way unchecking it by hand
+   would, then repairs the diagram: whatever was upstream of the removed
+   box gets reconnected straight to whatever was downstream of it, and a
+   removed CIS takes its cells with it. Refuses to leave a completely
+   empty structure. `slot` is 'company' | 'trust' | 'cis'. */
+function removeCoreEntity(slot){
+  if(STATE.mode!=='structure'||!STATE.struct)return;
+  let nodeId;
+  if(slot==='company'){
+    if(STATE.entities.company==='none')return;
+    if(!STATE.entities.trust&&!STATE.entities.cis){
+      alert('A structure needs at least one entity. Add a Trust or CIS first, or change the company type in Section 1.');
+      return;
+    }
+    nodeId=STATE.entities.company;
+    STATE.entities.company='none';
+    const sel=$('fCompany');if(sel)sel.value='none';
+  }else{
+    if(!STATE.entities[slot])return;
+    const otherActive=(STATE.entities.company!=='none')||(slot==='trust'?STATE.entities.cis:STATE.entities.trust);
+    if(!otherActive){
+      alert('A structure needs at least one entity. Add another entity first, or change this in Section 1.');
+      return;
+    }
+    nodeId=slot;
+    STATE.entities[slot]=false;
+    const cb=$(slot==='trust'?'fTrust':'fCis');if(cb)cb.checked=false;
+  }
+  resetFees();
+  renderSectionToggles();
+  removeCoreNodeFromStruct(nodeId);
+  syncCellFees();
+  renderStructEditorUI();
+  redrawStructure();
+}
+
+function removeCoreNodeFromStruct(id){
+  const st=STATE.struct;if(!st)return;
+  const node=st.nodes.find(n=>n.id===id);if(!node)return;
+
+  /* a removed CIS takes its cells with it */
+  const childIds=new Set();
+  if(id==='cis')collectDownstream(st,id).forEach(cid=>{if(cid!==id)childIds.add(cid);});
+
+  /* bridge the gap: reconnect whatever pointed at this node straight to
+     whatever this node pointed at, so the chain doesn't break in two */
+  const incoming=st.edges.filter(e=>e.to===id);
+  const outgoing=st.edges.filter(e=>e.from===id&&!childIds.has(e.to));
+  st.edges=st.edges.filter(e=>e.from!==id&&e.to!==id);
+  incoming.forEach(inE=>{
+    outgoing.forEach(outE=>{
+      st.edges.push({id:newStructId(),from:inE.from,to:outE.to,label:outE.label||inE.label||''});
+    });
+  });
+
+  st.nodes=st.nodes.filter(n=>n.id!==id&&!childIds.has(n.id));
+  st.edges=st.edges.filter(e=>!childIds.has(e.from)&&!childIds.has(e.to));
+  childIds.forEach(cid=>{
+    ['setup','fixed'].forEach(which=>{STATE.fees[which]=STATE.fees[which].filter(r=>r._nodeId!==cid);});
+  });
+
+  /* promote a new headline entity if the one that was primary just left */
+  if(node.primary){
+    const terminal=st.nodes.find(n=>n.kind!=='shareholder'&&!st.edges.some(e=>e.from===n.id));
+    if(terminal)terminal.primary=true;
+  }
+  /* no trust left upstream — the settlor is just a shareholder again */
+  if(id==='trust'){
+    const sh=st.nodes.find(n=>n.kind==='shareholder');
+    if(sh&&sh.label==='SETTLOR')sh.label='SHAREHOLDER';
+  }
+
+  const t=structTitleFor(STATE.entities);
+  st.title=t.title;st.sub=t.sub;
+}
+
+/* single entry point for every on-canvas delete control — routes to the
+   Section-1-aware removeCoreEntity() for the four core boxes, or the
+   plain removeStructNode() for anything the user added themselves */
+function removeAnyNode(id){
+  if(id==='ac'||id==='gbc')removeCoreEntity('company');
+  else if(id==='trust'||id==='cis')removeCoreEntity(id);
+  else removeStructNode(id);
+}
+
+function addStructNode(kind){
+  const st=STATE.struct;if(!st)return;
+  if(kind==='ciscell'&&!STATE.entities.cis)return; /* add a CIS first */
+  const d=NODE_DIM[kind]||NODE_DIM.box;
+  const id=newStructId();
+  const defaults={shareholder:'SHAREHOLDER',box:'ENTITY',ciscell:'NEW CELL'};
+  const count=st.nodes.filter(n=>n.kind===kind).length;
+  const maxY=st.nodes.reduce((m,n)=>Math.max(m,n.y+(NODE_DIM[n.kind]||NODE_DIM.box).h),0);
+  const x=8+count*(d.w+6);
+  const y=kind==='shareholder'?8:Math.min(maxY+10,st.canvasH-d.h-4);
+  st.nodes.push({id:id,kind:kind,label:defaults[kind],x:x,y:y,primary:false,cap:''});
+  const target=defaultConnectTarget(st,kind);
+  if(target){
+    if(kind==='ciscell')st.edges.push({id:newStructId(),from:target,to:id,label:''});
+    else st.edges.push({id:newStructId(),from:id,to:target,label:''});
+  }
+  st.canvasH=Math.max(st.canvasH,y+d.h+12);
+
+  /* keep the fee table honest about whatever just got added to the
+     diagram — a scaled line for CIS cells, a reminder line for a
+     custom entity box there's no price-book entry for */
+  if(kind==='ciscell'){
+    syncCellFees();
+  }else if(kind==='box'){
+    ['setup','fixed'].forEach(which=>{
+      STATE.fees[which].push({t:'item',l:'Additional entity — set fee',v:0,_nodeId:id});
+    });
+    renderFeeEditor();
+  }
+
+  renderStructEditorUI();
+  redrawStructure();
+}
+
+function removeStructNode(id){
+  const st=STATE.struct;if(!st||st.nodes.length<=1)return;
+  if(CORE_NODE_IDS.includes(id))return; /* use the Section 1 toggles instead */
+  const removed=st.nodes.find(n=>n.id===id);
+  st.nodes=st.nodes.filter(n=>n.id!==id);
+  st.edges=st.edges.filter(e=>e.from!==id&&e.to!==id);
+
+  const hadFeeLine=['setup','fixed'].some(which=>STATE.fees[which].some(r=>r._nodeId===id));
+  ['setup','fixed'].forEach(which=>{
+    STATE.fees[which]=STATE.fees[which].filter(r=>r._nodeId!==id);
+  });
+  if(removed&&removed.kind==='ciscell')syncCellFees();
+  else if(hadFeeLine)renderFeeEditor();
+
+  renderStructEditorUI();
+  redrawStructure();
+}
+
+function addStructEdge(){
+  const st=STATE.struct;if(!st||st.nodes.length<2)return;
+  st.edges.push({id:newStructId(),from:st.nodes[0].id,to:st.nodes[1].id,label:''});
+  renderStructEditorUI();
+  redrawStructure();
+}
+
+function removeStructEdge(id){
+  const st=STATE.struct;if(!st)return;
+  st.edges=st.edges.filter(e=>e.id!==id);
+  renderStructEditorUI();
+  redrawStructure();
+}
+
+function resetStructure(){
+  const p=currentSpec();
+  if(!p.structure)return;
+  STATE.struct=JSON.parse(JSON.stringify(p.structure));
+  /* drop any placeholder fee lines that belonged to custom boxes the
+     reset just removed, then re-scale the CIS cell line back to the
+     fresh default cell count */
+  ['setup','fixed'].forEach(which=>{
+    STATE.fees[which]=STATE.fees[which].filter(r=>!r._nodeId);
+  });
+  syncCellFees();
+  renderStructEditorUI();
+  renderFeeEditor();
+  redrawStructure();
+}
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   RENDERER
+   ═══════════════════════════════════════════════════════════════ */
+let PAGENO=0,RUNNING='',PAGES=[];
+
+/* ── image slots ───────────────────────────────────────────────
+   Real photography sits on top of a tonal gradient. A missing file
+   just falls back to the gradient — never a broken-image icon.
+   Run DOUBLE-CLICK-TO-EXTRACT-IMAGES.bat to populate assets/.      */
+const ASSET_DIR='assets/';
+const GRAD_DARK ="linear-gradient(150deg,#3E2436 0%,#241028 55%,#160A1C 100%)";
+const GRAD_LIGHT="linear-gradient(150deg,#DDE3E7 0%,#C6CFD6 100%)";
+
+function slot(name,label,o){
+  o=o||{};
+  let cls='imgslot'+(o.light?' light':'')+(o.contain?' contain':'')+(o.cls?' '+o.cls:'');
+  let st=o.style||'';
+  if(name){
+    st += o.contain
+      ? "background-image:url('"+ASSET_DIR+name+".png');"
+      : "background-image:url('"+ASSET_DIR+name+".png'),"+(o.light?GRAD_LIGHT:GRAD_DARK)+";";
+  }
+  return '<div class="'+cls+'" data-slot="'+(label||'')+'" style="'+st+'">'+(o.inner||'')+'</div>';
+}
+
+/* which leaf-wheel graphic belongs to which service page */
+const LEAF_IMG={board:'leaf-board',accounting:'leaf-accounting',legal:'leaf-legal',
+  compliance:'leaf-compliance',it:'leaf-it',concierge:'leaf-concierge',media:'leaf-plain'};
+
+/* Reliable gold rosette — a hand-built SVG, not an emoji glyph. Browsers
+   render "❀" inconsistently (that red-outline circle you saw is Chrome's
+   fallback box for a font that lacks the glyph). currentColor lets CSS set
+   the fill. */
+function ornamentSVG(size){
+  size=size||'1em';
+  return '<svg viewBox="0 0 32 32" width="'+size+'" height="'+size+
+    '" style="display:inline-block;vertical-align:-0.12em" aria-hidden="true">'+
+    '<g fill="currentColor">'+
+    '<ellipse cx="16" cy="16" rx="4.1" ry="7.6" transform="rotate(0 16 16)"/>'+
+    '<ellipse cx="16" cy="16" rx="4.1" ry="7.6" transform="rotate(45 16 16)"/>'+
+    '<ellipse cx="16" cy="16" rx="4.1" ry="7.6" transform="rotate(90 16 16)"/>'+
+    '<ellipse cx="16" cy="16" rx="4.1" ry="7.6" transform="rotate(135 16 16)"/>'+
+    '<circle cx="16" cy="16" r="2.6" fill="#fff" fill-opacity=".35"/>'+
+    '</g></svg>';
+}
+
+/* Larger, more detailed gold rosette used only on the "Our Group" page —
+   two rings (outer dot ring + petal ring) plus a bordered inner disc, closer
+   in spirit to the mandala on the source page without trying to trace it
+   pixel-for-pixel (that artwork is vector-only in the source PDF and not
+   recoverable as an asset). */
+function mandalaSVG(size){
+  size=size||'26mm';
+  let petals='';
+  const n=16;
+  for(let i=0;i<n;i++){
+    const ang=i*(360/n);
+    petals+='<ellipse cx="50" cy="27" rx="4" ry="12" transform="rotate('+ang+' 50 50)" fill="currentColor" fill-opacity=".82"/>';
+  }
+  let dots='';
+  const dn=28;
+  for(let i=0;i<dn;i++){
+    const ang=i*(360/dn)*Math.PI/180;
+    const cx=50+43*Math.cos(ang), cy=50+43*Math.sin(ang);
+    dots+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="1.5" fill="currentColor"/>';
+  }
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+
+    '" style="display:block;margin:0 auto;color:var(--gold)" aria-hidden="true">'+
+    '<g>'+dots+petals+
+    '<circle cx="50" cy="50" r="15" fill="none" stroke="currentColor" stroke-width="1.1"/>'+
+    '<circle cx="50" cy="50" r="6.5" fill="currentColor"/>'+
+    '</g></svg>';
+}
+
+/* Gold "bracket" rule used to underline a category header spanning one or
+   more columns — a horizontal hairline with short vertical ticks turning
+   down at each end. Stretches to fill its flex container (non-uniform
+   scaling via preserveAspectRatio="none"), stroke width held constant via
+   vector-effect. */
+function bracketSVG(){
+  return '<svg viewBox="0 0 100 10" preserveAspectRatio="none" '+
+    'style="display:block;width:100%;height:3mm" aria-hidden="true">'+
+    '<path d="M2 2 L2 8 M2 2 L98 2 M98 2 L98 8" stroke="#C9A84C" stroke-width="1.4" '+
+    'fill="none" vector-effect="non-scaling-stroke"/></svg>';
+}
+
+/* Small inline flag icons — simple, print-safe, no external font/image
+   dependency. Approximations of the national flags, sized for a caption row. */
+function flagSVG(country){
+  const common='style="display:inline-block;vertical-align:-1px;margin-right:1.2mm;border:.25px solid #00000022"';
+  if(country==='Mauritius'){
+    return '<svg width="4.6mm" height="3mm" viewBox="0 0 30 20" '+common+'>'+
+      '<rect width="30" height="5" y="0" fill="#EA2839"/>'+
+      '<rect width="30" height="5" y="5" fill="#1A206D"/>'+
+      '<rect width="30" height="5" y="10" fill="#FFD500"/>'+
+      '<rect width="30" height="5" y="15" fill="#00A551"/></svg>';
+  }
+  if(country==='United Arab Emirates'){
+    return '<svg width="4.6mm" height="3mm" viewBox="0 0 30 20" '+common+'>'+
+      '<rect width="30" height="6.67" y="0" fill="#00843D"/>'+
+      '<rect width="30" height="6.67" y="6.67" fill="#FFFFFF"/>'+
+      '<rect width="30" height="6.66" y="13.34" fill="#000000"/>'+
+      '<rect width="9" height="20" fill="#EF3340"/></svg>';
+  }
+  if(country==='Canada'){
+    return '<svg width="4.6mm" height="3mm" viewBox="0 0 30 20" '+common+'>'+
+      '<rect width="30" height="20" fill="#FFFFFF"/>'+
+      '<rect width="7.5" height="20" x="0" fill="#FF0000"/>'+
+      '<rect width="7.5" height="20" x="22.5" fill="#FF0000"/>'+
+      '<path d="M15 4l1 3 2.5-1.4-.8 2.6 2.3.2-1.8 1.8 1.2 1-2 .3.3 1.8-1.7-.9-.2 2h-2l-.2-2-1.7.9.3-1.8-2-.3 1.2-1-1.8-1.8 2.3-.2-.8-2.6L14 7z" fill="#FF0000"/></svg>';
+  }
+  return '';
+}
+
+/* Groups BP.ourGroupEntities into category clusters, reading the same
+   {cat:'X',...},{cat:'',...},{cat:'',...} convention already used in the
+   data (a non-empty cat starts a new group; an empty cat continues the
+   previous one). */
+function groupByCategory(entities){
+  const groups=[];
+  entities.forEach(e=>{
+    if(e.cat){groups.push({cat:e.cat,items:[e]});}
+    else if(groups.length){groups[groups.length-1].items.push(e);}
+    else{groups.push({cat:'',items:[e]});}
+  });
+  return groups;
+}
+
+/* The utility "crest" badge repeated in the corner of every content page.
+   On white pages we show the real Aurevya lockup; on photo/dark pages the
+   image would need a white chip to stay legible, so we keep the compact
+   text+ornament treatment instead — it already reads correctly there. */
+function crest(dark){
+  if(!dark){
+    return '<div class="crest">'+logoImg('7.5mm')+'</div>';
+  }
+  return '<div class="crest"><div class="orn">'+ornamentSVG('11pt')+'</div>'+
+    '<div class="mk">aurevya</div><div class="wm">WEALTH</div></div>';
+}
+
+/* Real logo, with a fallback chain so it works whether or not the
+   extractor has been run and wherever the file currently lives:
+     1) assets/logo-full-color.png   (written by the extractor)
+     2) ../logo.png.png              (the file already in your workspace)
+     3) CSS text lockup              (always works, no image needed)
+   onerror walks this chain once, then gives up gracefully. */
+function logoImg(height){
+  const id='logo'+(Math.random()*1e9|0);
+  return '<img id="'+id+'" class="logoimg" style="height:'+height+';display:block" '+
+    'src="'+ASSET_DIR+'logo-full-color.png" '+
+    'data-fallback="../logo.png.png" '+
+    'onerror="logoFallback(this)">';
+}
+function logoFallback(img){
+  const next=img.getAttribute('data-fallback');
+  if(next){
+    img.removeAttribute('data-fallback');
+    img.src=next;
+  }else{
+    /* both image paths failed — swap in the text lockup so nothing looks broken */
+    const span=document.createElement('span');
+    span.innerHTML='<span style="font-family:var(--serif);font-size:11pt;color:var(--navy);'+
+      'line-height:1;display:inline-flex;align-items:center;gap:2px">'+
+      '<span style="color:var(--gold)">'+ornamentSVG('10pt')+'</span>aurevya</span>';
+    img.replaceWith(span.firstChild);
+  }
+}
+function foot(){
+  PAGENO++;
+  return '<div class="pfoot"><span class="l">AUREVYA WEALTH</span>'+
+    '<span class="c">'+RUNNING+'</span>'+
+    '<span class="r">A KUNDOMAL &amp; CO ENTERPRISE</span><span class="n">'+PAGENO+'</span></div>';
+}
+function page(inner,cls){
+  return '<div class="page '+(cls||'')+'">'+inner+'</div>';
+}
+
+/* ── individual page builders ─────────────────────────── */
+function pgCover(p,d){
+  return page('<div class="cover">'+
+    slot('cover-photograph','cover photograph',{cls:'art',inner:'<div class="tag">'+BP.tagline+'</div>'})+
+    '<div class="pane">'+
+      '<div class="mark"><div class="orn">'+ornamentSVG('19pt')+'</div><div class="nm">aurevya</div><div class="wm">WEALTH</div></div>'+
+      '<div class="t1">'+p.coverT1+'</div><div class="t2">'+p.coverT2+'</div>'+
+      (p.coverT3?'<div class="t1" style="font-size:10pt;margin-top:1mm">'+p.coverT3+'</div>':'')+
+      '<div class="rule"></div>'+
+      '<div class="pf">Prepared for</div><div class="cn">'+(d.client||'—')+'</div>'+
+      '<div class="dt">'+d.month+'&nbsp; '+d.year+'</div>'+
+      '<div class="ent">'+BP.enterprise+'</div>'+
+    '</div></div>','nofoot');
+}
+
+function pgDisclaimer(){
+  return page(crest()+'<div class="pbody" style="background:var(--paper-alt)">'+
+    '<div class="disclaimerbox"><h4>Disclaimer</h4><div class="dc">'+
+    BP.disclaimer.map(t=>'<p>'+t+'</p>').join('')+
+    '</div></div>'+foot()+'</div>');
+}
+
+function pgContents(toc){
+  return page('<div class="contents">'+
+    slot('contents-photograph','contents photograph')+
+    '<div class="list">'+crest()+'<h1 class="ptitle">Contents</h1>'+
+    '<div class="toc">'+toc.map(t=>'<div class="ti"><span class="tt">'+t[0]+'</span><span class="tn">'+t[1]+'</span></div>').join('')+'</div>'+
+    foot()+'</div></div>');
+}
+
+function pgGlossary(terms){
+  const per=Math.ceil(terms.length/4);
+  let cols='';
+  for(let i=0;i<4;i++){
+    cols+='<div class="col">'+terms.slice(i*per,(i+1)*per).map(t=>
+      '<div class="term">'+t[0]+'</div><div class="def">'+t[1]+'</div>').join('')+'</div>';
+  }
+  return page(crest()+'<div class="pbody"><h1 class="ptitle">Glossary <em>of Terms</em></h1>'+
+    '<div class="cols c4">'+cols+'</div>'+foot()+'</div>');
+}
+
+function pgOurGroup(){
+  /* Subsidiary logos are vector artwork in the source PDFs, not embedded
+     raster images — there is nothing for the extractor to pull out for
+     these. Each card looks for assets/logo-<slug>.png (see README for the
+     exact filenames) and falls back to a clean gold-rule+name typographic
+     treatment if the file hasn't been supplied yet, so nothing ever looks
+     broken either way. */
+  const groups=groupByCategory(BP.ourGroupEntities);
+  const brackets=groups.map(g=>
+    '<div style="flex:'+g.items.length+' 1 0;text-align:center;padding:0 2mm">'+
+      bracketSVG()+
+      '<div style="font-family:var(--serif);font-style:italic;font-size:7.6pt;'+
+        'letter-spacing:.03em;color:var(--navy);margin-top:1.3mm">'+g.cat+'</div>'+
+    '</div>').join('');
+  const cards=BP.ourGroupEntities.map(e=>{
+    const logoSrc=ASSET_DIR+'logo-'+(e.logo==='aurevya'?'full-color':e.logo)+'.png';
+    const logoHTML='<div style="height:9mm;display:flex;align-items:center;justify-content:center;margin-bottom:2.5mm">'+
+      '<img src="'+logoSrc+'" style="max-height:9mm;max-width:85%;object-fit:contain" '+
+      'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'">'+
+      '<div style="display:none;width:16mm;height:.8px;background:var(--gold)"></div></div>';
+    return '<div class="col">'+
+    logoHTML+
+    '<div class="term" style="text-align:center;font-family:var(--serif);font-size:8.4pt">'+e.name+'</div>'+
+    '<p style="font-size:6.6pt;text-align:center">'+e.txt+'</p>'+
+    (e.partner?(
+      '<div style="text-align:center;margin-top:1.5mm">'+
+      '<p style="font-size:6.2pt;color:var(--navy);margin:0 0 1mm">'+e.partner+'</p>'+
+      '<img src="'+ASSET_DIR+'logo-'+(e.partnerLogo||'nec')+'.png" style="max-height:5mm;max-width:60%;object-fit:contain" '+
+      'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'inline\'">'+
+      '<span style="display:none;font-family:var(--serif);font-size:7.5pt;letter-spacing:.1em;color:var(--navy)">NEC</span>'+
+      '</div>'
+    ):'')+
+    '<div style="font-size:6.2pt;color:var(--gold);text-align:center;margin-top:2mm">Operating in:</div>'+
+    e.ops.map(o=>'<div style="font-size:6.4pt;text-align:center;color:var(--slate)">'+flagSVG(o)+o+'</div>').join('')+
+    '</div>';
+  }).join('');
+  return page(crest()+'<div class="pbody"><h1 class="ptitle">Our Group</h1>'+
+    '<div style="text-align:center;margin:2mm 0 1mm">'+
+      mandalaSVG('20mm')+
+      '<div style="font-family:var(--serif);font-size:14pt;letter-spacing:.06em;color:var(--navy);margin-top:1.5mm">KUNDOMAL &amp; CO</div>'+
+    '</div>'+
+    '<div style="display:flex;margin-top:5mm">'+brackets+'</div>'+
+    '<div class="cols" style="grid-template-columns:repeat(6,1fr);gap:4mm;margin-top:3mm">'+cards+'</div>'+
+    foot()+'</div>');
+}
+
+function pgAbout(){
+  return page(crest()+'<div class="pbody"><h1 class="ptitle">Our Group</h1>'+
+    '<div style="display:grid;grid-template-columns:44% 56%;gap:8mm;margin-top:5mm;align-items:center">'+
+    slot('about-photograph','office photograph',{style:'height:52mm;'})+
+    '<div><div style="color:var(--gold);font-size:15pt;line-height:1">'+ornamentSVG('15pt')+'</div>'+
+      '<div style="font-family:var(--serif);font-size:24pt;color:var(--navy);line-height:.95">aurevya</div>'+
+      '<div style="font-size:5pt;letter-spacing:.5em;color:var(--slate);margin-bottom:5mm">WEALTH</div>'+
+      '<div style="font-size:12pt;color:var(--navy);line-height:1.35;font-weight:300">Founded more than a decade ago, we are an award-winning boutique financial services provider.</div></div>'+
+    '</div>'+
+    '<div class="cols c4" style="margin-top:6mm">'+BP.aboutValues.map(v=>
+      '<div class="col"><h4 class="navy ruled">'+v[0]+'</h4><p>'+v[1]+'</p></div>').join('')+'</div>'+
+    foot()+'</div>');
+}
+
+function pgWhatWeDo(){
+  return page(crest()+'<div class="pbody"><h1 class="ptitle">What We Do</h1>'+
+    '<div class="psub" style="font-size:12pt;margin-top:2mm">Structuring and Administering Legacy for Fiscal Efficiency, Longevity, and Sustainable Growth.</div>'+
+    '<div class="cols c4" style="margin-top:5mm">'+BP.whatWeDo.map((g,gi)=>
+      '<div class="col"><h4 class="navy ruled">'+g.h+'</h4>'+
+      slot(['whatwedo-private','whatwedo-enterprise','whatwedo-institutions','whatwedo-sovereigns'][gi],
+           'photo',{style:'height:22mm;margin-bottom:3mm;'})+
+      g.items.map(it=>'<h4>'+it[0]+'</h4><p>'+it[1]+'</p>').join('')+'</div>').join('')+'</div>'+
+    foot()+'</div>');
+}
+
+function pgDivider(h,s,img){
+  return page(slot(img||'divider-photograph','divider photograph',{style:'position:absolute;inset:0;'})+
+    crest(true)+'<div class="divider"><div class="dtitle"><h2>'+h+'</h2>'+
+    (s?'<div class="drule"></div><div class="ds">'+s+'</div>':'')+'</div></div>'+foot(),'dark');
+}
+
+/* absolutely-positioned node boxes — see NODE_DIM/KIND_LABEL above */
+function renderNodesHTML(st){
+  return st.nodes.map(n=>{
+    const d=NODE_DIM[n.kind]||NODE_DIM.box;
+    const base='position:absolute;left:'+n.x+'mm;top:'+n.y+'mm;width:'+d.w+'mm;height:'+d.h+'mm;cursor:grab;';
+    let out;
+    if(n.kind==='shareholder'){
+      out='<div class="dragnode" data-nid="'+n.id+'" style="'+base+
+        'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;">'+
+        '<div class="personicon" style="margin-bottom:1.2mm">○</div>'+
+        '<div class="node plain" style="padding:0;min-width:0">'+n.label+'</div></div>';
+    }else{
+      const cls='dragnode node'+(n.kind==='ciscell'?' cell':'')+(n.primary?' filled':'');
+      out='<div class="'+cls+'" data-nid="'+n.id+'" style="'+base+'">'+n.label+'</div>';
+    }
+    if(n.cap){
+      out+='<div class="nodecap" data-cap-for="'+n.id+'" style="position:absolute;left:'+n.x+'mm;top:'+(n.y+d.h+1.5)+
+        'mm;width:'+d.w+'mm;text-align:center;margin:0">'+n.cap+'</div>';
+    }
+    /* delete badge on every box — routed through removeAnyNode(), which
+       knows to unwind Section 1 + fees first for the four core boxes */
+    if(st.nodes.length>1){
+      out+='<button type="button" class="nodeDelBtn noprint" title="Remove" '+
+        'style="left:'+(n.x+d.w-2.6)+'mm;top:'+(n.y-2.6)+'mm" '+
+        'onclick="removeAnyNode(\''+n.id+'\')">✕</button>';
+    }
+    return out;
+  }).join('');
+}
+
+/* point where a line from a box's centre toward (tx,ty) crosses the
+   box's own boundary — used so connectors leave from whichever edge
+   actually faces the other node, not always dead-centre top/bottom */
+function edgeAnchor(cx,cy,w,h,tx,ty){
+  const dx=tx-cx,dy=ty-cy;
+  if(dx===0&&dy===0)return{x:cx,y:cy};
+  const hw=w/2,hh=h/2;
+  const scaleX=dx!==0?hw/Math.abs(dx):Infinity;
+  const scaleY=dy!==0?hh/Math.abs(dy):Infinity;
+  const scale=Math.min(scaleX,scaleY);
+  return{x:cx+dx*scale,y:cy+dy*scale};
+}
+
+/* connector lines drawn in an SVG overlay, in the same mm coordinate
+   space as the nodes — recomputed on every drag frame, so the lines
+   always follow whatever box just moved */
+function renderEdgesSVG(st){
+  const byId={};st.nodes.forEach(n=>byId[n.id]=n);
+  let svg='<svg class="edgesvg" viewBox="0 0 '+st.canvasW+' '+st.canvasH+'" '+
+    'style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" xmlns="http://www.w3.org/2000/svg">';
+  st.edges.forEach(e=>{
+    const a=byId[e.from],b=byId[e.to];if(!a||!b)return;
+    const da=NODE_DIM[a.kind]||NODE_DIM.box,db=NODE_DIM[b.kind]||NODE_DIM.box;
+    /* connect from whichever side of each box faces the other node, so
+       edges between boxes that aren't stacked directly on top of each
+       other (e.g. a shareholder feeding in from the side) don't cut
+       through the box corners */
+    const acx=a.x+da.w/2,acy=a.y+da.h/2,bcx=b.x+db.w/2,bcy=b.y+db.h/2;
+    const p1=edgeAnchor(acx,acy,da.w,da.h,bcx,bcy);
+    const p2=edgeAnchor(bcx,bcy,db.w,db.h,acx,acy);
+    const angle=Math.atan2(p2.y-p1.y,p2.x-p1.x);
+    const arrowLen=2.6,arrowW=1.3;
+    const tipX=p2.x,tipY=p2.y;
+    const backX=tipX-arrowLen*Math.cos(angle),backY=tipY-arrowLen*Math.sin(angle);
+    const perpX=Math.sin(angle)*arrowW,perpY=-Math.cos(angle)*arrowW;
+    svg+='<line x1="'+p1.x+'" y1="'+p1.y+'" x2="'+backX+'" y2="'+backY+'" stroke="#2B3E50" stroke-width=".35"/>';
+    svg+='<polygon points="'+tipX+','+tipY+' '+(backX+perpX)+','+(backY+perpY)+' '+(backX-perpX)+','+(backY-perpY)+'" fill="#2B3E50"/>';
+    if(e.label){
+      const mx=(p1.x+p2.x)/2+3.5,my=(p1.y+p2.y)/2;
+      svg+='<text x="'+mx+'" y="'+my+'" font-family="Cormorant Garamond, serif" font-style="italic" '+
+        'font-size="4.6" fill="#C9A84C">'+e.label+'</text>';
+    }
+  });
+  svg+='</svg>';
+  return svg;
+}
+
+function pgStructure(st){
+  const ent=STATE.entities||{};
+  const isStructMode=STATE.mode==='structure';
+  let toolbar='<div class="structToolbar noprint">'+
+    '<button type="button" class="structAddBtn" title="Add a shareholder box" onclick="addStructNode(\'shareholder\')">'+
+      '<span class="plus">+</span>Shareholder</button>'+
+    '<button type="button" class="structAddBtn" title="Add a generic entity box" onclick="addStructNode(\'box\')">'+
+      '<span class="plus">+</span>Entity</button>';
+  if(isStructMode&&!ent.trust){
+    toolbar+='<button type="button" class="structAddBtn" title="Add a Trust — brings in the Trust pages, glossary terms and fees" onclick="addCoreEntity(\'trust\')">'+
+      '<span class="plus">+</span>Trust</button>';
+  }
+  if(isStructMode&&!ent.cis){
+    toolbar+='<button type="button" class="structAddBtn" title="Add a CIS (PCC) — brings in the CIS pages, glossary terms and fees" onclick="addCoreEntity(\'cis\')">'+
+      '<span class="plus">+</span>CIS</button>';
+  }
+  if(isStructMode&&ent.cis){
+    toolbar+='<button type="button" class="structAddBtn" title="Add a CIS cell" onclick="addStructNode(\'ciscell\')">'+
+      '<span class="plus">+</span>Cell</button>';
+  }
+  toolbar+='</div>';
+  let inner='<div class="freecanvas" style="position:relative;width:'+st.canvasW+'mm;height:'+
+    st.canvasH+'mm;margin:0 auto">'+toolbar+renderEdgesSVG(st)+renderNodesHTML(st)+'</div>';
+  if(st.note)inner+='<div class="dgnote">Note: '+st.note+'</div>';
+  return page('<div class="structpage">'+
+    '<div class="lp"><h2>'+st.title+'</h2>'+(st.sub?'<div class="ss">'+st.sub+'</div>':'')+
+      slot('structure-portrait','portrait',{style:'position:absolute;left:0;right:0;bottom:0;height:58%;'})+
+      '<div class="aw">AUREVYA WEALTH</div></div>'+
+    '<div class="rp">'+crest()+inner+foot()+'</div></div>');
+}
+
+function pgACKeyFeatures(){
+  const k=AC_KEYFEATURES;
+  return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:22pt">'+k.title+'</h1>'+
+    '<div style="display:grid;grid-template-columns:34% 33% 33%;gap:6mm;margin-top:5mm">'+
+    slot('keyfeatures-photograph','photograph',{style:'height:70mm;'})+
+    '<div class="col">'+k.blocks.map(b=>'<h4>'+b.h+'</h4><p>'+b.p+'</p>').join('')+'</div>'+
+    '<div class="col"><ol style="padding-left:4mm;margin:0 0 3mm">'+
+      k.prohibited.map(x=>'<li style="font-size:7.4pt;line-height:1.42;color:var(--slate);margin-bottom:1.4mm">'+x+'</li>').join('')+
+      '</ol>'+k.tail.map(t=>'<p>'+t+'</p>').join('')+'</div></div>'+foot()+'</div>');
+}
+
+function pgGBCOverview(part){
+  const g=GBC_OVERVIEW;
+  if(part===1){
+    return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:20pt">Global Business Company (GBC) in Mauritius</h1>'+
+      '<div class="peyebrow" style="margin-top:2mm">A COMPREHENSIVE OVERVIEW</div>'+
+      '<div style="display:grid;grid-template-columns:46% 54%;gap:8mm;margin-top:6mm;align-items:center">'+
+      slot('gbc-cityscape','photograph',{style:'height:74mm;'})+
+      '<div class="col"><p style="font-size:9pt;line-height:1.5">'+g.intro+'</p></div></div>'+foot()+'</div>');
+  }
+  if(part===2){
+    const b=g.blocks.slice(0,4);
+    return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:18pt">Global Business Company (GBC) in Mauritius</h1>'+
+      '<div class="cols c3" style="margin-top:5mm">'+
+      '<div class="col">'+b.slice(0,2).map(x=>'<h4>'+x.h+'</h4>'+(x.lead?'<p>'+x.lead+'</p>':'')+
+        '<ul>'+x.items.map(i=>'<li>'+i+'</li>').join('')+'</ul>').join('')+'</div>'+
+      '<div class="col"><p style="font-style:italic;color:var(--navy)">‹› &nbsp;'+g.note+'</p>'+
+        b.slice(2,4).map(x=>'<h4>'+x.h+'</h4>'+(x.lead?'<p>'+x.lead+'</p>':'')+
+        '<ul>'+x.items.map(i=>'<li>'+i+'</li>').join('')+'</ul>').join('')+'</div>'+
+      slot('gbc-cityscape','photograph')+'</div>'+foot()+'</div>');
+  }
+  const s=g.substance,b=g.blocks.slice(4);
+  return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:18pt">Global Business Company (GBC) in Mauritius</h1>'+
+    '<div style="display:grid;grid-template-columns:30% 70%;gap:7mm;margin-top:5mm">'+
+    '<div class="col">'+b.map(x=>'<h4>'+x.h+'</h4><ul>'+x.items.map(i=>'<li>'+i+'</li>').join('')+'</ul>').join('')+'</div>'+
+    '<div class="col"><h4>'+s.h+'</h4><p>'+s.lead+'</p>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:6.4pt;margin-top:2mm">'+
+      '<tr style="background:var(--gold-bar);color:#fff"><th style="text-align:left;padding:1.6mm 2mm">Category</th>'+
+      '<th style="text-align:left;padding:1.6mm 2mm">Sub-Category</th>'+
+      '<th style="text-align:right;padding:1.6mm 2mm">Min. Annual Exp. (USD)</th>'+
+      '<th style="text-align:left;padding:1.6mm 2mm">Min. Employment in Mauritius</th></tr>'+
+      s.rows.map(r=>'<tr style="border-bottom:.5px solid var(--hair)">'+
+        '<td style="padding:1.3mm 2mm;font-weight:600;color:var(--navy)">'+r[0]+'</td>'+
+        '<td style="padding:1.3mm 2mm;color:var(--slate)">'+r[1]+'</td>'+
+        '<td style="padding:1.3mm 2mm;text-align:right;color:var(--slate)">'+r[2]+'</td>'+
+        '<td style="padding:1.3mm 2mm;color:var(--slate)">'+r[3]+'</td></tr>').join('')+'</table>'+
+      '<p style="margin-top:2.5mm;font-weight:600;color:var(--navy)">'+s.foot+'</p></div></div>'+foot()+'</div>');
+}
+
+function pgCIS(){
+  return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:20pt">Collective Investment Scheme</h1>'+
+    '<div class="peyebrow" style="margin-top:2mm">PROTECTED CELL COMPANY — A COMPREHENSIVE OVERVIEW</div>'+
+    '<div class="cols c3" style="margin-top:5mm">'+
+    CIS_CONTENT.blocks.map(b=>'<div class="col"><h4>'+b.h+'</h4>'+
+      (b.p?'<p>'+b.p+'</p>':'')+
+      (b.items?'<ul>'+b.items.map(i=>'<li>'+i+'</li>').join('')+'</ul>':'')+'</div>').join('')+
+    '</div>'+foot()+'</div>');
+}
+
+function pgTrustFacts(){
+  const k=TRUST_CONTENT.keyFacts;
+  return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:20pt">'+k.title+'</h1>'+
+    '<div style="border:1px solid var(--gold);padding:4mm 5mm;margin-top:4mm">'+
+    k.box.map(b=>'<p style="font-size:8pt;font-weight:600;color:var(--navy);margin:0 0 2mm;line-height:1.4">'+b+'</p>').join('')+'</div>'+
+    '<h4 style="color:var(--gold);font-size:8pt;margin:4mm 0 2mm;letter-spacing:.06em">'+k.h+'</h4>'+
+    '<div class="cols c3" style="margin-top:0">'+
+    [0,1,2].map(c=>'<div class="col">'+k.items.slice(c*3,c*3+3).map(it=>
+      '<h4 class="navy">'+it[0]+'</h4><p>'+it[1]+'</p>').join('')+'</div>').join('')+'</div>'+
+    foot()+'</div>');
+}
+
+function pgTrustParties(){
+  const k=TRUST_CONTENT.parties;
+  return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:20pt">'+k.title+'</h1>'+
+    '<div class="cols c3" style="margin-top:4mm">'+
+    [0,1,2].map(c=>'<div class="col">'+k.items.slice(c*2,c*2+2).map(it=>
+      '<h4>'+it[0]+'</h4><p>'+it[1]+'</p>').join('')+'</div>').join('')+'</div>'+
+    foot()+'</div>');
+}
+
+function pgTrustValidity(){
+  const k=TRUST_CONTENT.validity;
+  return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:20pt">'+k.title+'</h1>'+
+    '<div style="display:grid;grid-template-columns:40% 60%;gap:7mm;margin-top:5mm">'+
+    slot('trust-validity-photograph','photograph',{style:'height:72mm;'})+
+    '<div><p style="font-size:10pt;line-height:1.42;color:var(--navy);font-weight:300">'+k.quote+'</p>'+
+    '<div class="cols c2" style="margin-top:4mm">'+k.body.map(b=>'<div class="col"><p>'+b+'</p></div>').join('')+'</div></div>'+
+    '</div>'+foot()+'</div>');
+}
+
+const DOCPROC={
+  ac:{sub:'For The Setup Of your Authorised Company',steps:[
+    ['ACCEPTANCE OF QUOTE',['Confirmation email and proforma invoice sent to the client','Data and Screening consent form']],
+    ['ONBOARDING',['Incorporation Questionnaire','Declaration of Source of fund &amp; wealth','PEP declaration form','UBO Declaration form','FATCA &amp; CRS form','AML/CFT Consent form','Data and Screening consent form','CTC passport','CTC Proof of address','CTC Bank Reference','Signed CV','Business Plan with cash flow projection for 3 years','AML/CFT Confirmation letter']],
+    ['INCORPORATION AND LICENSING OF COMPANY',['Provide consent of director shareholder','Management agreement','Indemnity letter','PQ form of directors &amp; shareholders','Application of Tax residency certificate','Application for Tax account Number','Declaration of UBO','Registration with the Data Protection office']],
+    ['BANK ACCOUNT OPENING',['Completion of bank questionnaire','Board resolution to approve Bank account Opening','Application for the selected bank','Request for bank cards','Note that in the case of a GBC company, one person from Aurevya Wealth Ltd must have view access and shall be an authorized signatory on the account.']],
+    ['COMPLETION',['Once the bank account is opened, we shall provide you with a client welcome pack which includes all statutory and banking document for your company.']]]},
+  gbc:{sub:'For The Setup Of your GBC',steps:[
+    ['ACCEPTANCE OF QUOTE',['Confirmation email and proforma invoice sent to the client','Data and Screening consent form']],
+    ['ONBOARDING',['Incorporation Questionnaire','Declaration of Source of fund &amp; wealth','PEP declaration form','UBO Declaration form','FATCA &amp; CRS form','AML/CFT Consent form','Data and Screening consent form','Certified True copy - passport','Certified True copy - Proof of address','CTC Bank Reference','Signed CV','Business Plan with cash flow projection for 3 years','AML/CFT Confirmation letter']],
+    ['INCORPORATION AND LICENSING OF COMPANY',['Provide consent of director shareholder','Management agreement','Indemnity letter','PQ form of directors &amp; shareholders','Application of Tax residency certificate','Application for Tax account Number','Declaration of UBO']],
+    ['BANK ACCOUNT OPENING',['Completion of bank questionnaire','Board resolution to approve Bank account Opening','Application for the selected bank','Request for bank cards','Note that in the case of a GBC company, one person from Aurevya Wealth Ltd must have view access and shall be an authorized signatory on the account.']],
+    ['COMPLETION',['Once the bank account is opened we shall provide you with a client welcome pack which includes all statutory and banking document for your company.']]]},
+  trust:{sub:'For The Setup Of your Trust',steps:[
+    ['ACCEPTANCE OF QUOTE',['Confirmation email and proforma invoice sent to the client','Data and Screening consent form']],
+    ['ONBOARDING',['Incorporation Questionnaire','Declaration of Source of fund &amp; wealth','PEP declaration form','UBO Declaration form','FATCA &amp; CRS form','AML/CFT Consent form','CTC - passport','CTC - Proof of address','CTC Bank Reference','Signed CV','AML/CFT Confirmation letter']],
+    ['ESTABLISHMENT OF TRUST',['Trust Deed','Trustee Resolution','List of beneficiaries','Trustee/Management agreement','Indemnity letter, as applicable','Declaration of UBO']],
+    ['BANK ACCOUNT OPENING',['Completion of bank questionnaire','Board resolution to approve Bank account Opening','Application for the selected bank','Request for bank cards']],
+    ['COMPLETION',['Once the bank account is opened we shall provide you with a client welcome pack which includes all statutory and banking document for your trust.']]]},
+  cis:{sub:'For The Setup Of your Collective Investment Scheme (PCC)',steps:[
+    ['ACCEPTANCE OF QUOTE',['Confirmation email and proforma invoice sent to the client','Data and Screening consent form']],
+    ['ONBOARDING',['Incorporation Questionnaire','Declaration of Source of fund &amp; wealth','PEP declaration form','UBO Declaration form','FATCA &amp; CRS form','AML/CFT Consent form','CTC passport','CTC Proof of address','CTC Bank Reference','Signed CV','Investment strategy and offering document drafting','AML/CFT Confirmation letter']],
+    ['CIS LICENSING &amp; CELL ESTABLISHMENT',['Preparation and filing of the offering document per cell','Application for CIS licence with the Financial Services Commission','Appointment of CIS Manager, Custodian and Administrator','Incorporation of the Protected Cell Company and first cell','Declaration of UBO']],
+    ['BANK ACCOUNT OPENING',['Completion of bank questionnaire per cell','Board resolution to approve Bank account Opening','Application for the selected bank','Request for bank cards']],
+    ['COMPLETION',['Once the bank account is opened and the CIS licence is issued, we shall provide you with a client welcome pack including all statutory, licensing and banking documents for your scheme.']]]}
+};
+
+function pgDocProcess(key){
+  const d=DOCPROC[key];if(!d)return '';
+  return page(crest()+'<div class="pbody"><h1 class="ptitle">Documentation Process</h1>'+
+    '<div class="psub">'+d.sub+'</div>'+
+    '<div class="steps">'+d.steps.map((s,i)=>
+      '<div class="step"><div class="sn">Step '+(i+1)+'</div><div class="sh">'+s[0]+'</div>'+
+      '<ul>'+s[1].map(b=>'<li>'+b+'</li>').join('')+'</ul></div>').join('')+'</div>'+
+    foot()+'</div>');
+}
+
+function pgKYC(withCorporate){
+  const k=BP.kyc;
+  const cols=[['AN INDIVIDUAL',k.individual]];
+  if(withCorporate!==false)cols.push(['A CORPORATE ENTITY',k.corporate]);
+  cols.push(['CERTIFICATIONS',k.certifications]);
+  return page(crest()+'<div class="pbody"><h1 class="ptitle">KYC Documents</h1>'+
+    '<div class="plead">'+k.lead+'</div>'+
+    '<div class="cols c'+cols.length+'" style="margin-top:5mm">'+cols.map(c=>
+      '<div class="col"><h4 class="ruled">'+c[0]+'</h4><ul>'+c[1].map(i=>'<li>'+i+'</li>').join('')+'</ul></div>').join('')+'</div>'+
+    foot()+'</div>');
+}
+
+function pgFee(which,d){
+  const rows=STATE.fees[which];const tot=feeTotal(which);
+  const title=which==='setup'?'Setup Fee':'Fixed Fee';
+  const sub=which==='setup'?'(One Off)':'(Year One Onwards)';
+  let body='',pend=[];
+  rows.forEach(r=>{
+    if(r.t==='grp'){ body+='<tr class="grp"><td colspan="2">'+r.l+'</td></tr>'; }
+    else if(r.t==='desc'){ pend.push(r.l); }
+    else{
+      const lines=pend.concat([r.l]);pend=[];
+      body+='<tr class="rule"><td>'+lines.map(l=>'<div>'+l+'</div>').join('')+'</td>'+
+        '<td class="r" style="vertical-align:middle">'+money(r.v)+'</td></tr>';
+    }
+  });
+  body+='<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>';
+  return page(crest()+'<div class="pbody">'+
+    '<h1 class="ptitle">'+title+' <em style="color:var(--gold);opacity:.85">'+sub+'</em></h1>'+
+    '<div class="feewrap"><table class="deckfee"><thead><tr><th>DESCRIPTIONS</th>'+
+    '<th class="r">PRICE ('+(d.currency==='EUR'?'EUR':'US$')+')</th></tr></thead><tbody>'+body+'</tbody></table></div>'+
+    '<div class="feenote">Please note that our fees cover all statutory obligations on a yearly basis towards the authorities. '+
+    'Any work outside this scope, we will provide a quote for your approval beforehand.<br>'+
+    'NB: There shall be cost escalation in our Annual Fixed Fee of 10% every 3 years.</div>'+
+    foot()+'</div>');
+}
+
+function pgLeaf(){
+  /* full-bleed plum page with the gold vine graphic and the six leaf labels */
+  return page('<div style="position:absolute;inset:0;background:var(--plum)"></div>'+
+    slot('leaf-plain','',{contain:true,
+      style:'position:absolute;right:-6%;top:8%;width:78%;height:84%;background-position:right center;'})+
+    crest(true)+'<div class="pbody" style="position:relative;z-index:2">'+
+    '<h1 class="ptitle" style="color:#fff">Our Services</h1>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:4mm;margin-top:14mm;max-width:56%">'+
+    BP.leaves.map(l=>'<div style="background:linear-gradient(135deg,#D9BE6A,#B8983F);color:#fff;'+
+      'font-size:6.4pt;font-weight:600;letter-spacing:.04em;padding:3mm 5mm;'+
+      'border-radius:50% 10% 50% 10%;text-align:center">'+l+'</div>').join('')+'</div>'+
+    foot()+'</div>','dark');
+}
+
+/* Service-page leaf wheel. Each service has its own extracted graphic with
+   the relevant leaf coloured; labels are overlaid as text. */
+function leafCol(key){
+  const active=(BP.services[key]||{}).leaf;
+  return '<div class="leafwheel">'+
+    slot(LEAF_IMG[key]||'leaf-plain','',{contain:true,
+      style:'width:100%;height:44mm;background-position:center;margin-bottom:3mm;'})+
+    BP.leaves.map(l=>'<div class="lf'+(l===active?' on':'')+'">'+l+'</div>').join('')+
+    '</div>';
+}
+
+function pgService(key){
+  const s=BP.services[key];if(!s)return '';
+  let mid='';
+  if(key==='board'){
+    mid='<div class="col"><h4>'+s.colAh+'</h4>'+s.colA.map(a=>'<h4>'+a[0]+'</h4>'+(a[1]?'<p>'+a[1]+'</p>':'')).join('')+'</div>'+
+      '<div class="col"><h4>'+s.colBh+'</h4><ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>'+
+      '<div class="col"><h4>'+s.colCh+'</h4>'+s.colC.map(c=>'<h4>'+c[0]+'</h4><p>'+c[1]+'</p>').join('')+
+      '<ul>'+s.colCbul.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>';
+  }else if(key==='accounting'){
+    mid='<div class="col"><h4>'+s.colAh+'</h4>'+s.colA.map(a=>'<h4>'+a[0]+'</h4><p>'+a[1]+'</p>').join('')+'</div>'+
+      '<div class="col"><h4>'+s.colBh+'</h4><ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>'+
+      '<div class="col"><h4>'+s.colCh+'</h4><ul>'+s.colC.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>';
+  }else if(key==='legal'){
+    mid='<div class="col"><h4>'+s.colAh+'</h4><ul>'+s.colA.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>'+
+      '<div class="col"><h4>'+s.colBh+'</h4><p style="font-weight:600;color:var(--navy)">'+s.colBsub+'</p>'+
+      '<ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul></div><div></div>';
+  }else if(key==='compliance'){
+    mid='<div class="col"><h4>'+s.colAh+'</h4><h4 class="navy">'+s.amlTitle+'</h4><p>'+s.amlSub+'</p>'+
+      s.amlP.map(p=>'<p>'+p+'</p>').join('')+'</div>'+
+      '<div class="col"><h4 class="navy">'+s.colBh+'</h4><ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul>'+
+      '<h4 class="navy">'+s.advTitle+'</h4><p>'+s.advLead+'</p><ol style="padding-left:4mm">'+
+      s.adv.map(b=>'<li style="font-size:7.2pt;line-height:1.4;color:var(--slate);margin-bottom:1mm">'+b+'</li>').join('')+'</ol></div>'+
+      '<div class="col"><h4>'+s.ormTitle+'</h4>'+s.orm.map(o=>
+        '<div style="font-size:7.2pt;margin-bottom:1.6mm"><b style="color:var(--navy)">'+o[0]+'</b><br>'+
+        '<span style="color:var(--slate)">'+o[1]+'</span></div>').join('')+'</div>';
+  }else if(key==='it'){
+    mid='<div class="col"><h4>'+s.colAh+'</h4>'+s.colA.map(a=>
+      '<p><b style="color:var(--navy)">'+a[0]+'</b> '+a[1]+'</p>').join('')+'</div>'+
+      '<div class="col"><p>'+s.colB+'</p></div><div></div>';
+  }else if(key==='concierge'){
+    mid='<div class="col"><h4>AUREVYA WEALTH CONCIERGE SERVICES</h4>'+
+      '<p style="font-weight:600;color:var(--navy)">'+s.lead+'</p><p>'+s.intro+'</p>'+
+      s.blocks.slice(0,2).map(b=>'<h4>'+b[0]+'</h4><p style="font-weight:600;color:var(--navy)">'+b[1]+'</p>'+
+        '<ul>'+b[2].map(x=>'<li>'+x+'</li>').join('')+'</ul>').join('')+'</div>'+
+      '<div class="col">'+s.blocks.slice(2,4).map(b=>'<h4>'+b[0]+'</h4><p style="font-weight:600;color:var(--navy)">'+b[1]+'</p>'+
+        '<ul>'+b[2].map(x=>'<li>'+x+'</li>').join('')+'</ul>').join('')+'</div>'+
+      '<div class="col">'+s.blocks.slice(4).map(b=>'<h4>'+b[0]+'</h4><p style="font-weight:600;color:var(--navy)">'+b[1]+'</p>'+
+        '<ul>'+b[2].map(x=>'<li>'+x+'</li>').join('')+'</ul>').join('')+'</div>';
+  }else if(key==='media'){
+    mid='<div class="col"><h4>'+s.colAh+'</h4><ul>'+s.colA.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>'+
+      '<div class="col"><h4>'+s.colBh+'</h4><ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul></div><div></div>';
+  }
+  return page(crest()+'<div class="pbody"><div class="peyebrow">OUR SERVICES</div>'+
+    '<h1 class="ptitle">'+s.title+(s.pair?' &nbsp;&nbsp; <span style="color:var(--gold)">'+s.pair+'</span>':'')+'</h1>'+
+    '<div class="svcpage" style="margin-top:5mm">'+
+    '<div class="cols c3" style="margin-top:0">'+mid+'</div>'+leafCol(key)+'</div>'+
+    foot()+'</div>');
+}
+
+function pgBack(p){
+  return page('<div class="backcover">'+
+    '<div class="bt">'+p.coverT1+'<br><b>'+p.coverT2+'</b></div>'+
+    '<div class="bm"><div class="orn">'+ornamentSVG('15pt')+'</div><div class="nm">aurevya</div><div class="wm">WEALTH</div></div>'+
+    '<div class="addr">'+BP.address+'<br><br>'+BP.contact+'</div>'+
+    '<div class="ent">'+BP.enterprise+'</div>'+
+    '<div class="lic">'+BP.licence+'</div>'+
+    '</div>','dark nofoot');
+}
+
+/* ── assemble ─────────────────────────────────────────── */
+function build(){
+  const p=currentSpec();
+  const d={client:$('fClient').value.trim(),
+    month:MONTHS[+$('fMonth').value],year:$('fYear').value,
+    currency:$('fCurrency').value};
+  PAGENO=1;RUNNING=p.running;   /* cover is page 1, unnumbered */
+  const on=s=>STATE.sections[s];
+
+  /* glossary scope */
+  let terms=[];
+  if(p.glossary.includes('base'))terms=terms.concat(BP.glossaryBase);
+  if(p.glossary.includes('trust'))terms=terms.concat(BP.glossaryTrust);
+  if(p.glossary.includes('fund'))terms=terms.concat(BP.glossaryFund);
+  terms.sort((a,b)=>a[0].localeCompare(b[0]));
+
+  /* first pass — build pages, capturing TOC positions */
+  let html='',toc=[];
+  html+=pgCover(p,d);
+
+  const emit=(s)=>{
+    if(!on(s))return '';
+    const n=PAGENO+1;
+    switch(s){
+      case 'disclaimer': return pgDisclaimer();
+      case 'contents':   return '<!--TOC-->';
+      case 'glossary':   toc.push(['Glossary Of Terms',n]);return pgGlossary(terms);
+      case 'ourgroup':   toc.push(['Our Group',n]);return pgOurGroup();
+      case 'about':      return pgAbout();
+      case 'whatwedo':   toc.push(['What We Do',n]);return pgWhatWeDo();
+      case 'structdivider': return pgDivider('Your<br>Tailored<br>Solution','');
+      case 'structure':  toc.push([p.structure?p.structure.title.replace(/<br>/g,' '):'Tailored Solution',n]);
+                         return p.structure?pgStructure(STATE.struct):'';
+      case 'ackeydivider': return pgDivider(AC_KEYFEATURES.divider.h,'');
+      case 'ackeyfeatures':toc.push(['Key Features of an Authorised Company',n]);return pgACKeyFeatures();
+      case 'gbcdivider': toc.push(['Global Business Company (GBC) in Mauritius',n]);
+                         return pgDivider(GBC_OVERVIEW.divider.h,GBC_OVERVIEW.divider.s,'gbc-divider-photograph');
+      case 'gbcoverview':return pgGBCOverview(1)+pgGBCOverview(2)+pgGBCOverview(3);
+      case 'cisdivider': toc.push(['Collective Investment Scheme',n]);
+                         return pgDivider(CIS_CONTENT.divider.h,CIS_CONTENT.divider.s,'cis-divider-photograph');
+      case 'cisoverview':return pgCIS();
+      case 'trustfacts': toc.push(['Key Facts About The Mauritius Trust',n]);return pgTrustFacts();
+      case 'trustparties':toc.push(['Key Parties To A Trust',n]);return pgTrustParties();
+      case 'trustvalidity':toc.push(['Trust Validity',n]);return pgTrustValidity();
+      case 'docprocess_trust': if(!toc.some(t=>t[0]==='Documentation Process'))toc.push(['Documentation Process',n]);
+                         return pgDocProcess('trust');
+      case 'docprocess_company': if(!toc.some(t=>t[0]==='Documentation Process'))toc.push(['Documentation Process',n]);
+                         return pgDocProcess(p.docKeyCompany);
+      case 'docprocess_cis': if(!toc.some(t=>t[0]==='Documentation Process'))toc.push(['Documentation Process',n]);
+                         return pgDocProcess('cis');
+      case 'docprocess': if(!toc.some(t=>t[0]==='Documentation Process'))toc.push(['Documentation Process',n]);
+                         return pgDocProcess(p.docprocess);
+      case 'kyc':        toc.push(['KYC Documents',n]);return pgKYC(STATE.mode!=='accounting');
+      case 'feesetup':   toc.push(['Fee Quote',n]);return pgFee('setup',d);
+      case 'feefixed':   return pgFee('fixed',d);
+      case 'leaf':       toc.push(['Our Services',n]);return pgLeaf();
+      case 'svc_board':      return pgService('board');
+      case 'svc_accounting': return pgService('accounting');
+      case 'svc_legal':      return pgService('legal');
+      case 'svc_compliance': return pgService('compliance');
+      case 'svc_it':         return pgService('it');
+      case 'svc_concierge':  return pgService('concierge');
+      case 'svc_media':      return pgService('media');
+      case 'back':       return pgBack(p);
+    }
+    return '';
+  };
+
+  /* keep the product's canonical order, plus disclaimer if re-enabled */
+  let seq=p.sections.filter(s=>on(s));
+  if(on('disclaimer')&&!seq.includes('disclaimer'))seq.unshift('disclaimer');
+
+  /* reserve the contents page number before emitting the rest */
+  let contentsAt=null;
+  seq.forEach(s=>{
+    if(s==='contents'){contentsAt=++PAGENO;html+='<!--TOC-->';}
+    else html+=emit(s);
+  });
+
+  if(contentsAt!==null){
+    html=html.replace('<!--TOC-->',(function(){
+      const save=PAGENO;PAGENO=contentsAt-1;
+      const out=pgContents(toc);PAGENO=save;return out;
+    })());
+  }
+
+  $('previewInner').innerHTML=html;
+  $('tbInfo').innerHTML='<b>'+p.label+'</b> — '+PAGENO+' pages · '+
+    (d.client||'no client name')+' · '+d.month+' '+d.year+
+    ' · Setup '+curSym()+' '+money(feeTotal('setup'))+
+    ' · Annual '+curSym()+' '+money(feeTotal('fixed'));
+}
+
+/* ── export ───────────────────────────────────────────── */
+function proposalSlug(){
+  if(STATE.mode!=='structure')return STATE.mode.toUpperCase();
+  const e=STATE.entities,parts=[];
+  if(e.trust)parts.push('TRUST');
+  if(e.company!=='none')parts.push(e.company.toUpperCase());
+  if(e.cis)parts.push('CIS');
+  return parts.join('_')||'STRUCTURE';
+}
+
+/* Pure builder — returns the standalone-file HTML string without touching
+   the DOM outside #previewInner or triggering a browser download. Kept
+   separate from downloadHTML() so the exact same export logic can be
+   driven headlessly (see mcp-server/lib/proposal.js, which calls
+   window.buildExportHTML() from a headless Chromium tab) as well as from
+   the in-app "Download HTML" button, with zero duplicated logic. */
+function buildExportHTML(){
+  const p=currentSpec();
+  const css=document.querySelector('style').innerHTML;
+  /* strip editing-only UI (the on-canvas "+" toolbar, etc.) so a
+     downloaded/emailed file never shows controls that don't do anything
+     without the app's JS behind them */
+  const clone=$('previewInner').cloneNode(true);
+  clone.querySelectorAll('.noprint').forEach(el=>el.remove());
+  const body=clone.innerHTML;
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+
+    p.label+' — '+($('fClient').value||'Proposal')+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">'+
+    '<style>'+css+'\nbody{background:#fff}#app{display:block}#preview{padding:20px;height:auto}</style></head>'+
+    '<body><div id="previewInner">'+body+'</div></body></html>';
+}
+function exportFilename(){
+  return 'AUREVYA_'+proposalSlug()+'_'+
+    ($('fClient').value||'PROPOSAL').replace(/[^a-zA-Z0-9]/g,'_')+'.html';
+}
+function downloadHTML(){
+  const doc=buildExportHTML();
+  const blob=new Blob([doc],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=exportFilename();
+  a.click();
+}
+
+let ZOOM=1;
+function zoom(dir){
+  ZOOM=Math.max(.4,Math.min(1.6,ZOOM+dir*.1));
+  $('previewInner').style.transform='scale('+ZOOM+')';
+  $('previewInner').style.transformOrigin='top center';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIVE PREVIEW
+   Any change in the sidebar rebuilds the deck. Debounced so typing
+   stays smooth, and the scroll position is held so the page you are
+   looking at does not jump away mid-edit.
+   ═══════════════════════════════════════════════════════════════ */
+let _liveTimer=null,_liveFlag=null;
+
+function liveBuild(delay){
+  const pv=$('preview'),inner=$('previewInner'),flag=$('tbLive');
+  if(flag){flag.classList.add('on');clearTimeout(_liveFlag);}
+  clearTimeout(_liveTimer);
+  _liveTimer=setTimeout(function(){
+    /* hold scroll — measure as a ratio so it survives page-count changes */
+    const prevH=inner.scrollHeight||1;
+    const y=pv.scrollTop;
+    const ratio=y/prevH;
+
+    build();
+
+    const newH=inner.scrollHeight||1;
+    /* if the deck length barely moved keep the exact offset, otherwise
+       keep the proportional position */
+    pv.scrollTop=(Math.abs(newH-prevH)<40)?y:Math.round(ratio*newH);
+
+    _liveFlag=setTimeout(function(){if(flag)flag.classList.remove('on');},260);
+  },delay===undefined?130:delay);
+}
+
+/* Delegated listeners. The inline oninput/onchange handlers on each field
+   update STATE first (they fire at the target); this catches the bubble
+   afterwards and redraws. New fields added later are covered automatically. */
+(function bindLive(){
+  const sb=$('sidebar');
+  sb.addEventListener('input',function(e){
+    if(e.target.matches('input,select,textarea'))liveBuild();
+  });
+  sb.addEventListener('change',function(e){
+    if(e.target.matches('input,select,textarea')){
+      /* product/section switches restructure the deck — redraw promptly */
+      liveBuild(e.target.type==='checkbox'||e.target.tagName==='SELECT'?0:130);
+    }
+  });
+  /* keyboard niceties */
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();window.print();}
+    if((e.ctrlKey||e.metaKey)&&(e.key==='='||e.key==='+')){e.preventDefault();zoom(1);}
+    if((e.ctrlKey||e.metaKey)&&e.key==='-'){e.preventDefault();zoom(-1);}
+  });
+})();
+
+/* Drag-to-reposition on the structure diagram. Delegated on #preview
+   (which persists across rebuilds — #previewInner is what gets
+   replaced), so it keeps working after every liveBuild() redraw.
+   During the drag itself we mutate the DOM directly for a smooth 60fps
+   feel instead of re-running the full build(); mouseup does one real
+   liveBuild() to keep everything else (TOC, page count) in sync. */
+(function bindStructureDrag(){
+  const pv=$('preview');
+  let dragging=null;
+  pv.addEventListener('mousedown',function(e){
+    const el=e.target.closest('.dragnode');
+    if(!el||!STATE.struct)return;
+    const canvas=el.closest('.freecanvas');if(!canvas)return;
+    const id=el.getAttribute('data-nid');
+    const node=STATE.struct.nodes.find(n=>n.id===id);
+    if(!node)return;
+    const rect=canvas.getBoundingClientRect();
+    dragging={id:id,canvas:canvas,startX:e.clientX,startY:e.clientY,startNX:node.x,startNY:node.y,
+      pxPerMMx:rect.width/STATE.struct.canvasW,pxPerMMy:rect.height/STATE.struct.canvasH};
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!dragging||!STATE.struct)return;
+    const node=STATE.struct.nodes.find(n=>n.id===dragging.id);if(!node)return;
+    const d=NODE_DIM[node.kind]||NODE_DIM.box;
+    const dx=(e.clientX-dragging.startX)/dragging.pxPerMMx;
+    const dy=(e.clientY-dragging.startY)/dragging.pxPerMMy;
+    node.x=Math.max(0,Math.min(STATE.struct.canvasW-d.w,dragging.startNX+dx));
+    node.y=Math.max(0,Math.min(STATE.struct.canvasH-d.h,dragging.startNY+dy));
+    const el=dragging.canvas.querySelector('.dragnode[data-nid="'+dragging.id+'"]');
+    if(el){el.style.left=node.x+'mm';el.style.top=node.y+'mm';}
+    const cap=dragging.canvas.querySelector('.nodecap[data-cap-for="'+dragging.id+'"]');
+    if(cap){cap.style.left=node.x+'mm';cap.style.top=(node.y+d.h+1.5)+'mm';}
+    const svgHost=dragging.canvas.querySelector('.edgesvg');
+    if(svgHost)svgHost.outerHTML=renderEdgesSVG(STATE.struct);
+  });
+  document.addEventListener('mouseup',function(){
+    if(!dragging)return;
+    dragging=null;
+    liveBuild(0);
+  });
+})();
+
+initWizard();
+build();          /* draw immediately on load — nothing to click */
+</script>
+</body>
+</html>
