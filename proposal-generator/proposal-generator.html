@@ -13,16 +13,21 @@
    Derived from the sample proposal decks.
    ═══════════════════════════════════════════════════════════════ */
 :root{
-  --plum:#2A0A2E;          /* cover / divider / back-cover panel */
-  --plum-deep:#1E0722;
-  --gold:#C9A84C;          /* headings, rules, accents */
-  --gold-bar:#B8983F;      /* fee-table header bar */
-  --gold-pale:#E8D9A8;
-  --navy:#2B3E50;          /* body headings */
-  --slate:#4E6679;         /* body copy */
+  /* Colors below are pixel-sampled from the real AWL_PROPOSAL_AC_20260805.pdf
+     (the deck staff were using manually) — the source design uses just two
+     ink colors throughout (a near-black plum for backgrounds/headings/body
+     text, and a single gold for every accent), not the wider palette this
+     file used to guess at. */
+  --plum:#130429;          /* cover / divider / back-cover panel + all "navy" heading/body ink */
+  --plum-deep:#0B0219;
+  --gold:#B59433;          /* headings, rules, accents, fee-table header bar — single gold throughout */
+  --gold-bar:#B59433;      /* fee-table header bar (same gold as everything else) */
+  --gold-pale:#E4D6B0;
+  --navy:#130429;          /* body headings — same ink as --plum in the source deck, not a separate blue */
+  --slate:#5A5468;         /* body copy — lighter tint for secondary text hierarchy */
   --hair:#D8DEE3;          /* hairline rules */
   --paper:#FFFFFF;
-  --paper-alt:#F4F4F2;     /* disclaimer page bg */
+  --paper-alt:#F1F1F2;     /* disclaimer page bg */
 
   --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
   --sans:'Jost','Avenir Next',Avenir,'Segoe UI',Helvetica,Arial,sans-serif;
@@ -407,7 +412,7 @@ table.deckfee tr.tot td{
 .leafwheel .lf{
   font-size:5pt;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
   color:#fff;text-align:center;line-height:1.15;padding:2mm 2.5mm;border-radius:50% 8% 50% 8%;
-  background:linear-gradient(135deg,#D9BE6A,#B8983F);margin-bottom:2.5mm;
+  background:linear-gradient(135deg,#D6C08A,#B59433);margin-bottom:2.5mm;
 }
 .leafwheel .lf.on{background:linear-gradient(135deg,#7A2E2E,#4E1A1A);}
 
@@ -1913,7 +1918,7 @@ function mandalaSVG(size){
 function bracketSVG(){
   return '<svg viewBox="0 0 100 10" preserveAspectRatio="none" '+
     'style="display:block;width:100%;height:3mm" aria-hidden="true">'+
-    '<path d="M2 2 L2 8 M2 2 L98 2 M98 2 L98 8" stroke="#C9A84C" stroke-width="1.4" '+
+    '<path d="M2 2 L2 8 M2 2 L98 2 M98 2 L98 8" stroke="#B59433" stroke-width="1.4" '+
     'fill="none" vector-effect="non-scaling-stroke"/></svg>';
 }
 
@@ -2198,12 +2203,12 @@ function renderEdgesSVG(st){
     const tipX=p2.x,tipY=p2.y;
     const backX=tipX-arrowLen*Math.cos(angle),backY=tipY-arrowLen*Math.sin(angle);
     const perpX=Math.sin(angle)*arrowW,perpY=-Math.cos(angle)*arrowW;
-    svg+='<line x1="'+p1.x+'" y1="'+p1.y+'" x2="'+backX+'" y2="'+backY+'" stroke="#2B3E50" stroke-width=".35"/>';
-    svg+='<polygon points="'+tipX+','+tipY+' '+(backX+perpX)+','+(backY+perpY)+' '+(backX-perpX)+','+(backY-perpY)+'" fill="#2B3E50"/>';
+    svg+='<line x1="'+p1.x+'" y1="'+p1.y+'" x2="'+backX+'" y2="'+backY+'" stroke="#130429" stroke-width=".35"/>';
+    svg+='<polygon points="'+tipX+','+tipY+' '+(backX+perpX)+','+(backY+perpY)+' '+(backX-perpX)+','+(backY-perpY)+'" fill="#130429"/>';
     if(e.label){
       const mx=(p1.x+p2.x)/2+3.5,my=(p1.y+p2.y)/2;
       svg+='<text x="'+mx+'" y="'+my+'" font-family="Cormorant Garamond, serif" font-style="italic" '+
-        'font-size="4.6" fill="#C9A84C">'+e.label+'</text>';
+        'font-size="4.6" fill="#B59433">'+e.label+'</text>';
     }
   });
   svg+='</svg>';
@@ -2413,7 +2418,7 @@ function pgLeaf(){
     crest(true)+'<div class="pbody" style="position:relative;z-index:2">'+
     '<h1 class="ptitle" style="color:#fff">Our Services</h1>'+
     '<div style="display:flex;flex-wrap:wrap;gap:4mm;margin-top:14mm;max-width:56%">'+
-    BP.leaves.map(l=>'<div style="background:linear-gradient(135deg,#D9BE6A,#B8983F);color:#fff;'+
+    BP.leaves.map(l=>'<div style="background:linear-gradient(135deg,#D6C08A,#B59433);color:#fff;'+
       'font-size:6.4pt;font-weight:600;letter-spacing:.04em;padding:3mm 5mm;'+
       'border-radius:50% 10% 50% 10%;text-align:center">'+l+'</div>').join('')+'</div>'+
     foot()+'</div>','dark');
