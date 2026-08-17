@@ -2437,18 +2437,44 @@ function pgFee(which,d){
     foot()+'</div>');
 }
 
+/* Percentage positions (of the leaf-plain.png artwork itself, 1397x884)
+   for the six leaf labels, pixel-sampled from the actual graphic so each
+   label lands centred inside its own leaf rather than floating in a
+   separate list of pill-shaped boxes next to it (which is what this page
+   used to do — the source deck overlays the label text directly onto
+   each leaf). Order matches BP.leaves. */
+const LEAF_LABEL_POS=[
+  {x:48.7,y:21.5},  // BOARD SERVICES & DIRECTORSHIP — top leaf
+  {x:40.1,y:32.8},  // ACCOUNTING & FINANCE — upper-left leaf
+  {x:35.8,y:44.1},  // COMPLIANCE — left leaf
+  {x:53.0,y:43.0},  // LEGAL & GOVERNANCE — centre leaf (by the stem)
+  {x:35.8,y:56.6},  // IT MANAGEMENT & CYBERSECURITY — lower-left leaf
+  {x:53.0,y:58.8},  // CONCIERGE SERVICES — lower-centre leaf
+];
+
 function pgLeaf(){
-  /* full-bleed plum page with the gold vine graphic and the six leaf labels */
+  /* full-bleed plum page with the gold vine graphic and the six leaf
+     labels overlaid directly on their leaves. The wrapper div is locked
+     to the artwork's own aspect ratio (1397:884) so LEAF_LABEL_POS
+     percentages — sampled against the raw image — line up exactly
+     regardless of how big the artwork renders on the page. */
+  const artRatio=(884/1397*100).toFixed(4);
+  const labels=BP.leaves.map((l,i)=>{
+    const p=LEAF_LABEL_POS[i]||{x:50,y:50};
+    return '<div style="position:absolute;left:'+p.x+'%;top:'+p.y+'%;transform:translate(-50%,-50%);'+
+      'width:22mm;text-align:center;color:#fff;font-size:5.4pt;font-weight:600;letter-spacing:.02em;'+
+      'line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.35)">'+l+'</div>';
+  }).join('');
   return page('<div style="position:absolute;inset:0;background:var(--plum)"></div>'+
-    slot('leaf-plain','',{contain:true,
-      style:'position:absolute;right:-6%;top:8%;width:78%;height:84%;background-position:right center;'})+
     crest(true)+'<div class="pbody" style="position:relative;z-index:2">'+
     '<h1 class="ptitle" style="color:#fff">Our Services</h1>'+
-    '<div style="display:flex;flex-wrap:wrap;gap:4mm;margin-top:14mm;max-width:56%">'+
-    BP.leaves.map(l=>'<div style="background:linear-gradient(135deg,#D6C08A,#B59433);color:#fff;'+
-      'font-size:6.4pt;font-weight:600;letter-spacing:.04em;padding:3mm 5mm;'+
-      'border-radius:50% 10% 50% 10%;text-align:center">'+l+'</div>').join('')+'</div>'+
-    foot()+'</div>','dark');
+    '</div>'+
+    '<div style="position:absolute;right:-6%;top:8%;width:78%;aspect-ratio:'+(1397/884)+';z-index:1">'+
+      '<img src="'+ASSET_DIR+'leaf-plain.png" style="width:100%;height:100%;display:block;object-fit:contain;object-position:right center" '+
+      'onerror="this.style.opacity=0">'+
+      labels+
+    '</div>'+
+    foot(),'dark');
 }
 
 /* Service-page leaf wheel. Each service has its own extracted graphic with
