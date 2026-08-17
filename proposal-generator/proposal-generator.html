@@ -232,7 +232,10 @@ h1.ptitle em{font-style:italic;}
   background:var(--plum);color:#fff;display:flex;flex-direction:column;
   align-items:center;justify-content:center;text-align:center;padding:12mm 9mm;position:relative;
 }
-.cover .pane .mark{margin-bottom:11mm;}
+/* 8.57mm, not the old 11mm: the white-gradient SVG carries ~9.2mm of its
+   own transparent margin below the wordmark at this size, and the source
+   cover has 17.8mm of clear space between the lockup and the title. */
+.cover .pane .mark{margin-bottom:8.57mm;}
 .cover .pane .mark .orn{color:var(--gold);font-size:19pt;line-height:1;}
 .cover .pane .mark .nm{font-family:var(--serif);font-size:31pt;color:#fff;line-height:.95;margin-top:1mm;}
 .cover .pane .mark .wm{font-size:6pt;letter-spacing:.52em;color:#fff;margin-top:1.5mm;}
@@ -416,7 +419,10 @@ table.deckfee tr.tot td{
 .backcover{background:var(--plum);height:100%;padding:16mm 12mm;color:#fff;position:relative;}
 .backcover .bt{font-size:13pt;font-weight:300;line-height:1.35;}
 .backcover .bt b{font-weight:600;}
-.backcover .bm{position:absolute;left:12mm;bottom:34mm;}
+/* left/bottom account for the SVG's own transparent margin so the visible
+   lockup lands at 24.0mm from the left and 109.5mm from the top, matching
+   the source back cover. */
+.backcover .bm{position:absolute;left:20.40mm;bottom:50.47mm;}
 .backcover .bm .orn{color:var(--gold);font-size:15pt;line-height:1;}
 .backcover .bm .nm{font-family:var(--serif);font-size:22pt;color:#fff;line-height:.95;}
 .backcover .bm .wm{font-size:4.6pt;letter-spacing:.5em;color:#fff;margin-top:1mm;}
@@ -1961,19 +1967,43 @@ function groupByCategory(entities){
 }
 
 /* The utility "crest" badge repeated in the corner of every content page.
-   On white pages we show the real Aurevya lockup; on photo/dark pages the
-   image would need a white chip to stay legible, so we keep the compact
-   text+ornament treatment instead — it already reads correctly there. */
+   White pages use the full-colour lockup (navy wordmark); dark/photo pages
+   use the white-gradient SVG, which has a white wordmark and a gold
+   gradient emblem so it sits directly on the artwork. Earlier versions had
+   to put a white chip behind the full-colour logo on dark pages to keep the
+   navy wordmark legible — that chip is no longer needed and has been
+   removed everywhere the white logo is used. */
+/* The two logo files have DIFFERENT amounts of built-in whitespace around
+   the artwork, so the same top/right/height would place them differently.
+   Measured against the source PDF (see the sizing note on logoImgWhite):
+     logo-white.svg       content = 80.07% of width, 63.26% of height,
+                          inset 9.93% from left, 18.37% from top
+     logo-full-color.png  content = 100% of width, 93.26% of height,
+                          inset 0% from left, 3.95% from top
+   The offsets below are back-calculated from where the crest actually sits
+   on the source pages (content 17.6-17.9mm wide, ~11.7mm from the top,
+   ~264.3mm from the left) so both variants land in the same visual spot. */
 function crest(dark){
-  if(!dark){
-    return '<div class="crest">'+logoImg('7.5mm')+'</div>';
-  }
-  /* Dark/photo pages: the logo's wordmark is navy, so it needs a light
-     chip behind it to stay legible — falls back to the old text+ornament
-     treatment automatically if the logo image itself fails to load (see
-     logoFallback()), so nothing ever looks broken either way. */
-  return '<div class="crest"><div style="display:inline-block;background:#fff;'+
-    'border-radius:2mm;padding:1.6mm 2.6mm;line-height:0">'+logoImg('7.5mm')+'</div></div>';
+  const pos=dark?'top:8.27mm;right:12.89mm':'top:11.15mm;right:14.83mm';
+  return '<div class="crest" style="'+pos+'">'+
+    (dark?logoImgWhite('19.23mm'):logoImg('13.24mm'))+'</div>';
+}
+
+/* White-on-dark variant of the lockup. Self-contained SVG (white vector
+   wordmark + embedded gold-gradient emblem), so it needs no chip behind it
+   the way the navy-wordmark PNG did.
+
+   Sizing note: this artwork carries a wide transparent margin — the visible
+   logo is only 80.07% of the file's width and 63.26% of its height — so the
+   height passed in here is always noticeably larger than the logo appears.
+   Callers pass a height derived from the measured on-page size in the
+   source deck rather than the apparent size, and max-width is released
+   because the cover lockup is wider than the 32mm .logoimg cap. */
+function logoImgWhite(height){
+  return '<img class="logoimg" style="height:'+height+';max-width:none;display:block" '+
+    'src="'+ASSET_DIR+'logo-white.svg" '+
+    'data-fallback="'+ASSET_DIR+'logo-full-color.png" '+
+    'onerror="logoFallback(this)">';
 }
 
 /* Real logo, with a fallback chain so it works whether or not the
@@ -2018,8 +2048,10 @@ function pgCover(p,d){
   return page('<div class="cover">'+
     slot('cover-photograph','cover photograph',{cls:'art',inner:'<div class="tag">'+BP.tagline+'</div>'})+
     '<div class="pane">'+
-      '<div class="mark"><div style="display:inline-block;background:#fff;border-radius:3mm;'+
-        'padding:4mm 6mm;line-height:0">'+logoImg('20mm')+'</div></div>'+
+      /* 50.02mm renders the visible lockup at the 45.8 x 31.0mm it measures
+         on the source cover (the file's own transparent margin accounts for
+         the rest) — see the sizing note on logoImgWhite. */
+      '<div class="mark">'+logoImgWhite('50.02mm')+'</div>'+
       '<div class="t1">'+p.coverT1+'</div><div class="t2">'+p.coverT2+'</div>'+
       (p.coverT3?'<div class="t1" style="font-size:10pt;margin-top:1mm">'+p.coverT3+'</div>':'')+
       '<div class="rule"></div>'+
@@ -2520,8 +2552,7 @@ function pgService(key){
 function pgBack(p){
   return page('<div class="backcover">'+
     '<div class="bt">'+p.coverT1+'<br><b>'+p.coverT2+'</b></div>'+
-    '<div class="bm"><div style="display:inline-block;background:#fff;border-radius:2.5mm;'+
-      'padding:3mm 4.5mm;line-height:0">'+logoImg('14mm')+'</div></div>'+
+    '<div class="bm">'+logoImgWhite('31.88mm')+'</div>'+
     '<div class="addr">'+BP.address+'<br><br>'+BP.contact+'</div>'+
     '<div class="ent">'+BP.enterprise+'</div>'+
     '<div class="lic">'+BP.licence+'</div>'+
