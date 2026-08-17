@@ -1217,10 +1217,20 @@ const PRICEBOOK = {
       {t:'item',l:'Annual accounting services',v:3000}]}
 };
 
-/* Composite products stitch several price-book blocks together */
-function composeFees(keys,which){
+/* Composite products stitch several price-book blocks together. `tagFor`
+   optionally maps a price-book key to the diagram box it describes, so the
+   resulting rows can be traced back to a specific entity (used for naming
+   and for removing an entity's fees with it). */
+function composeFees(keys,which,tagFor){
   let out=[];
-  keys.forEach(k=>{ (PRICEBOOK[k]&&PRICEBOOK[k][which]||[]).forEach(r=>out.push(Object.assign({},r))); });
+  keys.forEach(k=>{
+    const tag=tagFor?tagFor(k):null;
+    (PRICEBOOK[k]&&PRICEBOOK[k][which]||[]).forEach(r=>{
+      const row=Object.assign({},r);
+      if(tag)row._nodeId=tag;
+      out.push(row);
+    });
+  });
   return regroupDisbursements(out);
 }
 
@@ -1769,10 +1779,17 @@ function resetFees(){
       });
     }
   }else{
-    STATE.fees.setup=composeFees(p.priceKeys,'setup');
-    STATE.fees.fixed=composeFees(p.priceKeys,'fixed');
+    /* Tag the seeded blocks with the diagram box they describe, so that if
+       a second entity of the same kind is added on the canvas later, both
+       blocks can be numbered — otherwise only the added one would be. */
+    const tag=STATE.mode==='structure'
+      ? (k=>(['ac','gbc','trust','cis'].indexOf(k)>=0?k:null))
+      : null;
+    STATE.fees.setup=composeFees(p.priceKeys,'setup',tag);
+    STATE.fees.fixed=composeFees(p.priceKeys,'fixed',tag);
     STATE.feeCols=[];
   }
+  syncEntityNames();
   renderFeeEditor();
 }
 
@@ -2346,6 +2363,9 @@ function removeStructNode(id){
     });
   });
   renumberCompanyBoxes();
+  /* the survivors may no longer need numbering — down to one of a kind,
+     the name and its fee heading revert */
+  syncEntityNames();
   if(removed&&removed.kind==='shareholder')layoutShareholderRow(st);
   /* whatever fed the deleted box may now have a different number of
      children — re-space them so the row stays centred */
@@ -2410,6 +2430,92 @@ const ADDABLE_ENTITIES=[
   {key:'other',     name:'Blank box',                box:'ENTITY',                       price:null}
 ];
 
+/* ── entity naming ────────────────────────────────────────────────
+   Once a structure holds two of the same kind, "Global Business Company"
+   on its own stops identifying anything — neither on the diagram nor above
+   a block of fees. Same-kind boxes are therefore numbered in diagram order
+   and the numbered name is pushed onto the fee headings that belong to
+   them, so a figure can always be traced to a specific box.
+   ───────────────────────────────────────────────────────────────── */
+const ENTITY_BOX_LABEL={
+  ac:'AUTHORISED<br>COMPANY',
+  gbc:'GLOBAL BUSINESS<br>COMPANY',
+  trust:'TRUST',
+  cis:'CIS — PROTECTED<br>CELL COMPANY'
+};
+ADDABLE_ENTITIES.forEach(s=>{if(!ENTITY_BOX_LABEL[s.key])ENTITY_BOX_LABEL[s.key]=s.box;});
+
+/* What kind of entity a box is: recorded on canvas-added boxes, inferred
+   from the seeded ids (ac, gbc1, trust…) otherwise. */
+function boxKind(n){
+  if(!n||n.kind!=='box')return null;
+  if(n.entKey)return n.entKey;
+  const m=/^(ac|gbc|trust|cis)\d*$/.exec(n.id||'');
+  return m?m[1]:null;
+}
+
+/* True while the box still carries the label this kind is created with,
+   with or without a trailing number — renaming one by hand opts it out of
+   automatic numbering. */
+function isAutoEntityLabel(label,base){
+  if(!base)return false;
+  const norm=s=>plainLabel(s).toUpperCase().replace(/\s+/g,' ');
+  const b=norm(base);
+  const l=norm(label);
+  return l===b||new RegExp('^'+b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+' \\d+$').test(l);
+}
+
+/* Number the boxes and carry those names onto their fee headings. Safe to
+   call any time — it derives everything from the diagram. */
+function syncEntityNames(){
+  const st=STATE.struct;if(!st||!st.nodes)return;
+
+  const byKind={};
+  st.nodes.forEach(n=>{
+    const k=boxKind(n);
+    if(k)(byKind[k]=byKind[k]||[]).push(n);
+  });
+  Object.keys(byKind).forEach(k=>{
+    const base=ENTITY_BOX_LABEL[k];
+    const all=byKind[k].sort((a,b)=>(a.y-b.y)||(a.x-b.x));
+    /* Number only the boxes still carrying the standard label, counted
+       among themselves: a box renamed by hand keeps its own name and is
+       skipped, so the rest read 1, 2 … rather than leaving a gap. */
+    const autos=all.filter(n=>isAutoEntityLabel(n.label,base));
+    autos.forEach((n,i)=>{
+      n.entNo=autos.length>1?i+1:0;
+      n.label=base+(n.entNo?' '+n.entNo:'');
+    });
+    all.forEach(n=>{
+      const auto=autos.indexOf(n)>=0;
+      if(!auto)n.entNo=0;
+      /* worth naming the fee block after the box when it's numbered, or
+         when it's been given a name of its own */
+      n.entNamed=(auto&&n.entNo>0)||!auto;
+    });
+  });
+
+  /* The first group of a block takes the box's name; any sub-group within
+     it (ACCOUNTING, and so on) keeps its own heading, since overwriting
+     those would flatten the block's internal structure. _grp0 remembers the
+     original wording so this reverts exactly. Disbursements are untouched —
+     they're one shared group across the whole quote. */
+  ['setup','fixed'].forEach(which=>{
+    allFeeLists(which).forEach(list=>{
+      const first={};
+      list.forEach(r=>{
+        if(r.t!=='grp'||!r._nodeId||DISB_RE.test(r.l||''))return;
+        const n=st.nodes.find(x=>x.id===r._nodeId);
+        if(!n)return;
+        if(r._grp0===undefined)r._grp0=r.l;
+        if(first[r._nodeId]){r.l=r._grp0;return;}
+        first[r._nodeId]=true;
+        r.l=n.entNamed?plainLabel(n.label):r._grp0;
+      });
+    });
+  });
+}
+
 /* Attach a new entity below the clicked one, wired parent → child. */
 function addEntityUnder(parentId,key){
   const spec=ADDABLE_ENTITIES.find(e=>e.key===key);if(!spec)return;
@@ -2454,6 +2560,7 @@ function addEntityUnder(parentId,key){
   /* bring in this entity's own pages and glossary terms, keeping any
      section the user has already turned on or off */
   syncExtraKinds();
+  syncEntityNames();     /* number both boxes if this is the second of its kind */
   renderFeeEditor();
   renderSectionToggles(true);
   renderStructEditorUI();
