@@ -2002,8 +2002,25 @@ function crest(dark){
 function logoImgWhite(height){
   return '<img class="logoimg" style="height:'+height+';max-width:none;display:block" '+
     'src="'+ASSET_DIR+'logo-white.svg" '+
-    'data-fallback="'+ASSET_DIR+'logo-full-color.png" '+
-    'onerror="logoFallback(this)">';
+    'onerror="logoFallbackWhite(this)">';
+}
+
+/* Dark-page fallback, kept separate from logoFallback() on purpose.
+   The only substitute available is the full-colour PNG, whose wordmark is
+   near-black — dropped straight onto a plum page or a night photograph it
+   reads as "the logo is broken/missing" rather than as a fallback, which is
+   exactly what happens when logo-white.svg hasn't been deployed alongside
+   the HTML. So when we fall back here we also restore the white chip the
+   navy wordmark needs, trading exact fidelity for something legible. */
+function logoFallbackWhite(img){
+  img.onerror=null;
+  img.src=ASSET_DIR+'logo-full-color.png';
+  img.style.background='#fff';
+  img.style.borderRadius='2mm';
+  img.style.padding='1.4mm 2.2mm';
+  /* the chip's padding would otherwise push the lockup past its measured
+     size, so shrink the image itself to compensate */
+  img.style.height=(parseFloat(img.style.height)*0.62)+'mm';
 }
 
 /* Real logo, with a fallback chain so it works whether or not the
