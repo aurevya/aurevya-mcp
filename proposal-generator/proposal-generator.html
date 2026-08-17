@@ -409,12 +409,14 @@ table.deckfee tr.tot td{
 /* ── SERVICE PAGES (leaf wheel) ────────────────────────── */
 .svcpage{display:grid;grid-template-columns:1fr 30%;height:100%;gap:6mm;}
 .leafwheel{position:relative;align-self:center;}
+/* labels sit directly on top of the wheel artwork (see LEAF_LABEL_POS_SMALL
+   below) — the per-service highlight colour is already baked into each
+   leaf-<service>.png variant, so no separate ".on" swatch is needed here. */
 .leafwheel .lf{
-  font-size:5pt;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
-  color:#fff;text-align:center;line-height:1.15;padding:2mm 2.5mm;border-radius:50% 8% 50% 8%;
-  background:linear-gradient(135deg,#D6C08A,#B59433);margin-bottom:2.5mm;
+  position:absolute;font-size:4.2pt;font-weight:600;letter-spacing:.01em;text-transform:uppercase;
+  color:#fff;text-align:center;line-height:1.1;width:15mm;
+  text-shadow:0 1px 2px rgba(0,0,0,.4);transform:translate(-50%,-50%);
 }
-.leafwheel .lf.on{background:linear-gradient(135deg,#7A2E2E,#4E1A1A);}
 
 /* ── BACK COVER ────────────────────────────────────────── */
 .backcover{background:var(--plum);height:100%;padding:16mm 12mm;color:#fff;position:relative;}
@@ -2477,14 +2479,33 @@ function pgLeaf(){
     foot(),'dark');
 }
 
+/* Percentage positions for the six leaf labels on the leaf-<service>.png
+   variants (851x538 — a tighter crop of the same artwork than
+   leaf-plain.png, used on the main "Our Services" page, so it needs its
+   own pixel-sampled coordinates rather than reusing LEAF_LABEL_POS).
+   Order matches BP.leaves. */
+const LEAF_LABEL_POS_SMALL=[
+  {x:48.8,y:18.6},  // BOARD SERVICES & DIRECTORSHIP
+  {x:40.5,y:31.6},  // ACCOUNTING & FINANCE
+  {x:36.4,y:43.7},  // COMPLIANCE
+  {x:54.1,y:41.8},  // LEGAL & GOVERNANCE
+  {x:35.8,y:57.6},  // IT MANAGEMENT & CYBERSECURITY
+  {x:54.1,y:59.5},  // CONCIERGE SERVICES
+];
+
 /* Service-page leaf wheel. Each service has its own extracted graphic with
-   the relevant leaf coloured; labels are overlaid as text. */
+   the relevant leaf coloured; labels are overlaid directly on their own
+   leaves (same treatment as pgLeaf's main wheel — see LEAF_LABEL_POS)
+   rather than as a separate list of pill boxes underneath the image. */
 function leafCol(key){
-  const active=(BP.services[key]||{}).leaf;
-  return '<div class="leafwheel">'+
-    slot(LEAF_IMG[key]||'leaf-plain','',{contain:true,
-      style:'width:100%;height:44mm;background-position:center;margin-bottom:3mm;'})+
-    BP.leaves.map(l=>'<div class="lf'+(l===active?' on':'')+'">'+l+'</div>').join('')+
+  const labels=BP.leaves.map((l,i)=>{
+    const p=LEAF_LABEL_POS_SMALL[i]||{x:50,y:50};
+    return '<div class="lf" style="left:'+p.x+'%;top:'+p.y+'%">'+l+'</div>';
+  }).join('');
+  return '<div class="leafwheel" style="width:100%;aspect-ratio:'+(851/538)+'">'+
+    '<img src="'+ASSET_DIR+(LEAF_IMG[key]||'leaf-plain')+'.png" style="width:100%;height:100%;display:block;object-fit:contain" '+
+    'onerror="this.style.opacity=0">'+
+    labels+
     '</div>';
 }
 
