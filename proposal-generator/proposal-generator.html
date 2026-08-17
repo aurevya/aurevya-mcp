@@ -2120,13 +2120,28 @@ function pgOurGroup(){
 }
 
 function pgAbout(){
+  /* height:67mm (not the old 52mm) — the source photo's native aspect is
+     ~1.70:1, and at this column's ~44%-of-page width, 52mm produced a
+     container far wider/shorter than the photo, so background-size:cover
+     cropped off most of the top and bottom (i.e. the actual house) leaving
+     mostly tree canopy. 67mm keeps the container close to the photo's own
+     aspect ratio so it renders essentially uncropped, matching the source
+     deck. */
   return page(crest()+'<div class="pbody"><h1 class="ptitle">Our Group</h1>'+
     '<div style="display:grid;grid-template-columns:44% 56%;gap:8mm;margin-top:5mm;align-items:center">'+
-    slot('about-photograph','office photograph',{style:'height:52mm;'})+
-    '<div><div style="color:var(--gold);font-size:15pt;line-height:1">'+ornamentSVG('15pt')+'</div>'+
-      '<div style="font-family:var(--serif);font-size:24pt;color:var(--navy);line-height:.95">aurevya</div>'+
-      '<div style="font-size:5pt;letter-spacing:.5em;color:var(--slate);margin-bottom:5mm">WEALTH</div>'+
-      '<div style="font-size:12pt;color:var(--navy);line-height:1.35;font-weight:300">Founded more than a decade ago, we are an award-winning boutique financial services provider.</div></div>'+
+    slot('about-photograph','office photograph',{style:'height:67mm;'})+
+    '<div>'+
+      /* Real logo image (same asset as the "Our Group" subsidiary cards) —
+         falls back to the hand-built ornament+wordmark only if the file is
+         ever missing, same pattern used everywhere else in this file. */
+      '<img src="'+ASSET_DIR+'logo-full-color.png" style="height:22mm;display:block" '+
+      'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'">'+
+      '<div style="display:none">'+
+        '<div style="color:var(--gold);font-size:15pt;line-height:1">'+ornamentSVG('15pt')+'</div>'+
+        '<div style="font-family:var(--serif);font-size:24pt;color:var(--navy);line-height:.95">aurevya</div>'+
+        '<div style="font-size:5pt;letter-spacing:.5em;color:var(--slate);margin-bottom:5mm">WEALTH</div>'+
+      '</div>'+
+      '<div style="font-size:12pt;color:var(--navy);line-height:1.35;font-weight:300;margin-top:5mm">Founded more than a decade ago, we are an award-winning boutique financial services provider.</div></div>'+
     '</div>'+
     '<div class="cols c4" style="margin-top:6mm">'+BP.aboutValues.map(v=>
       '<div class="col"><h4 class="navy ruled">'+v[0]+'</h4><p>'+v[1]+'</p></div>').join('')+'</div>'+
