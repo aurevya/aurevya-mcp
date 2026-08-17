@@ -1114,7 +1114,7 @@ const PRODUCTS = {
     coverT1:'Proposal for the setup of a',coverT2:'Multiple Family Office',
     running:'PROPOSAL FOR THE SETUP OF A MULTIPLE FAMILY OFFICE',
     priceKeys:['mfo'],glossary:['base'],
-    sections:['contents','glossary','ourgroup','about','whatwedo','structure','gbcdivider','gbcoverview',
+    sections:['contents','glossary','ourgroup','about','whatwedo','structdivider','structure','gbcdivider','gbcoverview',
               'docprocess','kyc','feesetup','feefixed','leaf','svc_board','svc_accounting','svc_legal',
               'svc_compliance','svc_it','svc_media','back'],
     structure:{title:'Tailored Solution',sub:'PROPOSED STRUCTURE',canvasW:175,canvasH:150,
@@ -1129,7 +1129,7 @@ const PRODUCTS = {
     coverT3:'– Pre-Fund GP/LP set-up &amp; Sub-Threshold AIF',
     running:'REQUEST FOR LEGAL STRUCTURING &amp; SET-UP — LUXEMBOURG INVESTMENT PLATFORM',
     priceKeys:['fundlux'],glossary:['fund'],currency:'EUR',
-    sections:['contents','glossary','ourgroup','about','whatwedo','structure','kyc','feesetup','feefixed',
+    sections:['contents','glossary','ourgroup','about','whatwedo','structdivider','structure','kyc','feesetup','feefixed',
               'leaf','svc_board','svc_accounting','svc_legal','svc_compliance','svc_it','svc_concierge','back'],
     structure:{title:'Bespoke Solution',sub:'PROPOSED STRUCTURE',canvasW:175,canvasH:150,
       nodes:[{id:'sp',kind:'shareholder',label:'SPONSORS',x:73.5,y:10,primary:false,cap:''},
@@ -1217,7 +1217,7 @@ function glossaryScopeStructure(ent){
    every branch below reuses an existing emit() case, so no renderer
    changes are needed when new combinations are picked */
 function structureSections(ent){
-  const s=['contents','glossary','ourgroup','about','whatwedo','structure'];
+  const s=['contents','glossary','ourgroup','about','whatwedo','structdivider','structure'];
   if(ent.trust)s.push('trustfacts','trustparties','trustvalidity');
   if(ent.company==='ac')s.push('ackeydivider','ackeyfeatures');
   if(ent.company==='gbc')s.push('gbcdivider','gbcoverview');
@@ -2552,9 +2552,9 @@ function build(){
       case 'ourgroup':   toc.push(['Our Group',n]);return pgOurGroup();
       case 'about':      return pgAbout();
       case 'whatwedo':   toc.push(['What We Do',n]);return pgWhatWeDo();
-      case 'structdivider': return pgDivider('Your<br>Tailored<br>Solution','');
-      case 'structure':  toc.push([p.structure?p.structure.title.replace(/<br>/g,' '):'Tailored Solution',n]);
-                         return p.structure?pgStructure(STATE.struct):'';
+      case 'structdivider': toc.push([p.structure?p.structure.title.replace(/<br>/g,' '):'Tailored Solution',n]);
+                         return pgDivider('Your<br>Tailored<br>Solution','');
+      case 'structure':  return p.structure?pgStructure(STATE.struct):'';
       case 'ackeydivider': return pgDivider(AC_KEYFEATURES.divider.h,'');
       case 'ackeyfeatures':toc.push(['Key Features of an Authorised Company',n]);return pgACKeyFeatures();
       case 'gbcdivider': toc.push(['Global Business Company (GBC) in Mauritius',n]);
