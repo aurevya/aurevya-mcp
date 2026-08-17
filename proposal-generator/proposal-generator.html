@@ -1213,7 +1213,43 @@ const PRICEBOOK = {
 function composeFees(keys,which){
   let out=[];
   keys.forEach(k=>{ (PRICEBOOK[k]&&PRICEBOOK[k][which]||[]).forEach(r=>out.push(Object.assign({},r))); });
-  return out;
+  return regroupDisbursements(out);
+}
+
+const DISB_RE=/DISBURSEMENT TO AUTHORITIES/i;
+
+/* Every price-book block carries its own "Disbursement to Authorities"
+   heading, so a Trust + GBC + CIS quote used to repeat that heading three
+   times with a few lines under each. The manual decks show one such group,
+   at the end, with every regulatory line beneath it — so the blocks are
+   merged here and moved to the bottom, just above the TOTAL.
+
+   Rows identical in both label and amount are collapsed: two blocks each
+   contributing "Data protection fee 100" is the same 100 owed once, not
+   200. Same label with different amounts is left as two lines, because
+   that's genuinely two different charges (an AC levy and a GBC levy are
+   not interchangeable) and picking one would be a pricing decision. */
+function regroupDisbursements(rows){
+  const kept=[],disb=[];
+  let heading=null,inDisb=false;
+  rows.forEach(r=>{
+    if(r.t==='grp'){
+      inDisb=DISB_RE.test(r.l);
+      if(inDisb){if(!heading)heading=r.l;return;}
+      kept.push(r);return;
+    }
+    (inDisb?disb:kept).push(r);
+  });
+  if(!disb.length)return kept;
+
+  const seen={},merged=[];
+  disb.forEach(r=>{
+    const key=r.t+'|'+String(r.l).trim().toLowerCase()+'|'+(r.v===undefined?'':r.v);
+    if(seen[key])return;
+    seen[key]=true;
+    merged.push(r);
+  });
+  return kept.concat([{t:'grp',l:heading}],merged);
 }
 </script>
 
@@ -2371,11 +2407,17 @@ function addEntityUnder(parentId,key){
       composeFees([spec.price],which).forEach(r=>{
         STATE.fees[which].push(Object.assign({},r,{_nodeId:id}));
       });
+      /* the appended block brings its own disbursement heading, so fold it
+         back into the single group at the end rather than leaving a second
+         one part-way down the table */
+      STATE.fees[which]=regroupDisbursements(STATE.fees[which]);
     });
   }else{
     ['setup','fixed'].forEach(which=>{
       STATE.fees[which].push({t:'grp',l:spec.name.toUpperCase(),_nodeId:id});
       STATE.fees[which].push({t:'item',l:spec.name+' — set fee',v:0,_nodeId:id});
+      /* keep the disbursement group last even after a plain entity is added */
+      STATE.fees[which]=regroupDisbursements(STATE.fees[which]);
     });
   }
 
