@@ -12,6 +12,10 @@ import {
 import { login, logout, getAuthedClient, logAudit, AuthRequiredError, beginPairedLogin, claimPairedLogin } from './lib/supabaseClient.js';
 import { createProposal, quoteProposal, listGeneratedProposals } from './lib/proposal.js';
 import { ensureProposalsBucket, storageConfigured, uploadProposal, listStoredProposals } from './lib/proposalStorage.js';
+import {
+  requireAdmin, createUserWithPassword, setUserPassword, logAdminUserAction,
+  adminApiConfigured, AdminApiError, MIN_PASSWORD_LENGTH,
+} from './lib/adminUsers.js';
 
 /* Hosted (HTTP) mode only: generated PDFs are registered here under a
    random token and served back over plain HTTPS (see the /files/:token
@@ -656,6 +660,82 @@ if (process.env.PORT) {
   const transports = {}; // mcp-session-id -> StreamableHTTPServerTransport
 
   app.get('/', (_req, res) => res.status(200).send('aurevya-mcp is running'));
+
+  /* ── admin user provisioning API (used by the portal) ──────────────────
+     The portal is a static site on a different origin, so these need CORS.
+     Only the two POSTs below are exposed, both gated on the caller proving
+     — with their own Supabase access token — that they're an admin; see
+     requireAdmin() in lib/adminUsers.js. The service-role key stays here
+     and is never sent to the browser.
+
+     ALLOWED_ORIGINS can be set in Railway to lock this down to the portal's
+     domain; unset, it echoes the requesting origin, which is the convenient
+     default for local development and Netlify preview URLs. */
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
+
+  function applyCors(req, res) {
+    const origin = req.headers.origin;
+    if (!origin) return true;
+    if (allowedOrigins.length && !allowedOrigins.includes(origin)) {
+      res.status(403).json({ error: 'Origin not allowed.' });
+      return false;
+    }
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+    res.set('Access-Control-Allow-Headers', 'authorization, content-type');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    return true;
+  }
+
+  app.options('/api/admin/*', (req, res) => {
+    if (!applyCors(req, res)) return;
+    res.status(204).end();
+  });
+
+  /** Wraps a handler with CORS, admin verification and error translation, so
+   *  each route below only contains what it actually does. */
+  function adminRoute(handler) {
+    return async (req, res) => {
+      if (!applyCors(req, res)) return;
+      try {
+        if (!adminApiConfigured()) {
+          throw new AdminApiError(503,
+            'SUPABASE_SERVICE_ROLE_KEY is not set on the server, so users cannot be created here yet.');
+        }
+        const actor = await requireAdmin(req.headers.authorization);
+        const body = await handler(req, actor);
+        res.status(200).json(body);
+      } catch (e) {
+        const status = e instanceof AdminApiError ? e.status : 500;
+        if (status === 500) console.error('[aurevya-mcp] admin route error:', e);
+        res.status(status).json({ error: (e && e.message) || 'Unexpected error.' });
+      }
+    };
+  }
+
+  app.post('/api/admin/create-user', adminRoute(async (req, actor) => {
+    const { email, password, full_name, role, department } = req.body || {};
+    const user = await createUserWithPassword({ email, password, full_name, role, department });
+    await logAdminUserAction(actor, 'user_created',
+      { created_user_id: user.id, email: user.email, role: user.role, by: actor.email });
+    return { user };
+  }));
+
+  app.post('/api/admin/set-password', adminRoute(async (req, actor) => {
+    const { user_id, password } = req.body || {};
+    await setUserPassword({ user_id, password });
+    await logAdminUserAction(actor, 'user_password_set',
+      { target_user_id: user_id, by: actor.email });
+    return { ok: true };
+  }));
+
+  /* Lets the portal show a useful message ("ask an admin to configure the
+     server") instead of a generic failure when the key is missing. */
+  app.get('/api/admin/status', (req, res) => {
+    if (!applyCors(req, res)) return;
+    res.json({ configured: adminApiConfigured(), minPasswordLength: MIN_PASSWORD_LENGTH });
+  });
 
   // One-time-ish download link for a create_proposal PDF — see
   // registerDownload() above. Not behind Supabase auth (a plain link has
