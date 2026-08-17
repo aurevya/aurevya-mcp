@@ -1402,7 +1402,11 @@ function defaultServices(ent){
 /* Shareholders are wider than they used to be: the block now carries a
    full name on one line plus a percentage under a rule, rather than just a
    short label. Height covers icon + name + rule + figure. */
-const NODE_DIM={shareholder:{w:46,h:30},box:{w:48,h:16},ciscell:{w:26,h:11}};
+/* h matches what the block actually draws — 13mm icon + 1.6 gap + name +
+   rule + the percentage figure ≈ 26mm. It has to be accurate, because the
+   connector leaves from the bottom edge: an over-tall box left a gap
+   between the percentage and the start of the line. */
+const NODE_DIM={shareholder:{w:46,h:26},box:{w:48,h:16},ciscell:{w:26,h:11}};
 
 /* head-and-shoulders mark inside the gold circle */
 const PERSON_GLYPH='<svg viewBox="0 0 24 24" width="7mm" height="7mm" fill="none" '+
@@ -1447,7 +1451,9 @@ function buildStructureSpec(ent){
   const place=(kind,label,id,cap)=>{
     const d=NODE_DIM[kind];
     nodes.push({id:id,kind:kind,label:label,x:cx-d.w/2,y:y,primary:false,cap:cap||''});
-    y+=(kind==='shareholder'?32:34);
+    /* leave enough clear space below a shareholder for the joining
+       bracket two or more of them are drawn with */
+    y+=(kind==='shareholder'?42:34);
     return id;
   };
   let prev;
@@ -2831,6 +2837,20 @@ function pgDivider(h,s,img){
 }
 
 /* absolutely-positioned node boxes — see NODE_DIM/KIND_LABEL above */
+/* How far right to push a box's caption so the outgoing connector doesn't
+   run through it — 0 when nothing leaves the box. Shared with the drag
+   handler, which repositions the caption live and has to agree. */
+function capOffset(st,n){
+  if(!st||!n.cap)return 0;
+  const d=NODE_DIM[n.kind]||NODE_DIM.box;
+  const leaves=st.edges.some(e=>{
+    if(e.from!==n.id)return false;
+    const t=st.nodes.find(x=>x.id===e.to);
+    return t&&t.y>n.y;          /* only lines heading downward matter */
+  });
+  return leaves?(d.w/2+3):0;
+}
+
 function renderNodesHTML(st){
   return st.nodes.map(n=>{
     const d=NODE_DIM[n.kind]||NODE_DIM.box;
@@ -2850,8 +2870,13 @@ function renderNodesHTML(st){
         'title="Click to add services or edit this entity — drag to move">'+n.label+'</div>';
     }
     if(n.cap){
-      out+='<div class="nodecap" data-cap-for="'+n.id+'" style="position:absolute;left:'+n.x+'mm;top:'+(n.y+d.h+1.5)+
-        'mm;width:'+d.w+'mm;text-align:center;margin:0">'+n.cap+'</div>';
+      /* A box with a connector leaving its bottom edge would have that line
+         drawn straight through a centred caption, so the caption shifts
+         clear of it. Boxes at the end of a chain keep it centred. */
+      const off=capOffset(st,n);
+      out+='<div class="nodecap" data-cap-for="'+n.id+'" style="position:absolute;left:'+
+        (n.x+off)+'mm;top:'+(n.y+d.h+1.5)+'mm;width:'+d.w+'mm;'+
+        'text-align:'+(off?'left':'center')+';margin:0">'+n.cap+'</div>';
     }
     /* delete badge on every box — routed through removeAnyNode(), which
        knows to unwind Section 1 + fees first for the four core boxes */
@@ -3644,7 +3669,10 @@ function liveBuild(delay){
     const el=dragging.canvas.querySelector('.dragnode[data-nid="'+dragging.id+'"]');
     if(el){el.style.left=node.x+'mm';el.style.top=node.y+'mm';}
     const cap=dragging.canvas.querySelector('.nodecap[data-cap-for="'+dragging.id+'"]');
-    if(cap){cap.style.left=node.x+'mm';cap.style.top=(node.y+d.h+1.5)+'mm';}
+    if(cap){
+      cap.style.left=(node.x+capOffset(STATE.struct,node))+'mm';
+      cap.style.top=(node.y+d.h+1.5)+'mm';
+    }
     const svgHost=dragging.canvas.querySelector('.edgesvg');
     if(svgHost)svgHost.outerHTML=renderEdgesSVG(STATE.struct);
   });
