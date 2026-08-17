@@ -390,6 +390,13 @@ h1.ptitle em{font-style:italic;}
 
 /* ── FEE TABLE ─────────────────────────────────────────── */
 .feewrap{margin-top:6mm;width:64%;}
+/* Long quotes (Trust + AC + CIS + Nominee) switch to two balanced columns
+   across the full width, with the TOTAL as a full-width bar beneath both —
+   see the layout note above pgFee(). align-items:start stops the shorter
+   column from stretching its last row to match the taller one. */
+.feewrap.wide{width:100%;}
+.feecols{display:grid;grid-template-columns:1fr 1fr;gap:8mm;align-items:start;}
+table.deckfee.feetotal{margin-top:4mm;}
 table.deckfee{width:100%;border-collapse:collapse;}
 table.deckfee thead th{
   background:var(--gold-bar);color:#fff;font-size:7.4pt;font-weight:600;
@@ -2457,25 +2464,90 @@ function pgKYC(withCorporate){
     foot()+'</div>');
 }
 
+/* ── fee table layout ──────────────────────────────────────────────
+   A quote for a single entity is short enough for one narrow column, but
+   a Trust + AC + CIS + Nominee structure runs to roughly twice the height
+   of the page — which used to just clip, taking the TOTAL row with it.
+   So the rows are grouped into blocks (a gold group heading plus the
+   items underneath it), measured, and if the stack won't fit they're
+   balanced across two columns on the same page with a full-width TOTAL
+   bar underneath. The total is always the last thing laid out, so it can
+   never be the row that falls off the page.
+   ────────────────────────────────────────────────────────────────── */
+
+/* Split the flat fee-row list into blocks so a group heading is never
+   separated from the items it introduces. */
+function feeBlocks(rows){
+  const blocks=[];let cur=null,pend=[];
+  const flush=()=>{if(cur&&(cur.grp||cur.items.length))blocks.push(cur);};
+  rows.forEach(r=>{
+    if(r.t==='grp'){flush();cur={grp:r.l,items:[]};pend=[];}
+    else if(r.t==='desc'){pend.push(r.l);}
+    else{
+      if(!cur)cur={grp:null,items:[]};
+      cur.items.push({lines:pend.concat([r.l]),v:r.v});pend=[];
+    }
+  });
+  flush();
+  return blocks;
+}
+
+/* Rough height in mm, from the padding/line-height in the .deckfee rules
+   above. It only has to be good enough to pick one column vs two and to
+   balance them — nothing depends on it being exact. */
+const FEE_H={grp:7.1,rowPad:2.2,line:2.7,header:7.8,total:7.4,avail:112};
+function feeBlockHeight(b){
+  return (b.grp?FEE_H.grp:0)+
+    b.items.reduce((h,it)=>h+FEE_H.rowPad+it.lines.length*FEE_H.line,0);
+}
+
+function feeBlockHTML(b){
+  let out=b.grp?'<tr class="grp"><td colspan="2">'+b.grp+'</td></tr>':'';
+  b.items.forEach(it=>{
+    out+='<tr class="rule"><td>'+it.lines.map(l=>'<div>'+l+'</div>').join('')+'</td>'+
+      '<td class="r" style="vertical-align:middle">'+money(it.v)+'</td></tr>';
+  });
+  return out;
+}
+
 function pgFee(which,d){
   const rows=STATE.fees[which];const tot=feeTotal(which);
   const title=which==='setup'?'Setup Fee':'Fixed Fee';
   const sub=which==='setup'?'(One Off)':'(Year One Onwards)';
-  let body='',pend=[];
-  rows.forEach(r=>{
-    if(r.t==='grp'){ body+='<tr class="grp"><td colspan="2">'+r.l+'</td></tr>'; }
-    else if(r.t==='desc'){ pend.push(r.l); }
-    else{
-      const lines=pend.concat([r.l]);pend=[];
-      body+='<tr class="rule"><td>'+lines.map(l=>'<div>'+l+'</div>').join('')+'</td>'+
-        '<td class="r" style="vertical-align:middle">'+money(r.v)+'</td></tr>';
+  const cur='PRICE ('+(d.currency==='EUR'?'EUR':'US$')+')';
+  const head='<thead><tr><th>DESCRIPTIONS</th><th class="r">'+cur+'</th></tr></thead>';
+  const blocks=feeBlocks(rows);
+  const heights=blocks.map(feeBlockHeight);
+  const stack=heights.reduce((a,b)=>a+b,0);
+
+  let inner;
+  if(stack+FEE_H.header+FEE_H.total<=FEE_H.avail){
+    /* short quote — keep the original single narrow column */
+    inner='<div class="feewrap"><table class="deckfee">'+head+'<tbody>'+
+      blocks.map(feeBlockHTML).join('')+
+      '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
+      '</tbody></table></div>';
+  }else{
+    /* long quote — split across two columns at the point that leaves the
+       two sides closest in height, so neither runs far past the other */
+    let best=1,bestDiff=Infinity,run=0;
+    for(let i=1;i<blocks.length;i++){
+      run+=heights[i-1];
+      const diff=Math.abs(run-(stack-run));
+      if(diff<bestDiff){bestDiff=diff;best=i;}
     }
-  });
-  body+='<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>';
+    const col=(from,to)=>'<table class="deckfee">'+head+'<tbody>'+
+      blocks.slice(from,to).map(feeBlockHTML).join('')+'</tbody></table>';
+    inner='<div class="feewrap wide">'+
+      '<div class="feecols">'+col(0,best)+col(best,blocks.length)+'</div>'+
+      '<table class="deckfee feetotal"><tbody>'+
+        '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
+      '</tbody></table></div>';
+  }
+
   return page(crest()+'<div class="pbody">'+
     '<h1 class="ptitle">'+title+' <em style="color:var(--gold);opacity:.85">'+sub+'</em></h1>'+
-    '<div class="feewrap"><table class="deckfee"><thead><tr><th>DESCRIPTIONS</th>'+
-    '<th class="r">PRICE ('+(d.currency==='EUR'?'EUR':'US$')+')</th></tr></thead><tbody>'+body+'</tbody></table></div>'+
+    inner+
     '<div class="feenote">Please note that our fees cover all statutory obligations on a yearly basis towards the authorities. '+
     'Any work outside this scope, we will provide a quote for your approval beforehand.<br>'+
     'NB: There shall be cost escalation in our Annual Fixed Fee of 10% every 3 years.</div>'+
