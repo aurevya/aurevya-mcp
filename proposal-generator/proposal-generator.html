@@ -407,16 +407,10 @@ table.deckfee tr.tot td{
 .feenote{font-size:6.2pt;color:var(--slate);font-style:italic;line-height:1.45;margin-top:3.5mm;width:64%;}
 
 /* ── SERVICE PAGES (leaf wheel) ────────────────────────── */
-.svcpage{display:grid;grid-template-columns:1fr 30%;height:100%;gap:6mm;}
-.leafwheel{position:relative;align-self:center;}
-/* labels sit directly on top of the wheel artwork (see LEAF_LABEL_POS_SMALL
-   below) — the per-service highlight colour is already baked into each
-   leaf-<service>.png variant, so no separate ".on" swatch is needed here. */
-.leafwheel .lf{
-  position:absolute;font-size:4.2pt;font-weight:600;letter-spacing:.01em;text-transform:uppercase;
-  color:#fff;text-align:center;line-height:1.1;width:15mm;
-  text-shadow:0 1px 2px rgba(0,0,0,.4);transform:translate(-50%,-50%);
-}
+/* The wheel is now absolutely positioned against .page (see leafCol()), so
+   the text area just needs to stop short of it rather than reserve a grid
+   column — 72% keeps the three text columns clear of the artwork. */
+.svcpage{width:72%;height:100%;}
 
 /* ── BACK COVER ────────────────────────────────────────── */
 .backcover{background:var(--plum);height:100%;padding:16mm 12mm;color:#fff;position:relative;}
@@ -2439,74 +2433,39 @@ function pgFee(which,d){
     foot()+'</div>');
 }
 
-/* Percentage positions (of the leaf-plain.png artwork itself, 1397x884)
-   for the six leaf labels, pixel-sampled from the actual graphic so each
-   label lands centred inside its own leaf rather than floating in a
-   separate list of pill-shaped boxes next to it (which is what this page
-   used to do — the source deck overlays the label text directly onto
-   each leaf). Order matches BP.leaves. */
-const LEAF_LABEL_POS=[
-  {x:48.7,y:21.5},  // BOARD SERVICES & DIRECTORSHIP — top leaf
-  {x:40.1,y:32.8},  // ACCOUNTING & FINANCE — upper-left leaf
-  {x:35.8,y:44.1},  // COMPLIANCE — left leaf
-  {x:53.0,y:43.0},  // LEGAL & GOVERNANCE — centre leaf (by the stem)
-  {x:35.8,y:56.6},  // IT MANAGEMENT & CYBERSECURITY — lower-left leaf
-  {x:53.0,y:58.8},  // CONCIERGE SERVICES — lower-centre leaf
-];
-
 function pgLeaf(){
-  /* full-bleed plum page with the gold vine graphic and the six leaf
-     labels overlaid directly on their leaves. The wrapper div is locked
-     to the artwork's own aspect ratio (1397:884) so LEAF_LABEL_POS
-     percentages — sampled against the raw image — line up exactly
-     regardless of how big the artwork renders on the page. */
-  const artRatio=(884/1397*100).toFixed(4);
-  const labels=BP.leaves.map((l,i)=>{
-    const p=LEAF_LABEL_POS[i]||{x:50,y:50};
-    return '<div style="position:absolute;left:'+p.x+'%;top:'+p.y+'%;transform:translate(-50%,-50%);'+
-      'width:22mm;text-align:center;color:#fff;font-size:5.4pt;font-weight:600;letter-spacing:.02em;'+
-      'line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.35)">'+l+'</div>';
-  }).join('');
+  /* "Our Services" overview — the whole page (plum background, the gold
+     vine, all six labelled leaves, the title and the crest) is a single
+     300dpi render of the corresponding page in the original
+     AWL_PROPOSAL_AC_20260805.pdf, used verbatim. This page is entirely
+     static boilerplate, so there is nothing to lay out dynamically, and
+     reproducing it as an image is the only way to guarantee it matches
+     the source deck exactly. Only the running footer is drawn on top,
+     since that carries the per-proposal running title and page number. */
   return page('<div style="position:absolute;inset:0;background:var(--plum)"></div>'+
-    crest(true)+'<div class="pbody" style="position:relative;z-index:2">'+
-    '<h1 class="ptitle" style="color:#fff">Our Services</h1>'+
-    '</div>'+
-    '<div style="position:absolute;right:-6%;top:8%;width:78%;aspect-ratio:'+(1397/884)+';z-index:1">'+
-      '<img src="'+ASSET_DIR+'leaf-plain.png" style="width:100%;height:100%;display:block;object-fit:contain;object-position:right center" '+
-      'onerror="this.style.opacity=0">'+
-      labels+
-    '</div>'+
+    '<img src="'+ASSET_DIR+'svc-overview.png" style="position:absolute;inset:0;'+
+      'width:100%;height:100%;object-fit:cover;z-index:1" onerror="this.style.opacity=0">'+
     foot(),'dark');
 }
 
-/* Percentage positions for the six leaf labels on the leaf-<service>.png
-   variants (851x538 — a tighter crop of the same artwork than
-   leaf-plain.png, used on the main "Our Services" page, so it needs its
-   own pixel-sampled coordinates rather than reusing LEAF_LABEL_POS).
-   Order matches BP.leaves. */
-const LEAF_LABEL_POS_SMALL=[
-  {x:48.8,y:18.6},  // BOARD SERVICES & DIRECTORSHIP
-  {x:40.5,y:31.6},  // ACCOUNTING & FINANCE
-  {x:36.4,y:43.7},  // COMPLIANCE
-  {x:54.1,y:41.8},  // LEGAL & GOVERNANCE
-  {x:35.8,y:57.6},  // IT MANAGEMENT & CYBERSECURITY
-  {x:54.1,y:59.5},  // CONCIERGE SERVICES
-];
+/* Service-page leaf wheel.
+   The leaf-<service>.png assets are cropped straight out of the original
+   AWL_PROPOSAL_AC_20260805.pdf at 300dpi, so the six labels and the
+   per-service highlight colour are already part of the artwork — nothing
+   is overlaid in CSS any more. Earlier attempts positioned the label text
+   with percentage coordinates on top of a label-less graphic, which never
+   lined up exactly and overflowed the leaf shapes; using the source
+   artwork verbatim removes that whole class of problem.
 
-/* Service-page leaf wheel. Each service has its own extracted graphic with
-   the relevant leaf coloured; labels are overlaid directly on their own
-   leaves (same treatment as pgLeaf's main wheel — see LEAF_LABEL_POS)
-   rather than as a separate list of pill boxes underneath the image. */
+   Geometry is taken from where the wheel actually sits on the source page
+   (crop box x 2625..3542, y 600..1740 of a 3542x2246 render), expressed as
+   percentages of the page so it lands in exactly the same spot. It bleeds
+   off the right edge in the source, hence right:0 and .page's
+   overflow:hidden doing the clipping. */
 function leafCol(key){
-  const labels=BP.leaves.map((l,i)=>{
-    const p=LEAF_LABEL_POS_SMALL[i]||{x:50,y:50};
-    return '<div class="lf" style="left:'+p.x+'%;top:'+p.y+'%">'+l+'</div>';
-  }).join('');
-  return '<div class="leafwheel" style="width:100%;aspect-ratio:'+(851/538)+'">'+
-    '<img src="'+ASSET_DIR+(LEAF_IMG[key]||'leaf-plain')+'.png" style="width:100%;height:100%;display:block;object-fit:contain" '+
-    'onerror="this.style.opacity=0">'+
-    labels+
-    '</div>';
+  return '<img class="leafwheel" src="'+ASSET_DIR+(LEAF_IMG[key]||'leaf-plain')+'.png" '+
+    'style="position:absolute;right:0;top:26.71%;width:25.89%;height:50.76%;'+
+    'object-fit:fill;z-index:1" onerror="this.style.opacity=0">';
 }
 
 function pgService(key){
@@ -2551,10 +2510,10 @@ function pgService(key){
     mid='<div class="col"><h4>'+s.colAh+'</h4><ul>'+s.colA.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>'+
       '<div class="col"><h4>'+s.colBh+'</h4><ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul></div><div></div>';
   }
-  return page(crest()+'<div class="pbody"><div class="peyebrow">OUR SERVICES</div>'+
+  return page(crest()+leafCol(key)+'<div class="pbody"><div class="peyebrow">OUR SERVICES</div>'+
     '<h1 class="ptitle">'+s.title+(s.pair?' &nbsp;&nbsp; <span style="color:var(--gold)">'+s.pair+'</span>':'')+'</h1>'+
     '<div class="svcpage" style="margin-top:5mm">'+
-    '<div class="cols c3" style="margin-top:0">'+mid+'</div>'+leafCol(key)+'</div>'+
+    '<div class="cols c3" style="margin-top:0">'+mid+'</div></div>'+
     foot()+'</div>');
 }
 
