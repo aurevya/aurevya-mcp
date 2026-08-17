@@ -121,28 +121,94 @@ async function configurePage(page, opts) {
   const hasShareholders = mode === 'structure' && Array.isArray(opts.shareholders) && opts.shareholders.length;
   const hasExtraTrusts = mode === 'structure' && trust && Array.isArray(opts.extraTrusts) && opts.extraTrusts.length;
   const hasCellNames = mode === 'structure' && cis && Array.isArray(opts.cisCellNames) && opts.cisCellNames.length;
-  if (hasShareholders || hasExtraTrusts || hasCellNames) {
+  const hasEntities = mode === 'structure' && Array.isArray(opts.entities) && opts.entities.length;
+  const hasAddons = mode === 'structure' && Array.isArray(opts.addons) && opts.addons.length;
+  const hasNote = mode === 'structure' && !!opts.structureNote;
+  if (hasShareholders || hasExtraTrusts || hasCellNames || hasEntities || hasAddons || hasNote) {
     await page.evaluate((cfg) => {
       if (STATE.mode !== 'structure' || !STATE.struct) return;
       const st = STATE.struct;
 
-      // one box per requested shareholder/settlor name, reusing whatever
-      // default node(s) already exist before adding more
+      // one box per requested shareholder/settlor, reusing whatever
+      // default node(s) already exist before adding more. Each entry is
+      // either a plain name or { name, pct } — the percentage is shown
+      // under the name on the block, and is what the 100% ownership check
+      // adds up.
       if (Array.isArray(cfg.shareholders) && cfg.shareholders.length) {
-        cfg.shareholders.forEach((name, i) => {
+        cfg.shareholders.forEach((entry, i) => {
+          const name = (entry && typeof entry === 'object') ? entry.name : entry;
+          const pct = (entry && typeof entry === 'object') ? entry.pct : null;
           const existing = st.nodes.filter((n) => n.kind === 'shareholder');
-          if (existing[i]) {
-            existing[i].label = name;
-          } else {
+          let node = existing[i];
+          if (!node) {
             addStructNode('shareholder');
-            const added = st.nodes.filter((n) => n.kind === 'shareholder').slice(-1)[0];
-            if (added) added.label = name;
+            node = st.nodes.filter((n) => n.kind === 'shareholder').slice(-1)[0];
+          }
+          if (!node) return;
+          node.label = String(name);
+          if (pct !== undefined && pct !== null && String(pct) !== '') {
+            // accept 51, "51" or "51%" — the block renders whatever it's given
+            node.pct = /%\s*$/.test(String(pct)) ? String(pct) : String(pct) + '%';
           }
         });
         // drop any leftover default shareholder box beyond the names given
         st.nodes.filter((n) => n.kind === 'shareholder').slice(cfg.shareholders.length)
           .forEach((n) => removeStructNode(n.id));
+        if (typeof layoutShareholderRow === 'function') layoutShareholderRow(st);
       }
+
+      // Any additional entity hung off a parent box — the same catalogue
+      // the canvas offers (ac, gbc, trust, cis, mfo, foundation, domestic,
+      // partnership, other). Routed through addEntityUnder so the entity
+      // brings its price-book fees, its explanatory pages and its glossary
+      // terms exactly as it would when added by hand.
+      if (Array.isArray(cfg.entities) && cfg.entities.length && typeof addEntityUnder === 'function') {
+        const findBox = (want) => {
+          if (!want) return null;
+          const needle = String(want).toUpperCase().replace(/\s+/g, ' ').trim();
+          const plain = (s) => String(s || '').replace(/<br\s*\/?>/gi, ' ').toUpperCase().replace(/\s+/g, ' ').trim();
+          return st.nodes.find((n) => n.id === want)
+            || st.nodes.find((n) => plain(n.label) === needle)
+            || st.nodes.find((n) => plain(n.label).indexOf(needle) === 0)
+            || null;
+        };
+        cfg.entities.forEach((e) => {
+          // default parent: the lowest box on the diagram, i.e. the end of
+          // the existing chain
+          let parent = findBox(e.under);
+          if (!parent) {
+            const boxes = st.nodes.filter((n) => n.kind === 'box').sort((a, b) => a.y - b.y);
+            parent = boxes[boxes.length - 1] || st.nodes[0];
+          }
+          if (!parent) return;
+          const before = st.nodes.map((n) => n.id);
+          addEntityUnder(parent.id, e.type || 'other');
+          const added = st.nodes.find((n) => before.indexOf(n.id) < 0);
+          if (!added) return;
+          if (e.name) added.label = String(e.name).toUpperCase();
+          if (e.caption) added.cap = String(e.caption);
+          if (e.pct !== undefined && e.pct !== null && String(e.pct) !== '') {
+            const edge = st.edges.find((x) => x.to === added.id);
+            if (edge) edge.label = /%\s*$/.test(String(e.pct)) ? String(e.pct) : String(e.pct) + '%';
+          }
+          if (Array.isArray(e.addons) && typeof toggleEntityAddon === 'function') {
+            e.addons.forEach((k) => { try { toggleEntityAddon(added.id, k); } catch (_) {} });
+          }
+        });
+        if (typeof closeEntityPanel === 'function') closeEntityPanel();
+      }
+
+      // Add-ons charged against the entity the sidebar seeded (as opposed
+      // to one added above) — e.g. a second bank account on the GBC.
+      if (Array.isArray(cfg.addons) && cfg.addons.length && typeof toggleEntityAddon === 'function') {
+        const seeded = st.nodes.find((n) => /^(ac|gbc)\d*$/.test(n.id || ''))
+          || st.nodes.filter((n) => n.kind === 'box')[0];
+        if (seeded) cfg.addons.forEach((k) => { try { toggleEntityAddon(seeded.id, k); } catch (_) {} });
+        if (typeof closeEntityPanel === 'function') closeEntityPanel();
+      }
+
+      // free-text note printed under the diagram
+      if (cfg.structureNote) st.note = String(cfg.structureNote);
 
       // additional trusts beyond the first (which the Trust checkbox
       // already added as a real Section-1 entity) — each gets its own
@@ -182,9 +248,20 @@ async function configurePage(page, opts) {
         if (typeof syncCellFees === 'function') syncCellFees();
       }
 
+      // renumber same-kind entities and push those names onto their fee
+      // headings, then redraw — same order the canvas uses
+      if (typeof syncEntityNames === 'function') syncEntityNames();
+      if (typeof renderFeeEditor === 'function') renderFeeEditor();
       if (typeof renderStructEditorUI === 'function') renderStructEditorUI();
       if (typeof build === 'function') build();
-    }, { shareholders: opts.shareholders, extraTrusts: opts.extraTrusts, cisCellNames: opts.cisCellNames });
+    }, {
+      shareholders: opts.shareholders,
+      extraTrusts: opts.extraTrusts,
+      cisCellNames: opts.cisCellNames,
+      entities: opts.entities,
+      addons: opts.addons,
+      structureNote: opts.structureNote,
+    });
   }
 }
 
@@ -208,11 +285,37 @@ export async function quoteProposal(opts) {
         // diagram right now, by name — read this back to the client
         // before generating the final PDF so a structure with (say) 3
         // shareholders and 2 trusts is confirmed correct, not assumed.
-        structureDetail: STATE.mode === 'structure' && STATE.struct ? {
-          shareholders: STATE.struct.nodes.filter((n) => n.kind === 'shareholder').map((n) => n.label),
-          trusts: STATE.struct.nodes.filter((n) => n.kind === 'box' && /TRUST/i.test(n.label)).map((n) => n.label),
-          cisCells: STATE.struct.nodes.filter((n) => n.kind === 'ciscell').map((n) => n.label),
-        } : null,
+        structureDetail: STATE.mode === 'structure' && STATE.struct ? (function () {
+          const plain = (s) => String(s || '').replace(/<br\s*\/?>/gi, ' ').trim();
+          return {
+            // shareholders with their holdings, so a 51/49 split can be
+            // confirmed rather than assumed
+            shareholders: STATE.struct.nodes.filter((n) => n.kind === 'shareholder')
+              .map((n) => (n.pct ? plain(n.label) + ' — ' + n.pct : plain(n.label))),
+            // every box on the diagram, in the numbered form the fee table
+            // uses ("Global Business Company 2")
+            entities: STATE.struct.nodes.filter((n) => n.kind === 'box')
+              .sort((a, b) => (a.y - b.y) || (a.x - b.x))
+              .map((n) => plain(n.label) + (n.cap ? ' (' + n.cap + ')' : '')),
+            trusts: STATE.struct.nodes.filter((n) => n.kind === 'box' && /TRUST/i.test(n.label)).map((n) => plain(n.label)),
+            cisCells: STATE.struct.nodes.filter((n) => n.kind === 'ciscell').map((n) => n.label),
+            note: STATE.struct.note || null,
+          };
+        }()) : null,
+
+        // Ownership groups that don't add up to 100%. Report these to the
+        // user before sending anything to a client — the deck will still
+        // generate, but the diagram is stating something incorrect.
+        ownershipWarnings: (STATE.mode === 'structure' && typeof ownershipProblems === 'function')
+          ? ownershipProblems(STATE.struct).map((g) => ({
+            entity: String(g.label || '').replace(/<br\s*\/?>/gi, ' ').trim(),
+            total: g.total,
+            owners: g.parts.map((p) => ({
+              name: String(p.fromLabel || '').replace(/<br\s*\/?>/gi, ' ').trim(),
+              pct: p.v === null ? null : p.v,
+            })),
+          }))
+          : [],
         currency: document.getElementById('fCurrency').value,
         setupFees: STATE.fees.setup,
         fixedFees: STATE.fees.fixed,
@@ -249,17 +352,45 @@ export async function createProposal(opts) {
   return withPage(async (page) => {
     await configurePage(page, opts);
 
-    const { html, filename, label, selections, structureDetail } = await page.evaluate(() => ({
-      html: buildExportHTML(),
-      filename: exportFilename(),
-      label: currentSpec().label,
-      selections: STATE.mode === 'structure' ? { ...STATE.entities } : { mode: STATE.mode },
-      structureDetail: STATE.mode === 'structure' && STATE.struct ? {
-        shareholders: STATE.struct.nodes.filter((n) => n.kind === 'shareholder').map((n) => n.label),
-        trusts: STATE.struct.nodes.filter((n) => n.kind === 'box' && /TRUST/i.test(n.label)).map((n) => n.label),
-        cisCells: STATE.struct.nodes.filter((n) => n.kind === 'ciscell').map((n) => n.label),
-      } : null,
-    }));
+    const { html, filename, label, selections, structureDetail, ownershipWarnings, totals } =
+      await page.evaluate(() => {
+        const plain = (s) => String(s || '').replace(/<br\s*\/?>/gi, ' ').trim();
+        return {
+          html: buildExportHTML(),
+          filename: exportFilename(),
+          label: currentSpec().label,
+          selections: STATE.mode === 'structure' ? { ...STATE.entities } : { mode: STATE.mode },
+          // Same read-back as quote_proposal, so whichever tool was used the
+          // structure can be confirmed in the same words before the link is
+          // passed to anyone.
+          structureDetail: STATE.mode === 'structure' && STATE.struct ? {
+            shareholders: STATE.struct.nodes.filter((n) => n.kind === 'shareholder')
+              .map((n) => (n.pct ? plain(n.label) + ' — ' + n.pct : plain(n.label))),
+            entities: STATE.struct.nodes.filter((n) => n.kind === 'box')
+              .sort((a, b) => (a.y - b.y) || (a.x - b.x))
+              .map((n) => plain(n.label) + (n.cap ? ' (' + n.cap + ')' : '')),
+            trusts: STATE.struct.nodes.filter((n) => n.kind === 'box' && /TRUST/i.test(n.label)).map((n) => plain(n.label)),
+            cisCells: STATE.struct.nodes.filter((n) => n.kind === 'ciscell').map((n) => n.label),
+            note: STATE.struct.note || null,
+          } : null,
+          ownershipWarnings: (STATE.mode === 'structure' && typeof ownershipProblems === 'function')
+            ? ownershipProblems(STATE.struct).map((g) => ({
+              entity: plain(g.label),
+              total: g.total,
+              owners: g.parts.map((p) => ({ name: plain(p.fromLabel), pct: p.v === null ? null : p.v })),
+            }))
+            : [],
+          totals: {
+            setup: typeof feeTotal === 'function' ? feeTotal('setup') : null,
+            fixed: typeof feeTotal === 'function' ? feeTotal('fixed') : null,
+            perEntity: (STATE.feeCols || []).map((c) => ({
+              label: c.label,
+              setup: c.setup.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
+              fixed: c.fixed.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
+            })),
+          },
+        };
+      });
 
     const clientSlug = slugify(opts.clientName);
     const clientDir = path.join(OUTPUT_ROOT, clientSlug);
@@ -275,7 +406,8 @@ export async function createProposal(opts) {
 
     const pdfBase64 = fs.readFileSync(pdfPath).toString('base64');
 
-    return { htmlPath, pdfPath, pdfFilename, pdfBase64, label, filename, selections, structureDetail, clientSlug };
+    return { htmlPath, pdfPath, pdfFilename, pdfBase64, label, filename, selections,
+      structureDetail, ownershipWarnings, totals, clientSlug };
   });
 }
 
