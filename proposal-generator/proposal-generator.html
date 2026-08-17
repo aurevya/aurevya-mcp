@@ -3242,6 +3242,25 @@ function renderEdgesSVG(st){
   return svg;
 }
 
+/* Usable area inside .structpage .rp: the panel is 68% of the 297mm page
+   less its 12mm side and 14mm top/bottom padding, with a little more taken
+   off the bottom for the running footer. */
+const STRUCT_FIT={w:176,h:150};
+
+/* How tall the chart actually is, and how much to scale it by to fit.
+   Width is measured against the logical canvas rather than the content
+   bounding box, so horizontal centring stays as laid out. */
+function structFit(st){
+  let bottom=0;
+  (st.nodes||[]).forEach(n=>{
+    const d=NODE_DIM[n.kind]||NODE_DIM.box;
+    bottom=Math.max(bottom,n.y+d.h+(n.cap?6:0));
+  });
+  const h=Math.max(40,bottom+4);
+  const k=Math.min(1,STRUCT_FIT.w/Math.max(1,st.canvasW),STRUCT_FIT.h/h);
+  return{k:k,h:h};
+}
+
 function pgStructure(st){
   const ent=STATE.entities||{};
   const isStructMode=STATE.mode==='structure';
@@ -3263,8 +3282,25 @@ function pgStructure(st){
       '<span class="plus">+</span>Cell</button>';
   }
   toolbar+='</div>';
-  let inner='<div class="freecanvas" style="position:relative;width:'+st.canvasW+'mm;height:'+
-    st.canvasH+'mm;margin:0 auto">'+toolbar+renderEdgesSVG(st)+renderNodesHTML(st)+'</div>';
+
+  /* Shrink the diagram to fit the page when it outgrows the panel. A deep
+     structure can easily run past 158mm of usable height, and the page
+     clips rather than scrolls, so the bottom of the chart simply vanished.
+     Scaling the whole canvas keeps the proportions and the connector
+     geometry intact — nothing needs to know it happened, because the node
+     coordinates stay in their own logical mm space. */
+  const fit=structFit(st);
+  /* the logical mm dimensions travel with the element, so the drag handler
+     can convert pixels to mm without having to know the scale factor */
+  const canvas='<div class="freecanvas" data-cw="'+st.canvasW+'" data-ch="'+fit.h+'" '+
+    'style="position:relative;width:'+st.canvasW+'mm;height:'+
+    fit.h+'mm;margin:0 auto'+
+    (fit.k<1?';transform:scale('+fit.k.toFixed(4)+');transform-origin:top center':'')+'">'+
+    renderEdgesSVG(st)+renderNodesHTML(st)+'</div>';
+  /* the toolbar sits outside the scaled element so the buttons stay a
+     usable size however far the chart has been shrunk */
+  let inner='<div class="structfit" style="position:relative;width:100%;height:'+
+    (fit.k<1?Math.round(fit.h*fit.k):fit.h)+'mm">'+toolbar+canvas+'</div>';
   if(st.note)inner+='<div class="dgnote">Note: '+st.note+'</div>';
   return page('<div class="structpage">'+
     '<div class="lp"><h2>'+st.title+'</h2>'+(st.sub?'<div class="ss">'+st.sub+'</div>':'')+
@@ -3952,9 +3988,14 @@ function liveBuild(delay){
     const node=STATE.struct.nodes.find(n=>n.id===id);
     if(!node)return;
     const rect=canvas.getBoundingClientRect();
+    /* getBoundingClientRect already accounts for any scale applied to fit
+       the chart on the page, so dividing by the canvas's own logical size
+       gives the right pixels-per-mm either way */
+    const cw=+canvas.getAttribute('data-cw')||STATE.struct.canvasW;
+    const ch=+canvas.getAttribute('data-ch')||STATE.struct.canvasH;
     dragging={id:id,canvas:canvas,startX:e.clientX,startY:e.clientY,startNX:node.x,startNY:node.y,
-      moved:false,
-      pxPerMMx:rect.width/STATE.struct.canvasW,pxPerMMy:rect.height/STATE.struct.canvasH};
+      moved:false,limX:cw,limY:ch,
+      pxPerMMx:rect.width/cw,pxPerMMy:rect.height/ch};
     e.preventDefault();
   });
   document.addEventListener('mousemove',function(e){
@@ -3967,8 +4008,8 @@ function liveBuild(delay){
     if(!dragging.moved)return;
     const dx=(e.clientX-dragging.startX)/dragging.pxPerMMx;
     const dy=(e.clientY-dragging.startY)/dragging.pxPerMMy;
-    node.x=Math.max(0,Math.min(STATE.struct.canvasW-d.w,dragging.startNX+dx));
-    node.y=Math.max(0,Math.min(STATE.struct.canvasH-d.h,dragging.startNY+dy));
+    node.x=Math.max(0,Math.min(dragging.limX-d.w,dragging.startNX+dx));
+    node.y=Math.max(0,Math.min(dragging.limY-d.h,dragging.startNY+dy));
     const el=dragging.canvas.querySelector('.dragnode[data-nid="'+dragging.id+'"]');
     if(el){el.style.left=node.x+'mm';el.style.top=node.y+'mm';}
     const cap=dragging.canvas.querySelector('.nodecap[data-cap-for="'+dragging.id+'"]');
