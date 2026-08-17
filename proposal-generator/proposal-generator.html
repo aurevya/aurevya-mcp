@@ -724,23 +724,27 @@ BP.glossaryFund = [
   ['SUB-THRESHOLD AIF','An AIF whose manager falls below the AIFMD authorisation thresholds and is therefore subject to registration only.']
 ];
 
+/* logoScale adjusts an individual mark against the 14mm baseline, because
+   the source artwork isn't optically consistent — some logos carry a lot of
+   internal padding and read small at the same box height, others read large.
+   Omitted means 1. */
 BP.ourGroupEntities = [
-  {cat:'Financial Services',name:'Aurevya Wealth',logo:'aurevya',
+  {cat:'Financial Services',name:'Aurevya Wealth',logo:'aurevya',logoScale:1.3,
    txt:'a globally recognised, award-winning boutique firm established over ten years ago, specializes in corporate and legacy management for institutions and high-net-worth individuals. Guided by the values of Innovation, Integrity, and Excellence, Aurevya offers holistic support that extends beyond finance, helping clients manage and preserve both their business and personal legacies.',
    ops:['Mauritius','United Arab Emirates']},
-  {cat:'',name:'Gulf Management Services (GMS)',logo:'gms',
+  {cat:'',name:'Gulf Management Services (GMS)',logo:'gms',logoScale:0.8,
    txt:'is a corporate service provider headquartered in the United Arab Emirates. As a Registered Agent for RAK ICC, we offer a wide range of Corporate services, as well as Private Wealth solutions, across multiple global jurisdictions. Our team of experienced professionals is well-positioned to assist with your day-to-day legal entity management and global entity governance.',
    ops:['Mauritius','United Arab Emirates']},
   {cat:'',name:'Sanatan Dharma Private Wealth Limited (SDPW)',logo:'sdpw',
    txt:'is a duly licensed DFSA Category 3C firm operating from the Dubai International Financial Centre (DIFC). Today, the Dubai Financial Services Authority has granted a licence to SDPW, establishing a pioneering values-based financial institution grounded in the timeless principles of Sanatan Dharma (commonly referred to as Hinduism), a universal ethical framework expressed in the Vedas and Upanishads.',
    ops:['United Arab Emirates','Canada']},
-  {cat:'Energy',name:'AFK Petroleum FZC',logo:'afk',
+  {cat:'Energy',name:'AFK Petroleum FZC',logo:'afk',logoScale:0.8,
    txt:'is an independent energy infrastructure company developing a 500-tons-per-day condensate oil refinery in Hamriyah Free Zone, Sharjah, UAE, one of the region’s most established energy and logistics hubs. The refinery is designed to produce high-value refined petroleum products—naphtha, diesel, kerosene and HFO—targeting both regional and international markets with strong and recurring demand.',
    ops:['United Arab Emirates']},
   {cat:'Healthcare',name:'Atelier Clinic',logo:'atelier',
    txt:'was conceptualised to provide the highest quality of care in both medical and aesthetic services and is driven by a multi-talented team who have come together to enrich the lives of others. With a diverse group of individuals, who are experts in their respective fields, we have established this facility to encompass a unified medical service offering with Mauritius.',
    ops:['Mauritius','United Arab Emirates']},
-  {cat:'Technology',name:'IgKnight',logo:'igknight',
+  {cat:'Technology',name:'IgKnight',logo:'igknight',logoScale:0.8,
    txt:'At IgKnight, we develop technology-driven solutions to protect both digital and physical environments. In collaboration with NEC, we deliver cybersecurity, public safety, health, and energy solutions to counter threats from cyberattacks to health risks. Our cost-efficient systems enhance safety and security coverage, helping detect and deter potential threats with greater presence and reliability.',
    ops:['Mauritius'],partner:'Official Strategic Partner — NEC',partnerLogo:'nec'}
 ];
@@ -2957,10 +2961,20 @@ function pgOurGroup(){
       '<div style="font-family:var(--serif);font-style:italic;font-size:7.6pt;'+
         'letter-spacing:.03em;color:var(--navy);margin-top:1.3mm">'+g.cat+'</div>'+
     '</div>').join('');
+  /* Every card reserves the same band height — the tallest logo's — so the
+     names below stay on one line across the row even though the marks
+     themselves are now different sizes. */
+  const LOGO_BASE=14;
+  const maxScale=BP.ourGroupEntities.reduce((m,e)=>Math.max(m,e.logoScale||1),1);
+  const bandH=+(LOGO_BASE*maxScale).toFixed(2);
+
   const cards=BP.ourGroupEntities.map(e=>{
     const logoSrc=ASSET_DIR+'logo-'+(e.logo==='aurevya'?'full-color':e.logo)+'.png';
-    const logoHTML='<div style="height:14mm;display:flex;align-items:center;justify-content:center;margin-bottom:3mm">'+
-      '<img src="'+logoSrc+'" style="max-height:14mm;max-width:92%;object-fit:contain" '+
+    const sc=e.logoScale||1;
+    const mh=+(LOGO_BASE*sc).toFixed(2);
+    const mw=Math.min(100,Math.round(92*sc));
+    const logoHTML='<div style="height:'+bandH+'mm;display:flex;align-items:center;justify-content:center;margin-bottom:3mm">'+
+      '<img src="'+logoSrc+'" style="max-height:'+mh+'mm;max-width:'+mw+'%;object-fit:contain" '+
       'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'">'+
       '<div style="display:none;width:16mm;height:.8px;background:var(--gold)"></div></div>';
     return '<div class="col" style="display:flex;flex-direction:column;">'+
@@ -3698,7 +3712,16 @@ function build(){
   let html='',toc=[];
   html+=pgCover(p,d);
 
+  /* Tag each page with the section that produced it, so the live rebuild can
+     put you back on the page you were looking at instead of guessing from a
+     scroll ratio — see liveBuild(). Purely an editing aid; stripped from
+     the exported HTML along with the other .noprint chrome. */
   const emit=(s)=>{
+    const out=emitPage(s);
+    return out?out.replace('<div class="page ','<div data-sec="'+s+'" class="page '):'';
+  };
+
+  const emitPage=(s)=>{
     if(!on(s))return '';
     const n=PAGENO+1;
     switch(s){
@@ -3798,6 +3821,9 @@ function buildExportHTML(){
      without the app's JS behind them */
   const clone=$('previewInner').cloneNode(true);
   clone.querySelectorAll('.noprint').forEach(el=>el.remove());
+  /* data-sec exists only so the live preview can hold its scroll position;
+     it has no business in a delivered document */
+  clone.querySelectorAll('[data-sec]').forEach(el=>el.removeAttribute('data-sec'));
   const body=clone.innerHTML;
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+
     p.label+' — '+($('fClient').value||'Proposal')+'</title>'+
@@ -3846,17 +3872,42 @@ function liveBuild(delay){
   if(flag){flag.classList.add('on');clearTimeout(_liveFlag);}
   clearTimeout(_liveTimer);
   _liveTimer=setTimeout(function(){
-    /* hold scroll — measure as a ratio so it survives page-count changes */
+    /* Hold the reader's place by anchoring to an actual page, not to a
+       fraction of the deck's height. The old proportional fallback assumed
+       the deck grows evenly, but pages get inserted at one specific point:
+       adding an entity inserts its pages mid-deck, so the same ratio landed
+       on a different page and the preview appeared to jump. Anchoring to the
+       section you were looking at is exact regardless of what was inserted
+       or where. */
     const prevH=inner.scrollHeight||1;
     const y=pv.scrollTop;
-    const ratio=y/prevH;
+
+    /* whichever page currently occupies the top of the viewport, and how far
+       into it we are */
+    let anchorSec=null,anchorDelta=0;
+    const pages=inner.querySelectorAll('.page[data-sec]');
+    for(let i=0;i<pages.length;i++){
+      const top=pages[i].offsetTop,h=pages[i].offsetHeight;
+      if(y<top+h-1){
+        anchorSec=pages[i].getAttribute('data-sec');
+        anchorDelta=y-top;
+        break;
+      }
+    }
 
     build();
 
-    const newH=inner.scrollHeight||1;
-    /* if the deck length barely moved keep the exact offset, otherwise
-       keep the proportional position */
-    pv.scrollTop=(Math.abs(newH-prevH)<40)?y:Math.round(ratio*newH);
+    let done=false;
+    if(anchorSec){
+      const el=inner.querySelector('.page[data-sec="'+anchorSec+'"]');
+      if(el){pv.scrollTop=Math.max(0,el.offsetTop+anchorDelta);done=true;}
+    }
+    if(!done){
+      /* nothing to anchor to (the section was switched off, or we were above
+         the first tagged page) — fall back to holding the raw offset */
+      const newH=inner.scrollHeight||1;
+      pv.scrollTop=Math.min(y,Math.max(0,newH-pv.clientHeight));
+    }
 
     _liveFlag=setTimeout(function(){if(flag)flag.classList.remove('on');},260);
   },delay===undefined?130:delay);
