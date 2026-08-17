@@ -350,6 +350,14 @@ h1.ptitle em{font-style:italic;}
   box-shadow:0 1px 3px rgba(0,0,0,.18);z-index:6;
 }
 .nodeDelBtn:hover{background:#B23B3B;border-color:#B23B3B;color:#fff;}
+/* ownership validation notice — screen only, never in the exported deck */
+.ownwarn{
+  margin:3mm auto 0;max-width:150mm;padding:2.4mm 3.4mm;border-radius:1.6mm;
+  background:rgba(178,59,59,.07);border:.3mm solid rgba(178,59,59,.35);
+  font-family:var(--sans);font-size:6.6pt;line-height:1.5;color:#8A2E2E;
+}
+.ownwarn b{font-weight:700;}
+.ownwarn>b{display:block;margin-bottom:.8mm;}
 .nodewrap{display:flex;flex-direction:column;align-items:center;}
 .nodecap{
   font-family:var(--serif);font-style:italic;font-size:8pt;color:var(--navy);margin-top:2mm;
@@ -2602,6 +2610,58 @@ function inboundEdge(id){
   const st=STATE.struct;if(!st)return null;
   return st.edges.find(e=>e.to===id)||null;
 }
+
+/* ── ownership validation ─────────────────────────────────────────
+   Everything owning a given entity has to add up to 100%: two partners at
+   51/49, or a single holder at 100%. The other direction is deliberately
+   not checked — a holding company owning 100% of two subsidiaries is
+   correct, not 200%.
+
+   Percentages are free text (they can read "51%", "51", or a note), so
+   anything without a number is treated as unstated and excluded from the
+   sum rather than counted as zero. A shareholder carries its figure on the
+   node; everything else carries it on the incoming connector. */
+function pctValue(s){
+  const m=/(-?\d+(?:\.\d+)?)/.exec(String(s==null?'':s));
+  return m?parseFloat(m[1]):null;
+}
+
+/* [{id,label,total,parts,stated}] for every entity with at least one
+   owner, where total is the sum of the stated percentages. */
+function ownershipGroups(st){
+  st=st||STATE.struct;
+  if(!st||!st.edges)return [];
+  const byId={};st.nodes.forEach(n=>byId[n.id]=n);
+  const groups={};
+  st.edges.forEach(e=>{
+    const child=byId[e.to],parent=byId[e.from];
+    if(!child||!parent)return;
+    /* a shareholder's holding lives on the shareholder block itself */
+    const raw=(parent.kind==='shareholder'&&parent.pct)?parent.pct:e.label;
+    const v=pctValue(raw);
+    (groups[e.to]=groups[e.to]||{id:e.to,label:child.label,parts:[],stated:0,unstated:0})
+      .parts.push({from:parent.id,fromLabel:parent.label,v:v});
+    if(v===null)groups[e.to].unstated++;else groups[e.to].stated+=v;
+  });
+  return Object.keys(groups).map(k=>{
+    const g=groups[k];
+    g.total=Math.round(g.stated*100)/100;
+    return g;
+  });
+}
+
+/* Groups that don't add up — used for the on-canvas warning. A group with
+   nothing stated at all is left alone rather than reported as 0%. */
+function ownershipProblems(st){
+  return ownershipGroups(st).filter(g=>{
+    if(g.unstated&&!g.stated)return false;      /* nothing filled in yet */
+    return Math.abs(g.total-100)>0.01||g.unstated>0;
+  });
+}
+
+function plainLabel(s){
+  return String(s||'').replace(/<br\s*\/?>/gi,' ').trim();
+}
 function setEntityField(id,field,value){
   const st=STATE.struct;if(!st)return;
   const n=st.nodes.find(x=>x.id===id);if(!n)return;
@@ -2617,6 +2677,10 @@ function setEntityField(id,field,value){
   }else{
     n[field]=value;
   }
+  /* refresh only the tally, not the whole panel — rebuilding it on every
+     keystroke would drop focus out of the field being typed into */
+  const tally=$('ownTally');
+  if(tally)tally.innerHTML=ownershipTallyHTML(id);
   renderStructEditorUI();
   liveBuild(0);
 }
@@ -2635,6 +2699,36 @@ function layoutShareholderRow(st){
   let x=Math.max(0,(st.canvasW-total)/2);
   const y=Math.min.apply(null,sh.map(n=>n.y));
   sh.sort((a,b)=>a.x-b.x).forEach(n=>{n.x=x;n.y=y;x+=d.w+gap;});
+}
+
+/* The 100% tally relevant to the box being edited, listing each owner so a
+   shortfall is attributable rather than just a number that's wrong. For a
+   shareholder this is the entity it holds, since that's where its figure
+   is counted. */
+function ownershipTallyHTML(id){
+  const st=STATE.struct;if(!st)return '';
+  const n=st.nodes.find(x=>x.id===id);if(!n)return '';
+  let targetId=id;
+  if(n.kind==='shareholder'){
+    const out=st.edges.find(e=>e.from===id);
+    if(!out)return '';
+    targetId=out.to;
+  }
+  const g=ownershipGroups(st).find(x=>x.id===targetId);
+  if(!g||!g.parts.length)return '';
+  const target=st.nodes.find(x=>x.id===targetId);
+  const ok=Math.abs(g.total-100)<0.01&&!g.unstated;
+  const colour=ok?'#1E7A4B':'#8A2E2E';
+  const bg=ok?'rgba(30,122,75,.07)':'rgba(178,59,59,.07)';
+  return '<div style="margin-top:2px;padding:8px 10px;border-radius:6px;background:'+bg+
+    ';border:1px solid '+colour+'33;font-size:11px;color:'+colour+';line-height:1.5">'+
+    '<b>Ownership of '+plainLabel(target&&target.label)+': '+g.total+'%</b>'+
+    (ok?' ✓':'')+
+    '<div style="margin-top:3px;opacity:.85">'+
+      g.parts.map(p=>plainLabel(p.fromLabel)+' — '+(p.v===null?'not set':p.v+'%')).join('<br>')+
+    '</div>'+
+    (ok?'':'<div style="margin-top:3px">Owners of an entity should total 100%.</div>')+
+  '</div>';
 }
 
 function closeEntityPanel(){
@@ -2740,6 +2834,12 @@ function openEntityPanel(id){
       : (edge?'<label class="f"><span>Ownership on the incoming line</span>'+
         '<input type="text" value="'+(edge.label||'').replace(/"/g,'&quot;')+'" '+
         'placeholder="e.g. 100%" oninput="setEntityField(\''+id+'\',\'pct\',this.value)"></label>':''))+
+
+    /* running total for whatever this edit affects: a shareholder's figure
+       counts toward the entity it holds, so show that entity's tally.
+       Refreshed in place as you type — see setEntityField — so the panel
+       isn't rebuilt underneath the caret. */
+    '<div id="ownTally">'+ownershipTallyHTML(id)+'</div>'+
 
     '<button type="button" style="width:100%;margin-top:16px;padding:9px;border:none;border-radius:7px;'+
       'background:#B59433;color:#130429;font-weight:700;cursor:pointer" '+
@@ -3420,6 +3520,21 @@ function pgStructure(st){
      usable size however far the chart has been shrunk */
   let inner='<div class="structfit" style="position:relative;width:100%;height:'+
     (fit.k<1?Math.round(fit.h*fit.k):fit.h)+'mm">'+toolbar+canvas+'</div>';
+
+  /* Ownership that doesn't add up is flagged on screen only — it never
+     reaches the exported deck, because a half-finished diagram shouldn't
+     print a warning to the client. */
+  const bad=ownershipProblems(st);
+  if(bad.length){
+    inner+='<div class="ownwarn noprint">'+
+      '<b>Ownership doesn’t total 100%</b>'+
+      bad.map(g=>{
+        const parts=g.parts.map(p=>plainLabel(p.fromLabel)+' '+(p.v===null?'—':p.v+'%')).join(' + ');
+        return '<div>'+plainLabel(g.label)+': '+parts+
+          ' = <b>'+g.total+'%</b>'+(g.unstated?' (some not set)':'')+'</div>';
+      }).join('')+
+    '</div>';
+  }
   if(st.note)inner+='<div class="dgnote">Note: '+st.note+'</div>';
   return page('<div class="structpage">'+
     '<div class="lp"><h2>'+st.title+'</h2>'+(st.sub?'<div class="ss">'+st.sub+'</div>':'')+
