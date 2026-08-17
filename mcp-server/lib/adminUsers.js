@@ -19,6 +19,33 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabaseClient.js';
 
 export const MIN_PASSWORD_LENGTH = 8;
 
+/* Full module list from the portal's nav (Er in the built bundle), each
+ * tagged with its section. Kept in sync manually — if a module is added to
+ * the portal nav, it needs adding here too, or new staff will simply not
+ * get a row for it (which the portal treats as "not granted" once any row
+ * exists for them, so an out-of-sync list fails closed rather than open). */
+const ALL_MODULES = [
+  { module: 'onboarding', section: 'Client Management' },
+  { module: 'clients',    section: 'Client Management' },
+  { module: 'kyc',        section: 'Client Management' },
+  { module: 'proposals',  section: 'AI Tools' },
+  { module: 'documents',  section: 'AI Tools' },
+  { module: 'comms',      section: 'AI Tools' },
+  { module: 'compliance', section: 'Compliance' },
+  { module: 'regulatory', section: 'Compliance' },
+  { module: 'invoices',   section: 'Finance' },
+  { module: 'messages',   section: 'Communications' },
+  { module: 'engagement', section: 'Communications' },
+  { module: 'users',      section: 'System' },
+  { module: 'security',   section: 'System' },
+  { module: 'audit',      section: 'System' },
+  { module: 'checklist',  section: 'Programme' },
+];
+
+/* Sections every new staff account is denied by default. Admins can still
+ * grant them back per-person from the portal's "Manage Permissions" modal. */
+const STAFF_DEFAULT_DENIED_SECTIONS = ['System', 'Programme'];
+
 let _admin;
 /** Service-role client. Returns null when the key isn't configured, so
  *  callers can fail with a clear message instead of a crash. */
@@ -129,7 +156,26 @@ export async function createUserWithPassword({ email, password, full_name, role,
     throw new AdminApiError(500, 'Could not create the user profile: ' + profErr.message);
   }
 
-  return { id: userId, email, full_name: full_name.trim(), role, department: department || null };
+  /* New staff accounts start locked out of System and Programme (matches the
+   * standing policy applied to existing staff). This is best-effort: the
+   * account is already fully created at this point, and a permissions-row
+   * failure shouldn't undo that — it would just mean this one person
+   * defaults to full access until an admin opens Manage Permissions for
+   * them, same as before this existed. */
+  let permissionsWarning = null;
+  if (role === 'staff') {
+    const rows = ALL_MODULES.map(({ module, section }) => ({
+      staff_id: userId,
+      module,
+      granted: !STAFF_DEFAULT_DENIED_SECTIONS.includes(section),
+    }));
+    const { error: permErr } = await admin
+      .from('staff_permissions')
+      .upsert(rows, { onConflict: 'staff_id,module' });
+    if (permErr) permissionsWarning = 'Account created, but default module permissions could not be set: ' + permErr.message;
+  }
+
+  return { id: userId, email, full_name: full_name.trim(), role, department: department || null, permissionsWarning };
 }
 
 /** Sets an existing user's password directly. Used for "reset this person's
