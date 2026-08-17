@@ -1481,6 +1481,25 @@ function defaultServices(ent){
    between the percentage and the start of the line. */
 const NODE_DIM={shareholder:{w:46,h:26},box:{w:48,h:16},ciscell:{w:26,h:11}};
 
+/* The drawn height of a specific node, which is not always the nominal one
+   for its kind: a shareholder block stacks from the top, so one without a
+   holding percentage renders about 8mm shorter than the slot reserved for
+   it. Connectors leave from the bottom edge, so using the nominal height
+   there left a gap between the name and the start of the line.
+
+   Measured against the CSS: 13mm icon + 1.6mm gap + one 7.6pt name line,
+   plus (when a percentage is shown) the dotted rule and the 11pt figure.
+   A name long enough to wrap adds a line, which is why the label is
+   counted rather than assumed to be one line. */
+function nodeDim(n){
+  const base=NODE_DIM[n&&n.kind]||NODE_DIM.box;
+  if(!n||n.kind!=='shareholder')return base;
+  const nameLines=Math.max(1,Math.ceil(String(n.label||'').replace(/<br\s*\/?>/gi,' ').length/22));
+  let h=14.6+nameLines*3.4;
+  if(n.pct)h+=7.1;
+  return{w:base.w,h:Math.round(h*10)/10};
+}
+
 /* head-and-shoulders mark inside the gold circle */
 const PERSON_GLYPH='<svg viewBox="0 0 24 24" width="7mm" height="7mm" fill="none" '+
   'stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">'+
@@ -1523,10 +1542,13 @@ function buildStructureSpec(ent){
   let y=10;
   const place=(kind,label,id,cap)=>{
     const d=NODE_DIM[kind];
-    nodes.push({id:id,kind:kind,label:label,x:cx-d.w/2,y:y,primary:false,cap:cap||''});
-    /* leave enough clear space below a shareholder for the joining
-       bracket two or more of them are drawn with */
-    y+=(kind==='shareholder'?42:34);
+    const n={id:id,kind:kind,label:label,x:cx-d.w/2,y:y,primary:false,cap:cap||''};
+    nodes.push(n);
+    /* advance past what this node actually draws, plus a fixed gap for the
+       connector — a shareholder without a percentage is shorter than the
+       nominal slot, and spacing off the nominal height left a long empty
+       run of line beneath it */
+    y+=nodeDim(n).h+(kind==='shareholder'?16:18);
     return id;
   };
   let prev;
@@ -2075,7 +2097,7 @@ function spliceCoreNode(kind){
   }else if(kind==='cis'){
     if(st.nodes.some(n=>n.id==='cis'))return;
     const anchor=st.nodes.find(n=>n.primary)||st.nodes.find(n=>n.kind==='shareholder')||st.nodes[0];
-    const ad=NODE_DIM[anchor.kind]||bd;
+    const ad=nodeDim(anchor);
     const cx=anchor.x+ad.w/2;
     const y=anchor.y+34;
     const node={id:'cis',kind:'box',label:'CIS — PROTECTED<br>CELL COMPANY',x:cx-bd.w/2,y:y,primary:true,cap:''};
@@ -2090,7 +2112,7 @@ function spliceCoreNode(kind){
   }
   const t=structTitleFor(STATE.entities);
   st.title=t.title;st.sub=t.sub;
-  st.canvasH=Math.max(st.canvasH,st.nodes.reduce((m,n)=>Math.max(m,n.y+(NODE_DIM[n.kind]||bd).h),0)+14);
+  st.canvasH=Math.max(st.canvasH,st.nodes.reduce((m,n)=>Math.max(m,n.y+nodeDim(n).h),0)+14);
 }
 
 /* the reverse of addCoreEntity() — deleting Trust, CIS, or the Company
@@ -2187,7 +2209,7 @@ function addStructNode(kind){
   const id=newStructId();
   const defaults={shareholder:'SHAREHOLDER',box:'ENTITY',ciscell:'NEW CELL'};
   const count=st.nodes.filter(n=>n.kind===kind).length;
-  const maxY=st.nodes.reduce((m,n)=>Math.max(m,n.y+(NODE_DIM[n.kind]||NODE_DIM.box).h),0);
+  const maxY=st.nodes.reduce((m,n)=>Math.max(m,n.y+nodeDim(n).h),0);
   const x=8+count*(d.w+6);
   const y=kind==='shareholder'?8:Math.min(maxY+10,st.canvasH-d.h-4);
   st.nodes.push({id:id,kind:kind,label:defaults[kind],x:x,y:y,primary:false,cap:''});
@@ -2385,7 +2407,7 @@ function addEntityUnder(parentId,key){
   const spec=ADDABLE_ENTITIES.find(e=>e.key===key);if(!spec)return;
   const st=STATE.struct;if(!st)return;
   const parent=st.nodes.find(n=>n.id===parentId);if(!parent)return;
-  const pd=NODE_DIM[parent.kind]||NODE_DIM.box;
+  const pd=nodeDim(parent);
   const d=NODE_DIM.box;
   const id=newStructId();
 
@@ -2456,7 +2478,7 @@ function descendants(st,id,seen){
 function layoutChildren(st,parentId){
   if(!st)return;
   const parent=st.nodes.find(n=>n.id===parentId);if(!parent)return;
-  const pd=NODE_DIM[parent.kind]||NODE_DIM.box;
+  const pd=nodeDim(parent);
   const kids=st.edges.filter(e=>e.from===parentId)
     .map(e=>st.nodes.find(n=>n.id===e.to))
     .filter(n=>n&&n.y>parent.y);
@@ -2465,7 +2487,7 @@ function layoutChildren(st,parentId){
   /* left-to-right in the order they were attached, so a newly added entity
      appears at the right-hand end rather than being sorted into the middle
      of boxes that were already placed */
-  const widths=kids.map(k=>(NODE_DIM[k.kind]||NODE_DIM.box).w);
+  const widths=kids.map(k=>nodeDim(k).w);
   const total=widths.reduce((a,b)=>a+b,0);
   const avail=st.canvasW-4;
   let gap=8;
@@ -2488,7 +2510,7 @@ function layoutChildren(st,parentId){
     x+=widths[i]+gap;
   });
 
-  const lowest=st.nodes.reduce((m,n)=>Math.max(m,n.y+(NODE_DIM[n.kind]||NODE_DIM.box).h),0);
+  const lowest=st.nodes.reduce((m,n)=>Math.max(m,n.y+nodeDim(n).h),0);
   st.canvasH=Math.max(st.canvasH,lowest+16);
 }
 
@@ -3152,7 +3174,7 @@ function pgDivider(h,s,img){
    handler, which repositions the caption live and has to agree. */
 function capOffset(st,n){
   if(!st||!n.cap)return 0;
-  const d=NODE_DIM[n.kind]||NODE_DIM.box;
+  const d=nodeDim(n);
   const leaves=st.edges.some(e=>{
     if(e.from!==n.id)return false;
     const t=st.nodes.find(x=>x.id===e.to);
@@ -3163,7 +3185,7 @@ function capOffset(st,n){
 
 function renderNodesHTML(st){
   return st.nodes.map(n=>{
-    const d=NODE_DIM[n.kind]||NODE_DIM.box;
+    const d=nodeDim(n);
     const base='position:absolute;left:'+n.x+'mm;top:'+n.y+'mm;width:'+d.w+'mm;height:'+d.h+'mm;cursor:grab;';
     let out;
     if(n.kind==='shareholder'){
@@ -3236,19 +3258,26 @@ function renderEdgesSVG(st){
   bussed.forEach(t=>shGroups[t].forEach(e=>{busEdgeIds[e.id]=true;}));
 
   bussed.forEach(t=>{
-    const b=byId[t];const db=NODE_DIM[b.kind]||NODE_DIM.box;
+    const b=byId[t];const db=nodeDim(b);
     const srcs=shGroups[t].map(e=>byId[e.from]);
-    const ds=NODE_DIM.shareholder;
-    const xs=srcs.map(s=>s.x+ds.w/2);
-    const bottom=Math.max.apply(null,srcs.map(s=>s.y+ds.h));
+    /* per-node, since a shareholder showing a percentage is taller than one
+       that isn't — measuring them all with the same nominal height left the
+       stubs starting short of the block */
+    const xs=srcs.map(s=>s.x+nodeDim(s).w/2);
+    const bottom=Math.max.apply(null,srcs.map(s=>s.y+nodeDim(s).h));
     const bcx=b.x+db.w/2;
     /* sit the joining line midway between the lowest shareholder and the
        top of the box, so it never collides with either */
     let busY=bottom+(b.y-bottom)/2;
     if(!(busY>bottom+1))busY=bottom+1;
     if(busY>b.y-2)busY=Math.max(bottom+1,b.y-2);
-    xs.forEach(x=>{
-      svg+='<line x1="'+x+'" y1="'+bottom+'" x2="'+x+'" y2="'+busY+'" stroke="#130429" stroke-width=".35"/>';
+    /* each stub leaves its own block's bottom edge — the blocks aren't
+       necessarily the same height (a name that wraps makes one taller), and
+       starting them all at the lowest edge left a gap under the shorter
+       ones */
+    srcs.forEach((s,i)=>{
+      svg+='<line x1="'+xs[i]+'" y1="'+(s.y+nodeDim(s).h)+'" x2="'+xs[i]+'" y2="'+busY+
+        '" stroke="#130429" stroke-width=".35"/>';
     });
     svg+='<line x1="'+Math.min.apply(null,xs)+'" y1="'+busY+'" x2="'+Math.max.apply(null,xs)+'" y2="'+busY+
       '" stroke="#130429" stroke-width=".35"/>';
@@ -3270,14 +3299,14 @@ function renderEdgesSVG(st){
   });
   const fanned=Object.keys(fanGroups).filter(k=>fanGroups[k].length>1);
   fanned.forEach(pid=>{
-    const a=byId[pid];const da=NODE_DIM[a.kind]||NODE_DIM.box;
+    const a=byId[pid];const da=nodeDim(a);
     const kids=fanGroups[pid].map(e=>({e:e,n:byId[e.to]}));
     const acx=a.x+da.w/2,aBottom=a.y+da.h;
     const topKid=Math.min.apply(null,kids.map(k=>k.n.y));
     let fanY=aBottom+(topKid-aBottom)/2;
     if(!(fanY>aBottom+1))fanY=aBottom+1;
     if(fanY>topKid-2)fanY=Math.max(aBottom+1,topKid-2);
-    const xs=kids.map(k=>k.n.x+(NODE_DIM[k.n.kind]||NODE_DIM.box).w/2);
+    const xs=kids.map(k=>k.n.x+nodeDim(k.n).w/2);
     /* trunk */
     svg+='<line x1="'+acx+'" y1="'+aBottom+'" x2="'+acx+'" y2="'+fanY+'" stroke="#130429" stroke-width=".35"/>';
     /* spanning line, stretched to include the trunk so it always connects */
@@ -3300,7 +3329,7 @@ function renderEdgesSVG(st){
   st.edges.forEach(e=>{
     if(busEdgeIds[e.id])return;   /* drawn as part of a bus or fan above */
     const a=byId[e.from],b=byId[e.to];if(!a||!b)return;
-    const da=NODE_DIM[a.kind]||NODE_DIM.box,db=NODE_DIM[b.kind]||NODE_DIM.box;
+    const da=nodeDim(a),db=nodeDim(b);
     /* connect from whichever side of each box faces the other node, so
        edges between boxes that aren't stacked directly on top of each
        other (e.g. a shareholder feeding in from the side) don't cut
@@ -3336,7 +3365,7 @@ const STRUCT_FIT={w:176,h:150};
 function structFit(st){
   let bottom=0;
   (st.nodes||[]).forEach(n=>{
-    const d=NODE_DIM[n.kind]||NODE_DIM.box;
+    const d=nodeDim(n);
     bottom=Math.max(bottom,n.y+d.h+(n.cap?6:0));
   });
   const h=Math.max(40,bottom+4);
@@ -4084,7 +4113,7 @@ function liveBuild(delay){
   document.addEventListener('mousemove',function(e){
     if(!dragging||!STATE.struct)return;
     const node=STATE.struct.nodes.find(n=>n.id===dragging.id);if(!node)return;
-    const d=NODE_DIM[node.kind]||NODE_DIM.box;
+    const d=nodeDim(node);
     /* a few px of slop, so a click with a shaky hand still counts as a
        click and opens the panel rather than nudging the box */
     if(Math.abs(e.clientX-dragging.startX)>3||Math.abs(e.clientY-dragging.startY)>3)dragging.moved=true;
