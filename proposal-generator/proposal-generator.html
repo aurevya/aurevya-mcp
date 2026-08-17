@@ -2075,11 +2075,11 @@ function pgOurGroup(){
     '</div>').join('');
   const cards=BP.ourGroupEntities.map(e=>{
     const logoSrc=ASSET_DIR+'logo-'+(e.logo==='aurevya'?'full-color':e.logo)+'.png';
-    const logoHTML='<div style="height:9mm;display:flex;align-items:center;justify-content:center;margin-bottom:2.5mm">'+
-      '<img src="'+logoSrc+'" style="max-height:9mm;max-width:85%;object-fit:contain" '+
+    const logoHTML='<div style="height:14mm;display:flex;align-items:center;justify-content:center;margin-bottom:3mm">'+
+      '<img src="'+logoSrc+'" style="max-height:14mm;max-width:92%;object-fit:contain" '+
       'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'">'+
       '<div style="display:none;width:16mm;height:.8px;background:var(--gold)"></div></div>';
-    return '<div class="col">'+
+    return '<div class="col" style="display:flex;flex-direction:column;">'+
     logoHTML+
     '<div class="term" style="text-align:center;font-family:var(--serif);font-size:8.4pt">'+e.name+'</div>'+
     '<p style="font-size:6.6pt;text-align:center">'+e.txt+'</p>'+
@@ -2091,16 +2091,28 @@ function pgOurGroup(){
       '<span style="display:none;font-family:var(--serif);font-size:7.5pt;letter-spacing:.1em;color:var(--navy)">NEC</span>'+
       '</div>'
     ):'')+
-    '<div style="font-size:6.2pt;color:var(--gold);text-align:center;margin-top:2mm">Operating in:</div>'+
-    e.ops.map(o=>'<div style="font-size:6.4pt;text-align:center;color:var(--slate)">'+flagSVG(o)+o+'</div>').join('')+
+    /* "Operating in" + flags pinned to the bottom of the card via
+       margin-top:auto — .cols is a CSS grid, so every card in the same
+       row is already stretched to the same height; without this, cards
+       with shorter description text (fewer flags/countries) left the
+       "Operating in" row floating at a different height than its
+       neighbours, which is what looked misaligned. */
+    '<div style="margin-top:auto;padding-top:2mm">'+
+    '<div style="font-size:6.2pt;color:var(--gold);text-align:center">Operating in:</div>'+
+    e.ops.map(o=>'<div style="font-size:6.4pt;text-align:center;color:var(--slate);display:flex;align-items:center;justify-content:center;gap:1.2mm;margin-top:.6mm">'+flagSVG(o)+'<span>'+o+'</span></div>').join('')+
+    '</div>'+
     '</div>';
   }).join('');
   return page(crest()+'<div class="pbody"><h1 class="ptitle">Our Group</h1>'+
     '<div style="text-align:center;margin:2mm 0 1mm">'+
-      '<img src="'+ASSET_DIR+'logo-kundomal.png" style="height:20mm;display:inline-block" '+
+      /* This logo file is the full lockup (seal + "KUNDOMAL & CO" wordmark +
+         Arabic subtitle already baked into the image) — unlike the other
+         subsidiary logos, so no separate text label is rendered underneath
+         it here; that would just duplicate the name a second time. */
+      '<img src="'+ASSET_DIR+'logo-kundomal.png" style="height:26mm;display:inline-block" '+
       'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'inline-block\'">'+
-      '<span style="display:none">'+mandalaSVG('20mm')+'</span>'+
-      '<div style="font-family:var(--serif);font-size:14pt;letter-spacing:.06em;color:var(--navy);margin-top:1.5mm">KUNDOMAL &amp; CO</div>'+
+      '<div style="display:none;text-align:center">'+mandalaSVG('20mm')+
+        '<div style="font-family:var(--serif);font-size:14pt;letter-spacing:.06em;color:var(--navy);margin-top:1.5mm">KUNDOMAL &amp; CO</div></div>'+
     '</div>'+
     '<div style="display:flex;margin-top:5mm">'+brackets+'</div>'+
     '<div class="cols" style="grid-template-columns:repeat(6,1fr);gap:4mm;margin-top:3mm">'+cards+'</div>'+
