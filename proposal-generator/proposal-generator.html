@@ -1343,10 +1343,34 @@ function priceKeysFor(ent){
   return k;
 }
 
+/* Which kinds of entity the deck actually contains — the sidebar's
+   selection plus anything hung off the diagram by clicking a box. Both
+   sources have to feed the page list, or an entity added on the canvas
+   would appear in the structure with no explanatory pages behind it and no
+   glossary terms for the language it introduces.
+
+   Only these four have explanatory pages; a Foundation or Limited
+   Partnership added on the canvas contributes fees and a box, nothing
+   narrative. */
+const PAGE_KINDS=['trust','ac','gbc','cis'];
+
+function structureKinds(ent){
+  const extra=(typeof STATE!=='undefined'&&STATE&&STATE.extraKinds)||[];
+  const has=k=>extra.indexOf(k)>=0;
+  return{
+    trust:!!ent.trust||has('trust'),
+    ac:ent.company==='ac'||has('ac'),
+    gbc:ent.company==='gbc'||has('gbc'),
+    cis:!!ent.cis||has('cis'),
+    company:ent.company!=='none'||has('ac')||has('gbc')
+  };
+}
+
 function glossaryScopeStructure(ent){
+  const k=structureKinds(ent);
   const g=['base'];
-  if(ent.trust)g.push('trust');
-  if(ent.cis)g.push('fund');
+  if(k.trust)g.push('trust');
+  if(k.cis)g.push('fund');
   return g;
 }
 
@@ -1354,14 +1378,15 @@ function glossaryScopeStructure(ent){
    every branch below reuses an existing emit() case, so no renderer
    changes are needed when new combinations are picked */
 function structureSections(ent){
+  const k=structureKinds(ent);
   const s=['contents','glossary','ourgroup','about','whatwedo','structdivider','structure'];
-  if(ent.trust)s.push('trustfacts','trustparties','trustvalidity');
-  if(ent.company==='ac')s.push('ackeydivider','ackeyfeatures');
-  if(ent.company==='gbc')s.push('gbcdivider','gbcoverview');
-  if(ent.cis)s.push('cisdivider','cisoverview');
-  if(ent.trust)s.push('docprocess_trust');
-  if(ent.company!=='none')s.push('docprocess_company');
-  if(ent.cis)s.push('docprocess_cis');
+  if(k.trust)s.push('trustfacts','trustparties','trustvalidity');
+  if(k.ac)s.push('ackeydivider','ackeyfeatures');
+  if(k.gbc)s.push('gbcdivider','gbcoverview');
+  if(k.cis)s.push('cisdivider','cisoverview');
+  if(k.trust)s.push('docprocess_trust');
+  if(k.company)s.push('docprocess_company');
+  if(k.cis)s.push('docprocess_cis');
   s.push('kyc');
   /* one combined fee page, or the separate Setup/Fixed pair */
   if(ent.feeCombined)s.push('feecombined'); else s.push('feesetup','feefixed');
@@ -1537,7 +1562,9 @@ function currentSpec(){
 /* ═══════════════════════════════════════════════════════════════
    STATE + WIZARD
    ═══════════════════════════════════════════════════════════════ */
-let STATE={mode:'structure',entities:{company:'ac',companyCount:1,trust:false,cis:false,nominee:false,feeCombined:false},fees:{setup:[],fixed:[]},feeCols:[],sections:{},struct:{}};
+let STATE={mode:'structure',entities:{company:'ac',companyCount:1,trust:false,cis:false,nominee:false,feeCombined:false},fees:{setup:[],fixed:[]},feeCols:[],sections:{},struct:{},
+  /* entity kinds added by clicking a box on the canvas — see structureKinds() */
+  extraKinds:[]};
 
 function $(id){return document.getElementById(id);}
 function money(n,cur){
@@ -1583,6 +1610,9 @@ function onModeOrEntityChange(){
     const cntRow=$('fCompanyCountRow');
     if(cntRow)cntRow.style.display=(STATE.entities.company==='none')?'none':'';
   }
+  /* the diagram is about to be reseeded from the new selection, so anything
+     previously hung off it is gone and must not keep contributing pages */
+  STATE.extraKinds=[];
   const p=currentSpec();
   $('productBlurb').textContent=p.blurb;
   if(p.currency)$('fCurrency').value=p.currency;
@@ -1768,9 +1798,14 @@ function activeSections(){
 const SERVICE_SECTIONS=['svc_board','svc_directorship','svc_accounting','svc_legal',
   'svc_compliance','svc_governance','svc_it','svc_concierge','svc_media'];
 
-function renderSectionToggles(){
+/* `preserve` keeps whatever the user has already ticked or unticked, and is
+   used when the list changes underneath them — adding an entity on the
+   canvas brings new pages in without undoing their earlier choices. Called
+   with no argument (a full reset) when the proposal type itself changes. */
+function renderSectionToggles(preserve){
   const p=currentSpec();
   const box=$('sectionToggles');box.innerHTML='';
+  const prev=preserve?(STATE.sections||{}):{};
   STATE.sections={};
   const all=p.sections.slice();
   if(!all.includes('disclaimer'))all.unshift('disclaimer');
@@ -1778,7 +1813,7 @@ function renderSectionToggles(){
      after the ones this proposal already includes */
   SERVICE_SECTIONS.forEach(s=>{if(!all.includes(s))all.push(s);});
   all.forEach(s=>{
-    const on=p.sections.includes(s);
+    const on=(s in prev)?prev[s]:p.sections.includes(s);
     STATE.sections[s]=on;
     const lbl=SECTION_LABELS[s]||[s,''];
     const d=document.createElement('label');d.className='checkline';
@@ -2200,6 +2235,12 @@ function removeStructNode(id){
   });
   renumberCompanyBoxes();
   if(removed&&removed.kind==='shareholder')layoutShareholderRow(st);
+  /* if that was the last box of its kind, its pages and glossary terms go
+     with it — the deck shouldn't keep explaining a trust it no longer has */
+  if(removed&&removed.entKey){
+    syncExtraKinds();
+    renderSectionToggles(true);
+  }
   if(removed&&removed.kind==='ciscell')syncCellFees();
   else if(hadFeeLine)renderFeeEditor();
 
@@ -2272,7 +2313,9 @@ function addEntityUnder(parentId,key){
     return Math.abs(n.y-y)<nd.h+4&&Math.abs(n.x-x)<d.w-4;
   }))y+=18;
 
-  st.nodes.push({id:id,kind:'box',label:spec.box,x:x,y:y,primary:false,cap:''});
+  /* entKey records what kind of thing this box is, so its explanatory
+     pages and glossary terms can follow it in and out of the deck */
+  st.nodes.push({id:id,kind:'box',entKey:spec.key,label:spec.box,x:x,y:y,primary:false,cap:''});
   st.edges.push({id:newStructId(),from:parentId,to:id,label:'100%'});
   st.canvasH=Math.max(st.canvasH,y+d.h+16);
 
@@ -2289,11 +2332,27 @@ function addEntityUnder(parentId,key){
     });
   }
 
+  /* bring in this entity's own pages and glossary terms, keeping any
+     section the user has already turned on or off */
+  syncExtraKinds();
   renderFeeEditor();
+  renderSectionToggles(true);
   renderStructEditorUI();
   redrawStructure();
   liveBuild(0);
   openEntityPanel(id);   /* land on the new box, ready to price or rename */
+}
+
+/* Recompute which extra entity kinds are present from the diagram itself,
+   rather than incrementing a counter — that way removing a box, or removing
+   one of two trusts, lands on the right answer without bookkeeping. */
+function syncExtraKinds(){
+  const st=STATE.struct;
+  const kinds=[];
+  if(st)st.nodes.forEach(n=>{
+    if(n.entKey&&PAGE_KINDS.indexOf(n.entKey)>=0&&kinds.indexOf(n.entKey)<0)kinds.push(n.entKey);
+  });
+  STATE.extraKinds=kinds;
 }
 
 /* Whether this node is one of the numbered company boxes, and if so which
@@ -2534,6 +2593,10 @@ function removeStructEdge(id){
 }
 
 function resetStructure(){
+  /* clear canvas-added entities first, so the spec this reseeds from is the
+     plain sidebar selection rather than one still carrying their pages */
+  STATE.extraKinds=[];
+  closeEntityPanel();
   const p=currentSpec();
   if(!p.structure)return;
   STATE.struct=JSON.parse(JSON.stringify(p.structure));
@@ -2544,6 +2607,7 @@ function resetStructure(){
     STATE.fees[which]=STATE.fees[which].filter(r=>!r._nodeId);
   });
   syncCellFees();
+  renderSectionToggles(true);
   renderStructEditorUI();
   renderFeeEditor();
   redrawStructure();
