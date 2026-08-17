@@ -350,6 +350,24 @@ h1.ptitle em{font-style:italic;}
   width:13mm;height:13mm;border:.9px solid var(--gold);border-radius:50%;
   display:flex;align-items:center;justify-content:center;margin-bottom:3mm;color:var(--gold);font-size:13pt;
 }
+/* ── shareholder block ────────────────────────────────────────────
+   Gold circle, the name beneath it with the surname picked out, a dotted
+   rule, then the holding as a large gold figure. The percentage belongs to
+   the person, not to the connector, so several shareholders can each show
+   their own share above a single line into the company. */
+.shnode{display:flex;flex-direction:column;align-items:center;text-align:center;}
+.shnode .shname{
+  font-family:var(--sans);font-size:7.6pt;font-weight:400;color:var(--navy);
+  letter-spacing:.01em;line-height:1.25;text-transform:none;
+}
+.shnode .shname b{font-weight:700;}
+.shnode .shrule{
+  width:78%;border-bottom:.5px dotted var(--gold);margin:1.6mm 0 1.4mm;
+}
+.shnode .shpct{
+  font-family:var(--sans);font-size:11pt;font-weight:700;color:var(--gold);
+  letter-spacing:.02em;line-height:1;
+}
 .connector{display:flex;flex-direction:column;align-items:center;position:relative;height:16mm;justify-content:center;}
 .connector .ln{width:.9px;background:var(--navy);flex:1;}
 .connector .ar{
@@ -1381,7 +1399,30 @@ function defaultServices(ent){
                    it's the diagram's one "primary" (headline) entity
      ciscell     — a small chip, used for individual CIS/PCC cells
    ───────────────────────────────────────────────────────────────── */
-const NODE_DIM={shareholder:{w:28,h:22},box:{w:48,h:16},ciscell:{w:26,h:11}};
+/* Shareholders are wider than they used to be: the block now carries a
+   full name on one line plus a percentage under a rule, rather than just a
+   short label. Height covers icon + name + rule + figure. */
+const NODE_DIM={shareholder:{w:46,h:30},box:{w:48,h:16},ciscell:{w:26,h:11}};
+
+/* head-and-shoulders mark inside the gold circle */
+const PERSON_GLYPH='<svg viewBox="0 0 24 24" width="7mm" height="7mm" fill="none" '+
+  'stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">'+
+  '<circle cx="12" cy="8.2" r="3.6"/>'+
+  '<path d="M5.6 20c0-3.9 2.9-6.4 6.4-6.4s6.4 2.5 6.4 6.4"/></svg>';
+
+/* "Shilton Tony IRUDAYARAJ" → surname emphasised, matching the manual
+   decks, which set the family name in bold. Any all-caps word of two or
+   more letters is treated as the surname, so "PARTNER B" comes out bold
+   throughout and an ordinary "Mr. John Smith" is left alone. */
+function shName(label){
+  const s=String(label||'').replace(/<br\s*\/?>/gi,' ');
+  /* wholly upper-case label ("PARTNER B", "SETTLOR") — bold throughout,
+     rather than picking words out of something that has no given name */
+  if(s===s.toUpperCase()&&/[A-ZÀ-Þ]/.test(s))return '<b>'+s+'</b>';
+  return s.split(/(\s+)/)
+    .map(w=>(/^[A-ZÀ-Þ][A-ZÀ-Þ'’.\-]{1,}$/.test(w)?'<b>'+w+'</b>':w))
+    .join('');
+}
 const KIND_LABEL={shareholder:'Shareholder',box:'Entity',ciscell:'CIS Cell'};
 
 /* shared with addCoreEntity() below, which splices Trust/CIS into an
@@ -2028,11 +2069,22 @@ function addStructNode(kind){
   const x=8+count*(d.w+6);
   const y=kind==='shareholder'?8:Math.min(maxY+10,st.canvasH-d.h-4);
   st.nodes.push({id:id,kind:kind,label:defaults[kind],x:x,y:y,primary:false,cap:''});
-  const target=defaultConnectTarget(st,kind);
+  let target=defaultConnectTarget(st,kind);
+  /* A second shareholder should join the same entity the first one holds,
+     so the two form a single bus into it rather than pointing at different
+     boxes. */
+  if(kind==='shareholder'){
+    const sibling=st.edges.find(e=>{
+      const from=st.nodes.find(n=>n.id===e.from);
+      return from&&from.kind==='shareholder'&&from.id!==id;
+    });
+    if(sibling)target=sibling.to;
+  }
   if(target){
     if(kind==='ciscell')st.edges.push({id:newStructId(),from:target,to:id,label:''});
     else st.edges.push({id:newStructId(),from:id,to:target,label:''});
   }
+  if(kind==='shareholder')layoutShareholderRow(st);
   st.canvasH=Math.max(st.canvasH,y+d.h+12);
 
   /* keep the fee table honest about whatever just got added to the
@@ -2141,6 +2193,7 @@ function removeStructNode(id){
     });
   });
   renumberCompanyBoxes();
+  if(removed&&removed.kind==='shareholder')layoutShareholderRow(st);
   if(removed&&removed.kind==='ciscell')syncCellFees();
   else if(hadFeeLine)renderFeeEditor();
 
@@ -2251,12 +2304,32 @@ function setEntityField(id,field,value){
   const st=STATE.struct;if(!st)return;
   const n=st.nodes.find(x=>x.id===id);if(!n)return;
   if(field==='pct'){
-    const e=inboundEdge(id);if(e)e.label=value;
+    /* A shareholder's holding is shown on the block itself, under the
+       name — so it's stored on the node. For everything else the figure
+       belongs to the connector coming in. */
+    if(n.kind==='shareholder')n.pct=value;
+    else{const e=inboundEdge(id);if(e)e.label=value;}
   }else{
     n[field]=value;
   }
   renderStructEditorUI();
   liveBuild(0);
+}
+
+/* Lay the shareholders out as a centred row at the top, evenly spaced —
+   what the decks show when a company is held by several partners. Called
+   whenever one is added or removed so the group stays balanced instead of
+   drifting left as they accumulate. */
+function layoutShareholderRow(st){
+  if(!st)return;
+  const sh=st.nodes.filter(n=>n.kind==='shareholder');
+  if(sh.length<2)return;
+  const d=NODE_DIM.shareholder;
+  const gap=6;
+  const total=sh.length*d.w+(sh.length-1)*gap;
+  let x=Math.max(0,(st.canvasW-total)/2);
+  const y=Math.min.apply(null,sh.map(n=>n.y));
+  sh.sort((a,b)=>a.x-b.x).forEach(n=>{n.x=x;n.y=y;x+=d.w+gap;});
 }
 
 function closeEntityPanel(){
@@ -2337,9 +2410,13 @@ function openEntityPanel(id){
     '<label class="f" style="margin-bottom:8px"><span>Caption under the box</span>'+
       '<input type="text" value="'+(n.cap||'').replace(/"/g,'&quot;')+'" '+
       'placeholder="e.g. Holding Company" oninput="setEntityField(\''+id+'\',\'cap\',this.value)"></label>'+
-    (edge?'<label class="f"><span>Ownership on the incoming line</span>'+
-      '<input type="text" value="'+(edge.label||'').replace(/"/g,'&quot;')+'" '+
-      'placeholder="e.g. 51%" oninput="setEntityField(\''+id+'\',\'pct\',this.value)"></label>':'')+
+    (n.kind==='shareholder'
+      ? '<label class="f"><span>Holding <span class="hint">shown under the name</span></span>'+
+        '<input type="text" value="'+(n.pct||'').replace(/"/g,'&quot;')+'" '+
+        'placeholder="e.g. 51%" oninput="setEntityField(\''+id+'\',\'pct\',this.value)"></label>'
+      : (edge?'<label class="f"><span>Ownership on the incoming line</span>'+
+        '<input type="text" value="'+(edge.label||'').replace(/"/g,'&quot;')+'" '+
+        'placeholder="e.g. 100%" oninput="setEntityField(\''+id+'\',\'pct\',this.value)"></label>':''))+
 
     '<button type="button" style="width:100%;margin-top:16px;padding:9px;border:none;border-radius:7px;'+
       'background:#B59433;color:#130429;font-weight:700;cursor:pointer" '+
@@ -2760,10 +2837,13 @@ function renderNodesHTML(st){
     const base='position:absolute;left:'+n.x+'mm;top:'+n.y+'mm;width:'+d.w+'mm;height:'+d.h+'mm;cursor:grab;';
     let out;
     if(n.kind==='shareholder'){
-      out='<div class="dragnode" data-nid="'+n.id+'" style="'+base+
-        'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;">'+
-        '<div class="personicon" style="margin-bottom:1.2mm">○</div>'+
-        '<div class="node plain" style="padding:0;min-width:0">'+n.label+'</div></div>';
+      out='<div class="dragnode shnode" data-nid="'+n.id+'" style="'+base+
+        'justify-content:flex-start;" '+
+        'title="Click to set the holding or rename — drag to move">'+
+        '<div class="personicon" style="margin-bottom:1.6mm">'+PERSON_GLYPH+'</div>'+
+        '<div class="shname">'+shName(n.label)+'</div>'+
+        (n.pct?'<div class="shrule"></div><div class="shpct">'+n.pct+'</div>':'')+
+        '</div>';
     }else{
       const cls='dragnode node'+(n.kind==='ciscell'?' cell':'')+(n.primary?' filled':'');
       out='<div class="'+cls+'" data-nid="'+n.id+'" style="'+base+'" '+
@@ -2804,7 +2884,47 @@ function renderEdgesSVG(st){
   const byId={};st.nodes.forEach(n=>byId[n.id]=n);
   let svg='<svg class="edgesvg" viewBox="0 0 '+st.canvasW+' '+st.canvasH+'" '+
     'style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" xmlns="http://www.w3.org/2000/svg">';
+
+  /* Two or more shareholders feeding the same entity are drawn as one
+     bus — a stub down from each, a horizontal line joining them, and a
+     single arrow into the company — rather than separate diagonals
+     converging on the box, which is how the manual decks show it. Their
+     percentages sit on the shareholder blocks themselves, so these edges
+     carry no label. */
+  const shGroups={};
   st.edges.forEach(e=>{
+    const a=byId[e.from],b=byId[e.to];
+    if(a&&b&&a.kind==='shareholder')(shGroups[e.to]=shGroups[e.to]||[]).push(e);
+  });
+  const bussed=Object.keys(shGroups).filter(k=>shGroups[k].length>1);
+  const busEdgeIds={};
+  bussed.forEach(t=>shGroups[t].forEach(e=>{busEdgeIds[e.id]=true;}));
+
+  bussed.forEach(t=>{
+    const b=byId[t];const db=NODE_DIM[b.kind]||NODE_DIM.box;
+    const srcs=shGroups[t].map(e=>byId[e.from]);
+    const ds=NODE_DIM.shareholder;
+    const xs=srcs.map(s=>s.x+ds.w/2);
+    const bottom=Math.max.apply(null,srcs.map(s=>s.y+ds.h));
+    const bcx=b.x+db.w/2;
+    /* sit the joining line midway between the lowest shareholder and the
+       top of the box, so it never collides with either */
+    let busY=bottom+(b.y-bottom)/2;
+    if(!(busY>bottom+1))busY=bottom+1;
+    if(busY>b.y-2)busY=Math.max(bottom+1,b.y-2);
+    xs.forEach(x=>{
+      svg+='<line x1="'+x+'" y1="'+bottom+'" x2="'+x+'" y2="'+busY+'" stroke="#130429" stroke-width=".35"/>';
+    });
+    svg+='<line x1="'+Math.min.apply(null,xs)+'" y1="'+busY+'" x2="'+Math.max.apply(null,xs)+'" y2="'+busY+
+      '" stroke="#130429" stroke-width=".35"/>';
+    const arrowLen=2.6,arrowW=1.3,tipY=b.y;
+    svg+='<line x1="'+bcx+'" y1="'+busY+'" x2="'+bcx+'" y2="'+(tipY-arrowLen)+'" stroke="#130429" stroke-width=".35"/>';
+    svg+='<polygon points="'+bcx+','+tipY+' '+(bcx+arrowW)+','+(tipY-arrowLen)+' '+
+      (bcx-arrowW)+','+(tipY-arrowLen)+'" fill="#130429"/>';
+  });
+
+  st.edges.forEach(e=>{
+    if(busEdgeIds[e.id])return;   /* drawn as part of a bus above */
     const a=byId[e.from],b=byId[e.to];if(!a||!b)return;
     const da=NODE_DIM[a.kind]||NODE_DIM.box,db=NODE_DIM[b.kind]||NODE_DIM.box;
     /* connect from whichever side of each box faces the other node, so
