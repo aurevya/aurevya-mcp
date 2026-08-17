@@ -2230,6 +2230,72 @@ const ENTITY_ADDONS={
     setup:[{l:'Tax Residency Certificate application',v:200}],fixed:[{l:'Tax residence Certificate',v:200}]}
 };
 
+/* ── entities that can be hung off any node ───────────────────────
+   So the canvas can express structures the sidebar's fixed
+   company/trust/CIS combination doesn't cover — a second trust under an
+   operating company, a foundation beside a GBC, a domestic subsidiary,
+   and so on. Each carries the price-book key its fees come from; the ones
+   with no key get a zero-value placeholder line to be priced by hand.
+
+   Fees land in the shared list tagged with the new node's id, so deleting
+   the box takes its fees with it. Section pages are NOT switched on by
+   this — those follow the Section 1 toggles, because adding a fourth
+   entity to a diagram rarely means the deck should gain another set of
+   explanatory pages. */
+const ADDABLE_ENTITIES=[
+  {key:'ac',        name:'Authorised Company',       box:'AUTHORISED<br>COMPANY',        price:'ac'},
+  {key:'gbc',       name:'Global Business Company',  box:'GLOBAL BUSINESS<br>COMPANY',   price:'gbc'},
+  {key:'trust',     name:'Trust',                    box:'TRUST',                        price:'trust'},
+  {key:'cis',       name:'CIS — Protected Cell Co.', box:'CIS — PROTECTED<br>CELL COMPANY',price:'cis'},
+  {key:'mfo',       name:'Multi-Family Office',      box:'MULTI-FAMILY<br>OFFICE',       price:'mfo'},
+  {key:'foundation',name:'Foundation',               box:'FOUNDATION',                   price:null},
+  {key:'domestic',  name:'Domestic Company',         box:'DOMESTIC<br>COMPANY',          price:null},
+  {key:'partnership',name:'Limited Partnership',     box:'LIMITED<br>PARTNERSHIP',       price:null},
+  {key:'other',     name:'Blank box',                box:'ENTITY',                       price:null}
+];
+
+/* Attach a new entity below the clicked one, wired parent → child. */
+function addEntityUnder(parentId,key){
+  const spec=ADDABLE_ENTITIES.find(e=>e.key===key);if(!spec)return;
+  const st=STATE.struct;if(!st)return;
+  const parent=st.nodes.find(n=>n.id===parentId);if(!parent)return;
+  const pd=NODE_DIM[parent.kind]||NODE_DIM.box;
+  const d=NODE_DIM.box;
+  const id=newStructId();
+
+  /* directly beneath the parent, stepping down past anything already
+     occupying that slot so a new box never lands on top of an existing one */
+  const x=Math.max(0,Math.min(st.canvasW-d.w,parent.x+pd.w/2-d.w/2));
+  let y=parent.y+pd.h+18;
+  while(st.nodes.some(n=>{
+    const nd=NODE_DIM[n.kind]||NODE_DIM.box;
+    return Math.abs(n.y-y)<nd.h+4&&Math.abs(n.x-x)<d.w-4;
+  }))y+=18;
+
+  st.nodes.push({id:id,kind:'box',label:spec.box,x:x,y:y,primary:false,cap:''});
+  st.edges.push({id:newStructId(),from:parentId,to:id,label:'100%'});
+  st.canvasH=Math.max(st.canvasH,y+d.h+16);
+
+  if(spec.price){
+    ['setup','fixed'].forEach(which=>{
+      composeFees([spec.price],which).forEach(r=>{
+        STATE.fees[which].push(Object.assign({},r,{_nodeId:id}));
+      });
+    });
+  }else{
+    ['setup','fixed'].forEach(which=>{
+      STATE.fees[which].push({t:'grp',l:spec.name.toUpperCase(),_nodeId:id});
+      STATE.fees[which].push({t:'item',l:spec.name+' — set fee',v:0,_nodeId:id});
+    });
+  }
+
+  renderFeeEditor();
+  renderStructEditorUI();
+  redrawStructure();
+  liveBuild(0);
+  openEntityPanel(id);   /* land on the new box, ready to price or rename */
+}
+
 /* Whether this node is one of the numbered company boxes, and if so which
    fee column it owns. Returns null for shareholders, trusts, cells, and
    any box the user added by hand — those fall back to the shared list. */
@@ -2315,6 +2381,9 @@ function setEntityField(id,field,value){
        belongs to the connector coming in. */
     if(n.kind==='shareholder')n.pct=value;
     else{const e=inboundEdge(id);if(e)e.label=value;}
+  }else if(field==='label'){
+    /* typed newlines become the <br> the box renders with */
+    n.label=String(value).replace(/\r?\n/g,'<br>');
   }else{
     n[field]=value;
   }
@@ -2398,7 +2467,20 @@ function openEntityPanel(id){
     '<div style="font-size:11px;font-weight:700;color:#130429;margin-bottom:6px">Add to this entity</div>'+
     (addonRows||'<div style="font-size:11px;color:#5A5468">No standard add-ons apply to this box.</div>')+
 
-    '<div style="font-size:11px;font-weight:700;color:#130429;margin:14px 0 6px">Custom charge</div>'+
+    '<div style="font-size:11px;font-weight:700;color:#130429;margin:16px 0 2px">Add an entity beneath this one</div>'+
+    '<div style="font-size:10.5px;color:#8a8596;margin-bottom:7px">'+
+      'Brings its price-book fees with it. Section pages stay under your control in step 1.</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:5px">'+
+      ADDABLE_ENTITIES.map(s=>
+        '<button type="button" onclick="addEntityUnder(\''+id+'\',\''+s.key+'\')" '+
+        'style="width:auto;margin:0;padding:5px 9px;background:#fff;border:1px solid #CDD4DA;'+
+        'border-radius:14px;font-family:var(--sans);font-size:10.5px;color:#130429;cursor:pointer" '+
+        'onmouseover="this.style.borderColor=\'#B59433\';this.style.color=\'#B59433\'" '+
+        'onmouseout="this.style.borderColor=\'#CDD4DA\';this.style.color=\'#130429\'">'+
+        '+ '+s.name+'</button>').join('')+
+    '</div>'+
+
+    '<div style="font-size:11px;font-weight:700;color:#130429;margin:16px 0 6px">Custom charge</div>'+
     '<div style="display:flex;gap:6px;align-items:center">'+
       '<input id="entityCustomLabel" type="text" placeholder="Description" style="flex:1;min-width:0">'+
       '<select id="entityCustomWhich" style="width:88px"><option value="setup">Setup</option>'+
@@ -2410,9 +2492,14 @@ function openEntityPanel(id){
     customRows+
 
     '<div style="font-size:11px;font-weight:700;color:#130429;margin:16px 0 6px">This box</div>'+
-    '<label class="f" style="margin-bottom:8px"><span>Label</span>'+
-      '<input type="text" value="'+n.label.replace(/"/g,'&quot;')+'" '+
-      'oninput="setEntityField(\''+id+'\',\'label\',this.value)"></label>'+
+    /* the stored label carries <br> for the deliberate line break, which
+       has no business being visible here — shown as an actual line break
+       in a textarea and converted back on the way in */
+    '<label class="f" style="margin-bottom:8px"><span>Label '+
+      '<span class="hint">line break = new line in the box</span></span>'+
+      '<textarea rows="2" style="min-height:0" '+
+      'oninput="setEntityField(\''+id+'\',\'label\',this.value)">'+
+      n.label.replace(/<br\s*\/?>/gi,'\n')+'</textarea></label>'+
     '<label class="f" style="margin-bottom:8px"><span>Caption under the box</span>'+
       '<input type="text" value="'+(n.cap||'').replace(/"/g,'&quot;')+'" '+
       'placeholder="e.g. Holding Company" oninput="setEntityField(\''+id+'\',\'cap\',this.value)"></label>'+
