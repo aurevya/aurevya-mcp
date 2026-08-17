@@ -3239,7 +3239,14 @@ function edgeAnchor(cx,cy,w,h,tx,ty){
    always follow whatever box just moved */
 function renderEdgesSVG(st){
   const byId={};st.nodes.forEach(n=>byId[n.id]=n);
-  let svg='<svg class="edgesvg" viewBox="0 0 '+st.canvasW+' '+st.canvasH+'" '+
+  /* The viewBox height must be the height the .freecanvas element is
+     actually given (structFit), not st.canvasH. The two diverged when the
+     diagram started being scaled to fit the page: the SVG stretches its
+     viewBox over the container, so a taller viewBox squashed every
+     coordinate vertically and the connectors ended up drawn inside the
+     boxes. Both sides read it from the same function so they cannot drift
+     apart again. */
+  let svg='<svg class="edgesvg" viewBox="0 0 '+st.canvasW+' '+structFit(st).h+'" '+
     'style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" xmlns="http://www.w3.org/2000/svg">';
 
   /* Two or more shareholders feeding the same entity are drawn as one
