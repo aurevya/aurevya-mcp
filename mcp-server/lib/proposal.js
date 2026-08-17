@@ -47,9 +47,15 @@ async function configurePage(page, opts) {
   const {
     mode = 'structure',
     company = 'ac',
+    // How many of the company layer (holding + operational, etc). Each gets
+    // its own fee column with its own total.
+    companyCount = 1,
     trust = false,
     cis = false,
     nominee = false,
+    // One "Setup + Year 1 | Year 2" fee page instead of separate Setup and
+    // Fixed pages — the layout the Trust decks use.
+    feeCombined = false,
     clientName = '',
     month = new Date().getMonth(),
     year = new Date().getFullYear(),
@@ -62,9 +68,11 @@ async function configurePage(page, opts) {
     if (cfg.mode === 'structure') {
       const co = $('fCompany');
       if (co) co.value = cfg.company;
+      const cc = $('fCompanyCount'); if (cc) cc.value = String(cfg.companyCount);
       const t = $('fTrust'); if (t) t.checked = cfg.trust;
       const c = $('fCis'); if (c) c.checked = cfg.cis;
       const n = $('fNominee'); if (n) n.checked = cfg.nominee;
+      const fc = $('fFeeCombined'); if (fc) fc.checked = cfg.feeCombined;
     }
     $('fClient').value = cfg.clientName;
     $('fMonth').value = String(cfg.month);
@@ -85,7 +93,7 @@ async function configurePage(page, opts) {
     // synchronously right now so the preview (and therefore the export)
     // is guaranteed to reflect the settings we just applied.
     if (typeof build === 'function') build();
-  }, { mode, company, trust, cis, nominee, clientName, month, year, currency });
+  }, { mode, company, companyCount, trust, cis, nominee, feeCombined, clientName, month, year, currency });
 
   // Named CIS cells take priority over the plain cisCells count — if both
   // are given, cisCellNames wins and cisCells is ignored.
@@ -208,8 +216,23 @@ export async function quoteProposal(opts) {
         currency: document.getElementById('fCurrency').value,
         setupFees: STATE.fees.setup,
         fixedFees: STATE.fees.fixed,
-        setupTotal: STATE.fees.setup.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
-        fixedTotal: STATE.fees.fixed.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
+        // When several entities of the same type are being set up, each one
+        // gets its own fee column with its own total (STATE.feeCols) rather
+        // than being appended to the shared list — so the quoted totals have
+        // to include those, or a 2-company proposal would report only the
+        // trust/CIS remainder. Per-entity breakdown is echoed back too, so
+        // the client can confirm each company's figure before generating.
+        entityFees: (STATE.feeCols || []).map((c) => ({
+          label: c.label,
+          setupTotal: c.setup.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
+          fixedTotal: c.fixed.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
+        })),
+        setupTotal: typeof feeTotal === 'function'
+          ? feeTotal('setup')
+          : STATE.fees.setup.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
+        fixedTotal: typeof feeTotal === 'function'
+          ? feeTotal('fixed')
+          : STATE.fees.fixed.reduce((s, f) => s + (f.t === 'item' ? Number(f.v) || 0 : 0), 0),
       };
     });
   });

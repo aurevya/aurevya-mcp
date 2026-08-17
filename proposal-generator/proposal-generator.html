@@ -396,6 +396,14 @@ h1.ptitle em{font-style:italic;}
    column from stretching its last row to match the taller one. */
 .feewrap.wide{width:100%;}
 .feecols{display:grid;grid-template-columns:1fr 1fr;gap:8mm;align-items:start;}
+.feecols.cols3{grid-template-columns:1fr 1fr 1fr;gap:5mm;}
+.feecols.cols3 table.deckfee{font-size:7pt;}
+/* indented bullet beneath a fee line — the Trust decks break the
+   establishment fee down into numbered sub-headings and bullets */
+table.deckfee .feesub{padding-left:4mm;text-indent:-2mm;opacity:.88;}
+table.deckfee .feesub::before{content:"•　";}
+/* the "(Setup + Year 1)" / "(Year 2)" qualifier under a price heading */
+table.deckfee .feecap{font-weight:400;opacity:.8;white-space:nowrap;}
 table.deckfee.feetotal{margin-top:4mm;}
 table.deckfee{width:100%;border-collapse:collapse;}
 table.deckfee thead th{
@@ -519,6 +527,14 @@ table.deckfee tr.tot td{
             <option value="none">None — no company layer</option>
           </select>
         </label>
+        <label class="f" id="fCompanyCountRow">
+          <span>How many</span>
+          <select id="fCompanyCount">
+            <option value="1">One</option>
+            <option value="2">Two — holding + operational</option>
+            <option value="3">Three</option>
+          </select>
+        </label>
         <label class="checkline">
           <input type="checkbox" id="fTrust">
           <span>Add a Trust<span class="d">Wraps the company — Settlor → Trust → Company</span></span>
@@ -530,6 +546,10 @@ table.deckfee tr.tot td{
         <label class="checkline" id="fNomineeRow">
           <input type="checkbox" id="fNominee">
           <span>Nominee shareholder (AC only)<span class="d">Optional add-on — tick only if the client wants Aurevya to hold the shares as nominee</span></span>
+        </label>
+        <label class="checkline">
+          <input type="checkbox" id="fFeeCombined">
+          <span>Combined fee page<span class="d">One page with Setup + Year 1 beside Year 2, instead of separate Setup and Fixed Fee pages — the Trust deck layout</span></span>
         </label>
       </div>
       <div id="productBlurb" style="font-size:11px;color:#8D9AA5;line-height:1.45;margin-top:8px;"></div>
@@ -865,7 +885,27 @@ BP.services = {
       'Periodic reporting with sentiment analysis','Escalation protocols for material findings'],
     colBh:'COMMUNICATION',
     colB:['Preparation of holding statements and reactive lines','Media liaison and accurate-coverage management',
-      'Executive profile development','Crisis communication planning and rehearsal','Stakeholder messaging frameworks']}
+      'Executive profile development','Crisis communication planning and rehearsal','Stakeholder messaging frameworks']},
+
+  /* Directorship and Governance are their own pages in the GBC decks,
+     where the leaf wheel carries eight labels rather than six. In the AC
+     decks the same material is folded into Board Services and Legal
+     respectively, so these two are only emitted when selected. Both use
+     the shared 'legalref' shape: statutory references on the left, the
+     services delivered against them on the right. */
+  directorship:{title:'Directorship',leaf:'DIRECTORSHIP',shape:'legalref',
+    colAh:'COMPANIES ACT 2001',
+    colA:['Section 143 — Duties of Directors','Income Tax Act 1995, Section 79 — Provisions applying to agents'],
+    colBh:'SERVICES',
+    colB:['Provision of two local directors',
+      'Directors’ responsibilities extend to personal liability for the income tax payable by the Company']},
+
+  governance:{title:'Governance',leaf:'GOVERNANCE',shape:'legalref',
+    colAh:'NATIONAL CODE OF CORPORATE GOVERNANCE 2016',
+    colA:['FSC Circular Letter CL280218 issued on 28th February 2018'],
+    colBh:'SERVICES',
+    colB:['Provide induction to directors on Mauritian laws and the Code of Corporate Governance',
+      'Conduct board evaluation that result boards','Director recruitment']}
 };
 </script>
 
@@ -1006,14 +1046,17 @@ const PRICEBOOK = {
 
   gbc:{ setup:[
       {t:'grp',l:'SET UP OF GLOBAL BUSINESS COMPANY (GBC)'},
-      {t:'desc',l:'Due diligence and on-boarding fee'},
-      {t:'item',l:'Licensing engagement process with authorities',v:4500},
+      {t:'desc',l:'Due diligence and on-boarding'},
+      {t:'desc',l:'Compliance Review'},
+      {t:'item',l:'Licensing engagement process with authorities',v:3000},
       {t:'desc',l:'Provision of company secretary'},{t:'desc',l:'Provision of 2 resident directors'},
       {t:'desc',l:'Provision of registered office'},{t:'desc',l:'Registration for Data protection officer'},
       {t:'desc',l:'Tax Residency Certificate application'},{t:'desc',l:'Provision of Authorized officer with Regulators'},
       {t:'desc',l:'Legal and Compliance for annual review (annual)'},{t:'desc',l:'Archiving and Maintenance of Bank records'},
       {t:'item',l:'Ongoing daily administration (as required)',v:16000},
       {t:'item',l:'Bank Account Opening (per Account)',v:4000},
+      {t:'desc',l:'Accounting'},{t:'desc',l:'Preparation and Filing of Audited Financial Statements'},
+      {t:'item',l:'Filing of Tax Returns',v:3000},
       {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
       {t:'item',l:'FSC Processing Fee (GBC)',v:600},{t:'item',l:'FSC Annual License Fee (GBC)',v:2600},
       {t:'item',l:'Government Levy',v:350},{t:'item',l:'Data protection fee',v:100},
@@ -1031,9 +1074,41 @@ const PRICEBOOK = {
       {t:'item',l:'FSC Annual License Fee',v:2600},{t:'item',l:'Government Levy',v:350},
       {t:'item',l:'Data protection fee',v:100},{t:'item',l:'Tax residence Certificate',v:200}]},
 
-  trust:{ setup:[{t:'grp',l:'ESTABLISHMENT OF A TRUST'},{t:'item',l:'Establishment of a Trust',v:6000},
-      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES'},{t:'item',l:'Registration fee',v:200}],
-    fixed:[{t:'grp',l:'MAINTENANCE OF A TRUST'},{t:'item',l:'Maintenance of a Trust',v:5000}]},
+  /* Trust fees are broken down further than the other blocks: the source
+     decks itemise what the establishment fee actually covers, using 'sub'
+     bullet lines beneath each numbered heading. */
+  trust:{ setup:[
+      {t:'grp',l:'TRUST'},
+      {t:'desc',l:'1. Trust Deed Drafting and Legal Documentation'},
+      {t:'sub',l:'Drafting of Trust Deed'},
+      {t:'sub',l:'Drafting of ancillary documents (Letter of Wishes, Protector Appointment, etc.)'},
+      {t:'sub',l:'Review and amendment process with settlor’s advisors'},
+      {t:'desc',l:'2. Due Diligence and KYC/AML Compliance'},
+      {t:'sub',l:'Collection and verification of documents for settlor and beneficiaries'},
+      {t:'sub',l:'Screening, risk assessment, and KYC profiling'},
+      {t:'sub',l:'Compliance reporting and internal risk classification'},
+      {t:'desc',l:'3. Trust Registration and Internal Onboarding'},
+      {t:'sub',l:'Opening of client file and system onboarding'},
+      {t:'sub',l:'Internal compliance approvals'},
+      {t:'sub',l:'Submission of trust deed to relevant authorities (if applicable)'},
+      {t:'item',l:'Establishment of Trust',v:3500},
+      {t:'sub',l:'Liaising with banking institution'},
+      {t:'sub',l:'Preparation of account opening forms and compliance packs'},
+      {t:'sub',l:'Follow-up on documentation and account activation'},
+      {t:'item',l:'Trust Bank Account Opening',v:4000},
+      {t:'desc',l:'Ongoing Administration fees (as required)'},
+      {t:'item',l:'Annual Trustee Fee (Year 1)',v:8500},
+      {t:'sub',l:'Preparation & Filing of Accounts'},
+      {t:'sub',l:'Filing of Tax Returns'},
+      {t:'item',l:'Accounting',v:3000}],
+    fixed:[
+      {t:'grp',l:'TRUST'},
+      {t:'desc',l:'Maintenance of Trust'},{t:'desc',l:'Compliance Review'},
+      {t:'desc',l:'Ongoing Administration fees (as required)'},
+      {t:'item',l:'Annual Trustee Fee (Year 2)',v:8500},
+      {t:'sub',l:'Preparation & Filing of Accounts'},
+      {t:'sub',l:'Filing of Tax Returns'},
+      {t:'item',l:'Accounting',v:3000}]},
 
   cis:{ setup:[
       {t:'grp',l:'COLLECTIVE INVESTMENT SCHEME (PCC)'},
@@ -1177,33 +1252,68 @@ const MONTHS=['January','February','March','April','May','June','July','August',
    jurisdiction, currency, licence and deck shape entirely.
    ═══════════════════════════════════════════════════════════════ */
 const ENTITY_META = {
-  trust:{article:'a',name:'Trust',short:'Trust'},
-  ac:{article:'an',name:'Authorised Company',short:'AC'},
-  gbc:{article:'a',name:'Global Business Company',short:'GBC'},
-  cis:{article:'a',name:'Collective Investment Scheme (PCC)',short:'CIS (PCC)'}
+  trust:{article:'a',name:'Trust',plural:'Trusts',short:'Trust'},
+  ac:{article:'an',name:'Authorised Company',plural:'Authorised Companies',short:'AC'},
+  gbc:{article:'a',name:'Global Business Company',plural:'Global Business Companies',short:'GBC'},
+  cis:{article:'a',name:'Collective Investment Scheme (PCC)',plural:'Collective Investment Schemes (PCC)',short:'CIS (PCC)'}
 };
 
+/* Number words, for the running footer — the source decks spell the count
+   out there ("SETTING UP OF TWO AUTHORISED COMPANIES") while the cover
+   uses the digit ("2 Authorised Companies"). */
+const COUNT_WORD=['zero','one','two','three','four','five','six'];
+
+/* How many of the company layer are being set up. Trust and CIS are still
+   single-instance; only the company tier repeats (holding + operational,
+   etc.), which is what the source decks actually do. */
+function companyCount(ent){
+  if(ent.company==='none')return 0;
+  return Math.max(1,Math.min(6,+ent.companyCount||1));
+}
+
 /* returns the selected entity keys in canonical deck order: trust, then
-   the company (if any), then cis */
+   the company (if any, once per instance), then cis */
 function entityOrder(ent){
   const list=[];
   if(ent.trust)list.push('trust');
-  if(ent.company!=='none')list.push(ent.company);
+  for(let i=0;i<companyCount(ent);i++)list.push(ent.company);
   if(ent.cis)list.push('cis');
   return list;
 }
 
+/* Distinct entity kinds present, ignoring how many of each — used
+   wherever a repeated company should only contribute its content pages,
+   glossary scope or price-book block once. */
+function entityKinds(ent){
+  return [...new Set(entityOrder(ent))];
+}
+
 /* "a Trust, a Global Business Company and a Collective Investment
-   Scheme (PCC)" — or the upper-case running-footer equivalent */
+   Scheme (PCC)" — or the upper-case running-footer equivalent. Repeats of
+   the same kind collapse into a count: "2 Authorised Companies" on the
+   cover, "TWO AUTHORISED COMPANIES" in the footer. */
 function joinPhrase(list,upper){
-  const parts=list.map(k=>{
-    const m=ENTITY_META[k];
-    return (upper?m.article.toUpperCase():m.article)+' '+(upper?m.name.toUpperCase():m.name);
+  /* collapse consecutive duplicates into {key,n} while preserving order */
+  const groups=[];
+  list.forEach(k=>{
+    const last=groups[groups.length-1];
+    if(last&&last.key===k)last.n++;
+    else groups.push({key:k,n:1});
   });
+  const parts=groups.map(g=>{
+    const m=ENTITY_META[g.key];
+    if(g.n===1){
+      return (upper?m.article.toUpperCase():m.article)+' '+(upper?m.name.toUpperCase():m.name);
+    }
+    /* footer spells the number, cover shows the digit */
+    const count=upper?(COUNT_WORD[g.n]||String(g.n)).toUpperCase():String(g.n);
+    return count+' '+(upper?m.plural.toUpperCase():m.plural);
+  });
+  const and=upper?' AND ':' and ';
   if(parts.length===0)return '';
   if(parts.length===1)return parts[0];
-  if(parts.length===2)return parts[0]+' and '+parts[1];
-  return parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1];
+  if(parts.length===2)return parts[0]+and+parts[1];
+  return parts.slice(0,-1).join(', ')+and+parts[parts.length-1];
 }
 
 function priceKeysFor(ent){
@@ -1234,10 +1344,29 @@ function structureSections(ent){
   if(ent.trust)s.push('docprocess_trust');
   if(ent.company!=='none')s.push('docprocess_company');
   if(ent.cis)s.push('docprocess_cis');
-  s.push('kyc','feesetup','feefixed','leaf','svc_board','svc_accounting','svc_legal','svc_compliance','svc_it');
-  s.push(ent.company==='gbc'?'svc_media':'svc_concierge');
+  s.push('kyc');
+  /* one combined fee page, or the separate Setup/Fixed pair */
+  if(ent.feeCombined)s.push('feecombined'); else s.push('feesetup','feefixed');
+  s.push('leaf');
+  s.push.apply(s,defaultServices(ent));
   s.push('back');
   return s;
+}
+
+/* The service pages aren't a fixed six — the source decks vary the set by
+   what's being set up. A trust-only proposal carries four (no board, IT or
+   concierge, since none of it applies to a trust); a GBC carries the full
+   eight with Directorship and Governance broken out. These are only the
+   defaults — every service page is switchable in the sidebar. */
+function defaultServices(ent){
+  if(ent.company==='none'&&ent.trust){
+    return ['svc_accounting','svc_legal','svc_compliance','svc_media'];
+  }
+  if(ent.company==='gbc'){
+    return ['svc_board','svc_directorship','svc_accounting','svc_legal',
+      'svc_compliance','svc_governance','svc_it','svc_media'];
+  }
+  return ['svc_board','svc_accounting','svc_legal','svc_compliance','svc_it','svc_concierge'];
 }
 
 /* ── freeform structure canvas ────────────────────────────────────
@@ -1289,11 +1418,20 @@ function buildStructureSpec(ent){
   }else{
     prev=place('shareholder','SHAREHOLDER','sh');
   }
-  if(ent.company!=='none'){
-    const label=ent.company==='gbc'?'GLOBAL BUSINESS<br>COMPANY':'AUTHORISED<br>COMPANY';
-    const cid=place('box',label,ent.company);
-    edges.push({id:'e2',from:prev,to:cid,label:'100%'});
-    prev=cid;
+  const nCo=companyCount(ent);
+  if(nCo>0){
+    const base=ent.company==='gbc'?'GLOBAL BUSINESS<br>COMPANY':'AUTHORISED<br>COMPANY';
+    /* Two or more companies chain vertically, the first holding the rest —
+       which is what the source decks show, captioned Holding /
+       Operational. Captions and the ownership percentages are only
+       defaults; both are editable on the canvas afterwards. */
+    for(let i=0;i<nCo;i++){
+      const label=nCo>1?base+' '+(i+1):base;
+      const cap=nCo>1?(i===0?'Holding Company':'Operational Company'):'';
+      const cid=place('box',label,ent.company+(nCo>1?String(i+1):''),cap);
+      edges.push({id:'e2_'+i,from:prev,to:cid,label:'100%'});
+      prev=cid;
+    }
   }
   let primaryId=prev;
   if(ent.cis){
@@ -1334,9 +1472,11 @@ function currentSpec(){
     blurb:list.length
       ? 'Custom Mauritius structure — '+structureLabel(list)+'. Sections, structure diagram and fees adjust automatically for whatever is selected.'
       : 'Choose a company type, and optionally add a Trust and/or a CIS (PCC), to build this proposal.',
-    coverT1:'Proposal for setting up',
+    /* "setting up a Trust" reads fine, but a count needs "of":
+       "setting up of 2 Authorised Companies", as the source deck has it */
+    coverT1:'Proposal for setting up'+(companyCount(ent)>1?' of':''),
     coverT2:joinPhrase(list,false),
-    running:'PROPOSAL FOR SETTING UP '+joinPhrase(list,true),
+    running:'PROPOSAL FOR SETTING UP '+(companyCount(ent)>1?'OF ':'')+joinPhrase(list,true),
     priceKeys:priceKeysFor(ent),
     glossary:glossaryScopeStructure(ent),
     sections:structureSections(ent),
@@ -1350,7 +1490,7 @@ function currentSpec(){
 /* ═══════════════════════════════════════════════════════════════
    STATE + WIZARD
    ═══════════════════════════════════════════════════════════════ */
-let STATE={mode:'structure',entities:{company:'ac',trust:false,cis:false,nominee:false},fees:{setup:[],fixed:[]},sections:{},struct:{}};
+let STATE={mode:'structure',entities:{company:'ac',companyCount:1,trust:false,cis:false,nominee:false,feeCombined:false},fees:{setup:[],fixed:[]},feeCols:[],sections:{},struct:{}};
 
 function $(id){return document.getElementById(id);}
 function money(n,cur){
@@ -1366,9 +1506,11 @@ function initWizard(){
   $('fYear').value=new Date().getFullYear();
   $('fMode').addEventListener('change',onModeOrEntityChange);
   $('fCompany').addEventListener('change',onModeOrEntityChange);
+  $('fCompanyCount').addEventListener('change',onModeOrEntityChange);
   $('fTrust').addEventListener('change',onModeOrEntityChange);
   $('fCis').addEventListener('change',onModeOrEntityChange);
   $('fNominee').addEventListener('change',onModeOrEntityChange);
+  $('fFeeCombined').addEventListener('change',onModeOrEntityChange);
   $('fCurrency').addEventListener('change',()=>{renderFeeEditor();});
   onModeOrEntityChange();
 }
@@ -1379,15 +1521,20 @@ function onModeOrEntityChange(){
   $('entityFields').style.display=isStructure?'':'none';
   if(isStructure){
     STATE.entities.company=$('fCompany').value;
+    STATE.entities.companyCount=+$('fCompanyCount').value||1;
     STATE.entities.trust=$('fTrust').checked;
     STATE.entities.cis=$('fCis').checked;
     STATE.entities.nominee=$('fNominee').checked;
+    STATE.entities.feeCombined=$('fFeeCombined').checked;
     if(STATE.entities.company==='none'&&!STATE.entities.trust&&!STATE.entities.cis){
       /* never allow a completely empty structure — fall back to AC */
       STATE.entities.company='ac';$('fCompany').value='ac';
     }
     const nomRow=$('fNomineeRow');
     if(nomRow)nomRow.style.display=(STATE.entities.company==='ac')?'':'none';
+    /* "how many" is meaningless without a company layer */
+    const cntRow=$('fCompanyCountRow');
+    if(cntRow)cntRow.style.display=(STATE.entities.company==='none')?'none':'';
   }
   const p=currentSpec();
   $('productBlurb').textContent=p.blurb;
@@ -1398,37 +1545,121 @@ function onModeOrEntityChange(){
   syncCellFees();
 }
 
+/* ── repeated company tier ────────────────────────────────────────
+   When more than one company is being set up, the source decks don't
+   append a second block to one long table — they put each entity in its
+   own column, side by side, each with its own TOTAL. So the fees for that
+   tier are held as one row-list per instance (STATE.feeCols), and the
+   trust/CIS blocks (which never repeat) stay in the shared STATE.fees.
+
+   Second and subsequent entities normally have their due diligence and
+   compliance review waived, since the work was already done for the
+   first — the lines still appear, marked "(waived off)", with a reduced
+   figure. WAIVE_RE is what counts as waivable; the reduced value is
+   editable per column afterwards, this is only the starting point. */
+const WAIVE_RE=/due diligence|on-?boarding|compliance review/i;
+const REPEAT_SETUP_FACTOR=0.6;   /* 3,000 → 1,800 in the AC source deck */
+
+function buildFeeCol(ent,which,index){
+  const rows=composeFees([ent.company].concat(
+    ent.company==='ac'&&ent.nominee?['nominee']:[]),which);
+  if(index===0||which!=='setup')return rows;
+  /* Annotate only the unpriced detail lines — putting "(waived off)" on a
+     row that still shows a figure would contradict itself. The onboarding
+     charge those lines sit under is the thing that actually drops, so it's
+     scaled instead, keeping its label intact. */
+  let touched=false;
+  rows.forEach(r=>{
+    if(r.t==='desc'&&WAIVE_RE.test(r.l)){r.l=r.l+' (waived off)';touched=true;}
+  });
+  const first=rows.find(r=>r.t==='item'&&WAIVE_RE.test(r.l));
+  if(first){first.v=Math.round((+first.v||0)*REPEAT_SETUP_FACTOR);touched=true;}
+  else if(touched){
+    const lead=rows.find(r=>r.t==='item');
+    if(lead)lead.v=Math.round((+lead.v||0)*REPEAT_SETUP_FACTOR);
+  }
+  return rows;
+}
+
+/* Column labels: "AUTHORISED COMPANY 1", "AUTHORISED COMPANY 2", … */
+function feeColLabel(ent,index){
+  return (ENTITY_META[ent.company].name+' '+(index+1)).toUpperCase();
+}
+
+function usesFeeCols(){
+  return STATE.mode==='structure'&&companyCount(STATE.entities)>1;
+}
+
 function resetFees(){
   const p=currentSpec();
-  STATE.fees.setup=composeFees(p.priceKeys,'setup');
-  STATE.fees.fixed=composeFees(p.priceKeys,'fixed');
+  const ent=STATE.entities;
+  if(usesFeeCols()){
+    /* the company tier moves into per-instance columns; anything else
+       (trust, CIS, nominee is folded in per column above) stays shared */
+    const shared=p.priceKeys.filter(k=>k!==ent.company&&k!=='nominee');
+    STATE.fees.setup=composeFees(shared,'setup');
+    STATE.fees.fixed=composeFees(shared,'fixed');
+    STATE.feeCols=[];
+    const n=companyCount(ent);
+    for(let i=0;i<n;i++){
+      STATE.feeCols.push({
+        /* which diagram box this column belongs to. Deleting a company in
+           the middle has to drop that column specifically, not just the
+           last one, or charges attached to the boxes below it would vanish
+           with the wrong entity's figures. */
+        nodeId:ent.company+(n>1?String(i+1):''),
+        label:feeColLabel(ent,i),
+        setup:buildFeeCol(ent,'setup',i),
+        fixed:buildFeeCol(ent,'fixed',i)
+      });
+    }
+  }else{
+    STATE.fees.setup=composeFees(p.priceKeys,'setup');
+    STATE.fees.fixed=composeFees(p.priceKeys,'fixed');
+    STATE.feeCols=[];
+  }
   renderFeeEditor();
+}
+
+/* One editable row. `path` is the JS expression naming the row's home, so
+   the same builder serves the shared list and the per-column lists. */
+function feeEditorRow(r,path){
+  if(r.t==='grp')return '<td class="grp" colspan="2">'+r.l+'</td>';
+  const priced=r.t==='item';
+  return '<td><input type="text" value="'+r.l.replace(/"/g,'&quot;')+'" '+
+    'oninput="'+path+'.l=this.value"/></td>'+
+    '<td style="width:78px">'+(priced?
+      '<input type="number" value="'+(r.v||0)+'" oninput="'+path+'.v=+this.value;feeTotals()"/>':
+      '<span style="color:#C3CCD3;font-size:10px;">incl.</span>')+'</td>';
 }
 
 function renderFeeEditor(){
   ['setup','fixed'].forEach(which=>{
     const tb=$(which==='setup'?'feeSetup':'feeFixed');
     tb.innerHTML='';
-    STATE.fees[which].forEach((r,i)=>{
-      const tr=document.createElement('tr');
-      if(r.t==='grp'){
-        tr.innerHTML='<td class="grp" colspan="2">'+r.l+'</td>';
-      }else{
-        const priced=r.t==='item';
-        tr.innerHTML='<td><input type="text" value="'+r.l.replace(/"/g,'&quot;')+'" '+
-          'oninput="STATE.fees.'+which+'['+i+'].l=this.value"/></td>'+
-          '<td style="width:78px">'+(priced?
-            '<input type="number" value="'+(r.v||0)+'" oninput="STATE.fees.'+which+'['+i+'].v=+this.value;feeTotals()"/>':
-            '<span style="color:#C3CCD3;font-size:10px;">incl.</span>')+'</td>';
-      }
-      tb.appendChild(tr);
+    const add=html=>{const tr=document.createElement('tr');tr.innerHTML=html;tb.appendChild(tr);};
+    STATE.fees[which].forEach((r,i)=>add(feeEditorRow(r,'STATE.fees.'+which+'['+i+']')));
+    /* per-entity columns follow, each under its own heading so it's clear
+       which figures belong to which company */
+    (STATE.feeCols||[]).forEach((c,ci)=>{
+      add('<td class="grp" colspan="2" style="background:#2B1A44;color:var(--gold)">'+c.label+'</td>');
+      c[which].forEach((r,i)=>add(feeEditorRow(r,'STATE.feeCols['+ci+'].'+which+'['+i+']')));
+      add('<td colspan="2" style="text-align:right;font-size:10px;color:#C3CCD3;padding-right:6px">'+
+        'column total '+curSym()+' '+money(rowsTotal(c[which]))+'</td>');
     });
   });
   feeTotals();
 }
 
+function rowsTotal(rows){
+  return (rows||[]).reduce((s,r)=>s+(r.t==='item'?(+r.v||0):0),0);
+}
+
+/* Grand total across the shared rows and every per-entity column — what
+   the client actually pays for the whole structure. */
 function feeTotal(which){
-  return STATE.fees[which].reduce((s,r)=>s+(r.t==='item'?(+r.v||0):0),0);
+  return rowsTotal(STATE.fees[which])+
+    (STATE.feeCols||[]).reduce((s,c)=>s+rowsTotal(c[which]),0);
 }
 function feeTotals(){
   $('feeSetupTotal').textContent=curSym()+' '+money(feeTotal('setup'));
@@ -1460,6 +1691,7 @@ const SECTION_LABELS={
   kyc:['KYC Documents',''],
   feesetup:['Setup Fee table',''],
   feefixed:['Fixed Fee table',''],
+  feecombined:['Fee Quote — combined','Setup + Year 1 and Year 2 side by side on one page, instead of two separate fee pages'],
   leaf:['Our Services','Leaf wheel overview'],
   svc_board:['— Board Services & Directorship',''],
   svc_accounting:['— Accounting & Finance',''],
@@ -1468,8 +1700,26 @@ const SECTION_LABELS={
   svc_it:['— IT Management & Cybersecurity',''],
   svc_concierge:['— Concierge Services',''],
   svc_media:['— Media Monitoring & Communication',''],
+  svc_directorship:['— Directorship','Separate page in the GBC decks; folded into Board Services in the AC decks. Switches the wheel to its eight-leaf artwork'],
+  svc_governance:['— Governance','Separate page in the GBC decks; folded into Legal in the AC decks. Switches the wheel to its eight-leaf artwork'],
   back:['Back cover','']
 };
+
+/* Section keys currently switched on, in deck order. Used by anything that
+   has to know what the finished deck contains before it's rendered —
+   picking the six- or eight-leaf wheel, for one. */
+function activeSections(){
+  const p=currentSpec();
+  const all=p.sections.slice();
+  SERVICE_SECTIONS.forEach(s=>{if(all.indexOf(s)<0)all.push(s);});
+  return all.filter(s=>STATE.sections?STATE.sections[s]:p.sections.indexOf(s)>=0);
+}
+
+/* Every service page that can be switched on, whether or not this
+   proposal type offers it by default — so the set is genuinely selectable
+   rather than fixed at six. */
+const SERVICE_SECTIONS=['svc_board','svc_directorship','svc_accounting','svc_legal',
+  'svc_compliance','svc_governance','svc_it','svc_concierge','svc_media'];
 
 function renderSectionToggles(){
   const p=currentSpec();
@@ -1477,6 +1727,9 @@ function renderSectionToggles(){
   STATE.sections={};
   const all=p.sections.slice();
   if(!all.includes('disclaimer'))all.unshift('disclaimer');
+  /* offer the remaining service pages as unticked options, positioned
+     after the ones this proposal already includes */
+  SERVICE_SECTIONS.forEach(s=>{if(!all.includes(s))all.push(s);});
   all.forEach(s=>{
     const on=p.sections.includes(s);
     STATE.sections[s]=on;
@@ -1490,6 +1743,9 @@ function renderSectionToggles(){
 }
 
 function renderStructFields(){
+  /* the diagram is about to be re-seeded, so any open entity panel is
+     pointing at a node id that's on its way out */
+  closeEntityPanel();
   const p=currentSpec();
   if(!p.structure){$('structFields').innerHTML='<div style="font-size:11px;color:#94A3AE;">This proposal type has no structure diagram.</div>';STATE.struct=null;return;}
   /* only re-seed the default layout when the proposal type/entities
@@ -1795,22 +2051,302 @@ function addStructNode(kind){
   redrawStructure();
 }
 
+/* After a company box is deleted, the survivors keep their original
+   numbers — leaving "Authorised Company 1" next to "Authorised Company 3".
+   Renumber the remaining ones in diagram order (top to bottom) so the
+   labels, captions and fee-column headings stay consistent, and drop the
+   count to match. Only touches boxes still carrying the auto-generated
+   "<name> <n>" label; anything renamed by hand is left alone. */
+function renumberCompanyBoxes(){
+  const ent=STATE.entities;const st=STATE.struct;
+  if(!st||STATE.mode!=='structure'||ent.company==='none')return;
+  const meta=ENTITY_META[ent.company];if(!meta)return;
+  const base=(ent.company==='gbc'?'GLOBAL BUSINESS<br>COMPANY':'AUTHORISED<br>COMPANY');
+  const auto=new RegExp('^'+base.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(\\s+\\d+)?$');
+  const boxes=companyBoxes();
+  if(!boxes.length)return;
+  const n=boxes.length;
+  /* Labels and captions only — ids stay put, because edges and the _nodeId
+     tags on fee rows both reference them. Column mapping goes by position
+     (see feeColIndexForNode), so it survives renumbering either way. */
+  boxes.forEach((b,i)=>{
+    if(auto.test(b.label))b.label=n>1?base+' '+(i+1):base;
+    if(b.cap==='Holding Company'||b.cap==='Operational Company'||!b.cap){
+      b.cap=n>1?(i===0?'Holding Company':'Operational Company'):'';
+    }
+  });
+  if(companyCount(ent)!==n){
+    ent.companyCount=n;
+    const sel=$('fCompanyCount');
+    if(sel&&n<=3)sel.value=String(n);
+    /* Keep the columns belonging to the boxes that are still here, in
+       diagram order, and drop the rest — rather than rebuilding, which
+       would discard every edited price and every add-on, or trimming from
+       the end, which would drop the wrong entity's column when the deleted
+       company was in the middle. */
+    if(n>1&&STATE.feeCols&&STATE.feeCols.length>n){
+      const kept=boxes.map(b=>STATE.feeCols.find(c=>c.nodeId===b.id)).filter(Boolean);
+      STATE.feeCols=(kept.length===n?kept:STATE.feeCols.slice(0,n));
+      STATE.feeCols.forEach((c,i)=>{c.label=feeColLabel(ent,i);c.nodeId=boxes[i].id;});
+    }else if(n<=1&&STATE.feeCols&&STATE.feeCols.length){
+      /* down to a single company: fold the survivor's rows back into the
+         shared list so the page returns to the one-column layout */
+      const keep=(boxes.length?STATE.feeCols.find(c=>c.nodeId===boxes[0].id):null)||STATE.feeCols[0];
+      ['setup','fixed'].forEach(which=>{
+        STATE.fees[which]=keep[which].concat(STATE.fees[which]);
+      });
+      STATE.feeCols=[];
+    }
+    renderFeeEditor();
+  }
+}
+
+/* The company boxes on the diagram, top to bottom — the order the fee
+   columns are in. Matched on the auto-generated label prefix so a box the
+   user added by hand isn't mistaken for one of the seeded companies. */
+function companyBoxes(){
+  const ent=STATE.entities,st=STATE.struct;
+  if(!st||STATE.mode!=='structure'||ent.company==='none')return [];
+  const base=(ent.company==='gbc'?'GLOBAL BUSINESS<br>COMPANY':'AUTHORISED<br>COMPANY');
+  const esc=base.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const auto=new RegExp('^'+esc+'(\\s+\\d+)?$');
+  return st.nodes.filter(n=>n.kind==='box'&&(auto.test(n.label)||
+    (n.id||'').match(new RegExp('^'+ent.company+'\\d*$')))).sort((a,b)=>a.y-b.y);
+}
+
 function removeStructNode(id){
   const st=STATE.struct;if(!st||st.nodes.length<=1)return;
   if(CORE_NODE_IDS.includes(id))return; /* use the Section 1 toggles instead */
   const removed=st.nodes.find(n=>n.id===id);
   st.nodes=st.nodes.filter(n=>n.id!==id);
-  st.edges=st.edges.filter(e=>e.from!==id&&e.to!==id);
 
-  const hadFeeLine=['setup','fixed'].some(which=>STATE.fees[which].some(r=>r._nodeId===id));
+  /* Bridge the gap rather than just dropping every edge that touched the
+     node: deleting the middle box of a chain previously left whatever hung
+     below it orphaned, with no connector at all. Re-point each inbound
+     edge's source at each outbound edge's target instead. */
+  const parents=st.edges.filter(e=>e.to===id);
+  const children=st.edges.filter(e=>e.from===id);
+  st.edges=st.edges.filter(e=>e.from!==id&&e.to!==id);
+  parents.forEach(p=>children.forEach(c=>{
+    if(p.from===c.to)return;                                  /* no self-loop */
+    if(st.edges.some(e=>e.from===p.from&&e.to===c.to))return;  /* already linked */
+    st.edges.push({id:newStructId(),from:p.from,to:c.to,label:c.label||p.label||''});
+  }));
+
+  const hadFeeLine=['setup','fixed'].some(which=>
+    allFeeLists(which).some(list=>list.some(r=>r._nodeId===id)));
   ['setup','fixed'].forEach(which=>{
-    STATE.fees[which]=STATE.fees[which].filter(r=>r._nodeId!==id);
+    allFeeLists(which).forEach(list=>{
+      for(let i=list.length-1;i>=0;i--)if(list[i]._nodeId===id)list.splice(i,1);
+    });
   });
+  renumberCompanyBoxes();
   if(removed&&removed.kind==='ciscell')syncCellFees();
   else if(hadFeeLine)renderFeeEditor();
 
   renderStructEditorUI();
   redrawStructure();
+}
+
+/* ── per-entity add-ons ───────────────────────────────────────────
+   Clicking a box on the diagram opens a panel for that entity alone:
+   what to charge on it, and its label/caption/ownership. Fees added here
+   are tagged with the node's id (_nodeId) and its add-on key (_addon), so
+   they can be toggled back off and are removed automatically if the box
+   itself is deleted — the same mechanism the CIS cells already use.
+
+   Where the charge lands matters when several companies each have their
+   own fee column: an add-on on Authorised Company 2 belongs in that
+   column's total, not in the shared block. feeTargetForNode() resolves
+   that from the node id, which is why the seeded ids are ac1/ac2/ac3.
+   ───────────────────────────────────────────────────────────────── */
+const ENTITY_ADDONS={
+  bank:{label:'Bank account opening',hint:'per additional account',
+    setup:[{l:'Bank Account Opening (per Account)',v:4000}],fixed:[]},
+  nominee:{label:'Nominee shareholder',hint:'Aurevya holds the shares — AC only',acOnly:true,
+    setup:[{l:'Nominee shareholder',v:2000}],fixed:[{l:'Nominee shareholder',v:2000}]},
+  accounting:{label:'Accounting & tax filing',hint:'minimum 3,000/year',
+    setup:[],fixed:[{l:'Accounting — preparation and filing of accounts and tax returns',v:3000}]},
+  trc:{label:'Tax Residency Certificate',hint:'application + annual renewal',
+    setup:[{l:'Tax Residency Certificate application',v:200}],fixed:[{l:'Tax residence Certificate',v:200}]}
+};
+
+/* Whether this node is one of the numbered company boxes, and if so which
+   fee column it owns. Returns null for shareholders, trusts, cells, and
+   any box the user added by hand — those fall back to the shared list. */
+function feeColIndexForNode(id){
+  if(!usesFeeCols())return null;
+  const byId=STATE.feeCols.findIndex(c=>c.nodeId===id);
+  if(byId>=0)return byId;
+  /* older state, or a column built before the diagram was edited — fall
+     back to the box's position in the chain */
+  const i=companyBoxes().findIndex(n=>n.id===id);
+  return (i>=0&&i<STATE.feeCols.length)?i:null;
+}
+function feeTargetForNode(id,which){
+  const ci=feeColIndexForNode(id);
+  return ci===null?STATE.fees[which]:STATE.feeCols[ci][which];
+}
+/* every list a node's fee rows could be sitting in */
+function allFeeLists(which){
+  return [STATE.fees[which]].concat((STATE.feeCols||[]).map(c=>c[which]));
+}
+function nodeHasAddon(id,key){
+  return ['setup','fixed'].some(which=>
+    allFeeLists(which).some(list=>list.some(r=>r._nodeId===id&&r._addon===key)));
+}
+
+function toggleEntityAddon(id,key){
+  const spec=ENTITY_ADDONS[key];if(!spec)return;
+  const on=nodeHasAddon(id,key);
+  ['setup','fixed'].forEach(which=>{
+    if(on){
+      /* remove wherever it ended up, so it still clears if the column
+         layout changed since it was added */
+      allFeeLists(which).forEach(list=>{
+        for(let i=list.length-1;i>=0;i--){
+          if(list[i]._nodeId===id&&list[i]._addon===key)list.splice(i,1);
+        }
+      });
+    }else{
+      const target=feeTargetForNode(id,which);
+      spec[which].forEach(r=>target.push({t:'item',l:r.l,v:r.v,_nodeId:id,_addon:key}));
+    }
+  });
+  renderFeeEditor();
+  openEntityPanel(id);      /* repaint the panel's ticks */
+  liveBuild(0);
+}
+
+function addEntityCustomLine(id){
+  const lbl=($('entityCustomLabel')||{}).value||'';
+  const which=($('entityCustomWhich')||{}).value||'setup';
+  const val=+(($('entityCustomValue')||{}).value||0);
+  if(!lbl.trim())return;
+  feeTargetForNode(id,which).push({t:'item',l:lbl.trim(),v:val,_nodeId:id,_addon:'custom:'+newStructId()});
+  renderFeeEditor();
+  openEntityPanel(id);
+  liveBuild(0);
+}
+function removeEntityFeeRow(id,addon){
+  ['setup','fixed'].forEach(which=>{
+    allFeeLists(which).forEach(list=>{
+      for(let i=list.length-1;i>=0;i--){
+        if(list[i]._nodeId===id&&list[i]._addon===addon)list.splice(i,1);
+      }
+    });
+  });
+  renderFeeEditor();
+  openEntityPanel(id);
+  liveBuild(0);
+}
+
+/* the % on the connector feeding into this node — edited here because
+   that's where you'd look for it, though it lives on the edge */
+function inboundEdge(id){
+  const st=STATE.struct;if(!st)return null;
+  return st.edges.find(e=>e.to===id)||null;
+}
+function setEntityField(id,field,value){
+  const st=STATE.struct;if(!st)return;
+  const n=st.nodes.find(x=>x.id===id);if(!n)return;
+  if(field==='pct'){
+    const e=inboundEdge(id);if(e)e.label=value;
+  }else{
+    n[field]=value;
+  }
+  renderStructEditorUI();
+  liveBuild(0);
+}
+
+function closeEntityPanel(){
+  const el=$('entityPanel');if(el)el.remove();
+}
+
+function openEntityPanel(id){
+  closeEntityPanel();
+  const st=STATE.struct;if(!st)return;
+  const n=st.nodes.find(x=>x.id===id);if(!n)return;
+  const isCompany=feeColIndexForNode(id)!==null||
+    /^(ac|gbc)\d*$/.test(id);
+  const ci=feeColIndexForNode(id);
+  const colNote=ci===null?'':' — charges go to '+STATE.feeCols[ci].label;
+
+  const addonRows=Object.keys(ENTITY_ADDONS).filter(k=>{
+    const s=ENTITY_ADDONS[k];
+    return !(s.acOnly&&STATE.entities.company!=='ac');
+  }).map(k=>{
+    const s=ENTITY_ADDONS[k],on=nodeHasAddon(id,k);
+    const price=[].concat(s.setup,s.fixed).reduce((a,r)=>a+r.v,0);
+    return '<label class="checkline" style="margin:0">'+
+      '<input type="checkbox" '+(on?'checked':'')+' onchange="toggleEntityAddon(\''+id+'\',\''+k+'\')">'+
+      '<span>'+s.label+'<span class="d">'+s.hint+' · '+curSym()+' '+money(price)+'</span></span></label>';
+  }).join('');
+
+  /* anything already charged to this entity, including custom lines */
+  const existing=[];
+  ['setup','fixed'].forEach(which=>{
+    allFeeLists(which).forEach(list=>list.forEach(r=>{
+      if(r._nodeId===id&&String(r._addon||'').indexOf('custom:')===0){
+        existing.push({which:which,r:r});
+      }
+    }));
+  });
+  const customRows=existing.length?'<div style="margin-top:8px">'+existing.map(x=>
+    '<div style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:4px">'+
+    '<span style="flex:1">'+x.r.l+' <em style="opacity:.6">('+(x.which==='setup'?'setup':'annual')+')</em></span>'+
+    '<span>'+curSym()+' '+money(x.r.v)+'</span>'+
+    '<button type="button" class="ghost" style="width:auto;padding:2px 6px;margin:0" '+
+      'onclick="removeEntityFeeRow(\''+id+'\',\''+x.r._addon+'\')">✕</button></div>').join('')+'</div>':'';
+
+  const edge=inboundEdge(id);
+  const box=document.createElement('div');
+  box.id='entityPanel';
+  box.setAttribute('style','position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:3000;'+
+    'display:flex;align-items:center;justify-content:center;padding:20px');
+  box.innerHTML='<div style="background:#fff;border-radius:10px;padding:20px 22px;width:420px;max-width:100%;'+
+      'max-height:88vh;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)">'+
+    '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px">'+
+      '<div style="flex:1">'+
+        '<div style="font-weight:700;font-size:14px;color:#130429">'+n.label.replace(/<br>/g,' ')+'</div>'+
+        '<div style="font-size:11px;color:#5A5468;margin-top:2px">'+
+          (isCompany?'Company':KIND_LABEL[n.kind]||'Entity')+colNote+'</div>'+
+      '</div>'+
+      '<button type="button" class="ghost" style="width:auto;padding:3px 8px;margin:0" '+
+        'onclick="closeEntityPanel()">✕</button>'+
+    '</div>'+
+
+    '<div style="font-size:11px;font-weight:700;color:#130429;margin-bottom:6px">Add to this entity</div>'+
+    (addonRows||'<div style="font-size:11px;color:#5A5468">No standard add-ons apply to this box.</div>')+
+
+    '<div style="font-size:11px;font-weight:700;color:#130429;margin:14px 0 6px">Custom charge</div>'+
+    '<div style="display:flex;gap:6px;align-items:center">'+
+      '<input id="entityCustomLabel" type="text" placeholder="Description" style="flex:1;min-width:0">'+
+      '<select id="entityCustomWhich" style="width:88px"><option value="setup">Setup</option>'+
+        '<option value="fixed">Annual</option></select>'+
+      '<input id="entityCustomValue" type="number" placeholder="0" style="width:74px">'+
+      '<button type="button" class="ghost" style="width:auto;padding:5px 9px;margin:0" '+
+        'onclick="addEntityCustomLine(\''+id+'\')">Add</button>'+
+    '</div>'+
+    customRows+
+
+    '<div style="font-size:11px;font-weight:700;color:#130429;margin:16px 0 6px">This box</div>'+
+    '<label class="f" style="margin-bottom:8px"><span>Label</span>'+
+      '<input type="text" value="'+n.label.replace(/"/g,'&quot;')+'" '+
+      'oninput="setEntityField(\''+id+'\',\'label\',this.value)"></label>'+
+    '<label class="f" style="margin-bottom:8px"><span>Caption under the box</span>'+
+      '<input type="text" value="'+(n.cap||'').replace(/"/g,'&quot;')+'" '+
+      'placeholder="e.g. Holding Company" oninput="setEntityField(\''+id+'\',\'cap\',this.value)"></label>'+
+    (edge?'<label class="f"><span>Ownership on the incoming line</span>'+
+      '<input type="text" value="'+(edge.label||'').replace(/"/g,'&quot;')+'" '+
+      'placeholder="e.g. 51%" oninput="setEntityField(\''+id+'\',\'pct\',this.value)"></label>':'')+
+
+    '<button type="button" style="width:100%;margin-top:16px;padding:9px;border:none;border-radius:7px;'+
+      'background:#B59433;color:#130429;font-weight:700;cursor:pointer" '+
+      'onclick="closeEntityPanel()">Done</button>'+
+  '</div>';
+  box.addEventListener('click',function(e){if(e.target===box)closeEntityPanel();});
+  document.body.appendChild(box);
 }
 
 function addStructEdge(){
@@ -2230,7 +2766,8 @@ function renderNodesHTML(st){
         '<div class="node plain" style="padding:0;min-width:0">'+n.label+'</div></div>';
     }else{
       const cls='dragnode node'+(n.kind==='ciscell'?' cell':'')+(n.primary?' filled':'');
-      out='<div class="'+cls+'" data-nid="'+n.id+'" style="'+base+'">'+n.label+'</div>';
+      out='<div class="'+cls+'" data-nid="'+n.id+'" style="'+base+'" '+
+        'title="Click to add services or edit this entity — drag to move">'+n.label+'</div>';
     }
     if(n.cap){
       out+='<div class="nodecap" data-cap-for="'+n.id+'" style="position:absolute;left:'+n.x+'mm;top:'+(n.y+d.h+1.5)+
@@ -2482,10 +3019,15 @@ function feeBlocks(rows){
   const flush=()=>{if(cur&&(cur.grp||cur.items.length))blocks.push(cur);};
   rows.forEach(r=>{
     if(r.t==='grp'){flush();cur={grp:r.l,items:[]};pend=[];}
-    else if(r.t==='desc'){pend.push(r.l);}
+    /* 'sub' is an indented bullet beneath the preceding line — the Trust
+       decks break a priced item down into numbered sub-headings each with
+       their own bullets, which a flat desc list can't express. Carried
+       through as {sub:true} so feeBlockHTML can indent it. */
+    else if(r.t==='sub'){pend.push({sub:true,l:r.l});}
+    else if(r.t==='desc'){pend.push({sub:false,l:r.l});}
     else{
       if(!cur)cur={grp:null,items:[]};
-      cur.items.push({lines:pend.concat([r.l]),v:r.v});pend=[];
+      cur.items.push({lines:pend.concat([{sub:false,l:r.l}]),v:r.v});pend=[];
     }
   });
   flush();
@@ -2504,7 +3046,8 @@ function feeBlockHeight(b){
 function feeBlockHTML(b){
   let out=b.grp?'<tr class="grp"><td colspan="2">'+b.grp+'</td></tr>':'';
   b.items.forEach(it=>{
-    out+='<tr class="rule"><td>'+it.lines.map(l=>'<div>'+l+'</div>').join('')+'</td>'+
+    out+='<tr class="rule"><td>'+it.lines.map(l=>
+      l.sub?'<div class="feesub">'+l.l+'</div>':'<div>'+l.l+'</div>').join('')+'</td>'+
       '<td class="r" style="vertical-align:middle">'+money(it.v)+'</td></tr>';
   });
   return out;
@@ -2516,6 +3059,34 @@ function pgFee(which,d){
   const sub=which==='setup'?'(One Off)':'(Year One Onwards)';
   const cur='PRICE ('+(d.currency==='EUR'?'EUR':'US$')+')';
   const head='<thead><tr><th>DESCRIPTIONS</th><th class="r">'+cur+'</th></tr></thead>';
+
+  /* Per-entity columns: one table per company, each headed with that
+     entity's name and closed with its own TOTAL, exactly as the source
+     decks lay it out. Shared blocks (trust/CIS) sit above, full width.
+     This is a different thing from the overflow balancing below — here the
+     split is semantic, so it applies however short the columns are. */
+  if(usesFeeCols()){
+    const colHead=lbl=>'<thead><tr><th>DESCRIPTIONS ('+lbl+')</th>'+
+      '<th class="r">'+cur+'</th></tr></thead>';
+    const sharedBlocks=feeBlocks(rows);
+    const perCol=STATE.feeCols.map(c=>{
+      const b=feeBlocks(c[which]);
+      return '<table class="deckfee">'+colHead(c.label)+'<tbody>'+
+        b.map(feeBlockHTML).join('')+
+        '<tr class="tot"><td>TOTAL '+c.label+'</td>'+
+        '<td class="r">'+money(rowsTotal(c[which]))+'</td></tr>'+
+        '</tbody></table>';
+    }).join('');
+    const inner='<div class="feewrap wide">'+
+      (sharedBlocks.length?'<table class="deckfee">'+head+'<tbody>'+
+        sharedBlocks.map(feeBlockHTML).join('')+'</tbody></table>':'')+
+      '<div class="feecols cols'+STATE.feeCols.length+'">'+perCol+'</div>'+
+      '<table class="deckfee feetotal"><tbody>'+
+        '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
+      '</tbody></table></div>';
+    return feePage(title,sub,inner);
+  }
+
   const blocks=feeBlocks(rows);
   const heights=blocks.map(feeBlockHeight);
   const stack=heights.reduce((a,b)=>a+b,0);
@@ -2545,6 +3116,36 @@ function pgFee(which,d){
       '</tbody></table></div>';
   }
 
+  return feePage(title,sub,inner);
+}
+
+/* Combined fee page — "Setup + Year 1" beside "Year 2" on a single page,
+   each side totalled separately. The Trust decks use this instead of two
+   separate Setup/Fixed pages: for a trust there's no meaningful "one off vs
+   annual" split, since year one bundles establishment with the first
+   trustee fee. Same row data as the two-page form, laid out differently and
+   with no grand total — the two figures aren't meant to be added. */
+function pgFeeCombined(d){
+  const cur='PRICE ('+(d.currency==='EUR'?'EUR':'US$')+')';
+  const side=(which,caption)=>{
+    const rows=STATE.fees[which].concat(
+      (STATE.feeCols||[]).reduce((a,c)=>a.concat(c[which]),[]));
+    return '<table class="deckfee">'+
+      '<thead><tr><th>DESCRIPTIONS</th>'+
+        '<th class="r">'+cur+'<div class="feecap">('+caption+')</div></th></tr></thead>'+
+      '<tbody>'+feeBlocks(rows).map(feeBlockHTML).join('')+
+        '<tr class="tot"><td>Total</td><td class="r">'+money(rowsTotal(rows))+'</td></tr>'+
+      '</tbody></table>';
+  };
+  const inner='<div class="feewrap wide"><div class="feecols">'+
+    side('setup','Setup + Year 1')+side('fixed','Year 2')+
+    '</div></div>';
+  return feePage('Fee Quote','— Proposed Structure',inner);
+}
+
+/* shared chrome for every fee page variant (single column, balanced two
+   column, or per-entity columns) */
+function feePage(title,sub,inner){
   return page(crest()+'<div class="pbody">'+
     '<h1 class="ptitle">'+title+' <em style="color:var(--gold);opacity:.85">'+sub+'</em></h1>'+
     inner+
@@ -2564,7 +3165,7 @@ function pgLeaf(){
      the source deck exactly. Only the running footer is drawn on top,
      since that carries the per-proposal running title and page number. */
   return page('<div style="position:absolute;inset:0;background:var(--plum)"></div>'+
-    '<img src="'+ASSET_DIR+'svc-overview.png" style="position:absolute;inset:0;'+
+    '<img src="'+ASSET_DIR+leafSet().overview+'.png" style="position:absolute;inset:0;'+
       'width:100%;height:100%;object-fit:cover;z-index:1" onerror="this.style.opacity=0">'+
     foot(),'dark');
 }
@@ -2583,9 +3184,34 @@ function pgLeaf(){
    percentages of the page so it lands in exactly the same spot. It bleeds
    off the right edge in the source, hence right:0 and .page's
    overflow:hidden doing the clipping. */
+/* Two wheels exist, and they are different artwork rather than the same
+   graphic with extra labels: the AC decks show six leaves, the GBC decks
+   eight (Directorship and Governance get their own). Both sets are cropped
+   verbatim from the corresponding source PDF, so each set has its own
+   position and aspect — hence the geometry travels with the set. */
+const LEAF_SETS={
+  six:{prefix:'leaf-',overview:'svc-overview',
+    css:'right:0;top:26.71%;width:25.89%;height:50.76%'},
+  eight:{prefix:'leaf8-',overview:'svc-overview-gbc',
+    css:'right:0;top:18.71%;width:26.21%;height:43.21%'}
+};
+const LEAF8_KEYS=['board','directorship','accounting','legal','compliance','governance','it','media'];
+
+/* Which wheel this proposal uses: the eight-leaf one as soon as a service
+   only it carries is included, otherwise the six. */
+function leafSet(){
+  const secs=activeSections();
+  return (secs.indexOf('svc_directorship')>=0||secs.indexOf('svc_governance')>=0)
+    ? LEAF_SETS.eight : LEAF_SETS.six;
+}
+
 function leafCol(key){
-  return '<img class="leafwheel" src="'+ASSET_DIR+(LEAF_IMG[key]||'leaf-plain')+'.png" '+
-    'style="position:absolute;right:0;top:26.71%;width:25.89%;height:50.76%;'+
+  const set=leafSet();
+  const name=set.prefix===LEAF_SETS.eight.prefix
+    ? (LEAF8_KEYS.indexOf(key)>=0?set.prefix+key:'leaf-plain')
+    : (LEAF_IMG[key]||'leaf-plain');
+  return '<img class="leafwheel" src="'+ASSET_DIR+name+'.png" '+
+    'style="position:absolute;'+set.css+';'+
     'object-fit:fill;z-index:1" onerror="this.style.opacity=0">';
 }
 
@@ -2630,6 +3256,13 @@ function pgService(key){
   }else if(key==='media'){
     mid='<div class="col"><h4>'+s.colAh+'</h4><ul>'+s.colA.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>'+
       '<div class="col"><h4>'+s.colBh+'</h4><ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul></div><div></div>';
+  }else if(s.shape==='legalref'){
+    /* statutory reference on the left, the service delivered against it on
+       the right — the layout the Directorship and Governance pages use */
+    mid='<div class="col"><h4>'+s.colAh+'</h4>'+
+      s.colA.map(a=>'<p style="font-weight:600;color:var(--navy)">'+a+'</p>').join('')+'</div>'+
+      '<div class="col"><h4>'+s.colBh+'</h4><ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>'+
+      '<div></div>';
   }
   return page(crest()+leafCol(key)+'<div class="pbody"><div class="peyebrow">OUR SERVICES</div>'+
     '<h1 class="ptitle">'+s.title+(s.pair?' &nbsp;&nbsp; <span style="color:var(--gold)">'+s.pair+'</span>':'')+'</h1>'+
@@ -2703,6 +3336,7 @@ function build(){
       case 'kyc':        toc.push(['KYC Documents',n]);return pgKYC(STATE.mode!=='accounting');
       case 'feesetup':   toc.push(['Fee Quote',n]);return pgFee('setup',d);
       case 'feefixed':   return pgFee('fixed',d);
+      case 'feecombined':toc.push(['Fee Quote',n]);return pgFeeCombined(d);
       case 'leaf':       toc.push(['Our Services',n]);return pgLeaf();
       case 'svc_board':      return pgService('board');
       case 'svc_accounting': return pgService('accounting');
@@ -2711,6 +3345,8 @@ function build(){
       case 'svc_it':         return pgService('it');
       case 'svc_concierge':  return pgService('concierge');
       case 'svc_media':      return pgService('media');
+      case 'svc_directorship': return pgService('directorship');
+      case 'svc_governance':   return pgService('governance');
       case 'back':       return pgBack(p);
     }
     return '';
@@ -2869,6 +3505,7 @@ function liveBuild(delay){
     if(!node)return;
     const rect=canvas.getBoundingClientRect();
     dragging={id:id,canvas:canvas,startX:e.clientX,startY:e.clientY,startNX:node.x,startNY:node.y,
+      moved:false,
       pxPerMMx:rect.width/STATE.struct.canvasW,pxPerMMy:rect.height/STATE.struct.canvasH};
     e.preventDefault();
   });
@@ -2876,6 +3513,10 @@ function liveBuild(delay){
     if(!dragging||!STATE.struct)return;
     const node=STATE.struct.nodes.find(n=>n.id===dragging.id);if(!node)return;
     const d=NODE_DIM[node.kind]||NODE_DIM.box;
+    /* a few px of slop, so a click with a shaky hand still counts as a
+       click and opens the panel rather than nudging the box */
+    if(Math.abs(e.clientX-dragging.startX)>3||Math.abs(e.clientY-dragging.startY)>3)dragging.moved=true;
+    if(!dragging.moved)return;
     const dx=(e.clientX-dragging.startX)/dragging.pxPerMMx;
     const dy=(e.clientY-dragging.startY)/dragging.pxPerMMy;
     node.x=Math.max(0,Math.min(STATE.struct.canvasW-d.w,dragging.startNX+dx));
@@ -2889,7 +3530,9 @@ function liveBuild(delay){
   });
   document.addEventListener('mouseup',function(){
     if(!dragging)return;
+    const wasClick=!dragging.moved,id=dragging.id;
     dragging=null;
+    if(wasClick){openEntityPanel(id);return;}
     liveBuild(0);
   });
 })();
