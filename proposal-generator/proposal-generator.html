@@ -110,6 +110,14 @@ table.fees td.grp{
   font-weight:600;color:var(--gold);font-size:10px;letter-spacing:.06em;
   text-transform:uppercase;padding-top:9px;
 }
+/* per-line delete — deliberately quiet until hovered, so a column of them
+   doesn't compete with the figures */
+button.feeDel{
+  width:18px;height:18px;padding:0;line-height:1;border-radius:50%;
+  border:1px solid #DFE3E7;background:#fff;color:#94A3AE;cursor:pointer;
+  font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;
+}
+button.feeDel:hover{border-color:#B23B3B;background:#B23B3B;color:#fff;}
 table.fees input[type=number]{padding:4px 6px;font-size:11.5px;text-align:right;}
 table.fees input[type=text]{padding:4px 6px;font-size:11.5px;}
 .feetot{
@@ -1703,15 +1711,44 @@ function resetFees(){
 }
 
 /* One editable row. `path` is the JS expression naming the row's home, so
-   the same builder serves the shared list and the per-column lists. */
-function feeEditorRow(r,path){
-  if(r.t==='grp')return '<td class="grp" colspan="2">'+r.l+'</td>';
+   the same builder serves the shared list and the per-column lists. `del`
+   is the call that removes this row, rendered as a "−" at the end. */
+function feeEditorRow(r,path,del){
+  const minus=del?'<td style="width:20px;text-align:center">'+
+    '<button type="button" class="feeDel" title="Delete this line" onclick="'+del+'">−</button></td>':'<td></td>';
+  if(r.t==='grp')return '<td class="grp" colspan="2">'+r.l+'</td>'+minus;
   const priced=r.t==='item';
   return '<td><input type="text" value="'+r.l.replace(/"/g,'&quot;')+'" '+
     'oninput="'+path+'.l=this.value"/></td>'+
     '<td style="width:78px">'+(priced?
       '<input type="number" value="'+(r.v||0)+'" oninput="'+path+'.v=+this.value;feeTotals()"/>':
-      '<span style="color:#C3CCD3;font-size:10px;">incl.</span>')+'</td>';
+      '<span style="color:#C3CCD3;font-size:10px;">incl.</span>')+'</td>'+minus;
+}
+
+/* Remove a fee line, after confirming. Deleting a gold group heading takes
+   the lines beneath it too — removing the heading alone would leave its
+   items silently attached to whatever group came before, which reads as a
+   pricing error rather than an edit. The confirm text says which it is. */
+function deleteFeeRow(which,ci,idx){
+  const list=(ci===null||ci===undefined)?STATE.fees[which]:(STATE.feeCols[ci]||{})[which];
+  if(!list)return;
+  const r=list[idx];if(!r)return;
+  const table=which==='setup'?'Setup Fee':'Fixed Fee';
+
+  if(r.t==='grp'){
+    /* how many rows belong to this heading — up to the next heading */
+    let n=1;
+    while(idx+n<list.length&&list[idx+n].t!=='grp')n++;
+    const lines=n-1;
+    if(!confirm('Delete the "'+r.l+'" group from '+table+'?\n\n'+
+      'This removes the heading'+(lines?' and the '+lines+' line'+(lines===1?'':'s')+' under it':'')+'.'))return;
+    list.splice(idx,n);
+  }else{
+    if(!confirm('Delete "'+(r.l||'this line')+'" from '+table+'?'))return;
+    list.splice(idx,1);
+  }
+  renderFeeEditor();
+  liveBuild(0);
 }
 
 function renderFeeEditor(){
@@ -1719,13 +1756,17 @@ function renderFeeEditor(){
     const tb=$(which==='setup'?'feeSetup':'feeFixed');
     tb.innerHTML='';
     const add=html=>{const tr=document.createElement('tr');tr.innerHTML=html;tb.appendChild(tr);};
-    STATE.fees[which].forEach((r,i)=>add(feeEditorRow(r,'STATE.fees.'+which+'['+i+']')));
+    STATE.fees[which].forEach((r,i)=>add(feeEditorRow(r,
+      'STATE.fees.'+which+'['+i+']',
+      'deleteFeeRow(\''+which+'\',null,'+i+')')));
     /* per-entity columns follow, each under its own heading so it's clear
        which figures belong to which company */
     (STATE.feeCols||[]).forEach((c,ci)=>{
-      add('<td class="grp" colspan="2" style="background:#2B1A44;color:var(--gold)">'+c.label+'</td>');
-      c[which].forEach((r,i)=>add(feeEditorRow(r,'STATE.feeCols['+ci+'].'+which+'['+i+']')));
-      add('<td colspan="2" style="text-align:right;font-size:10px;color:#C3CCD3;padding-right:6px">'+
+      add('<td class="grp" colspan="3" style="background:#2B1A44;color:var(--gold)">'+c.label+'</td>');
+      c[which].forEach((r,i)=>add(feeEditorRow(r,
+        'STATE.feeCols['+ci+'].'+which+'['+i+']',
+        'deleteFeeRow(\''+which+'\','+ci+','+i+')')));
+      add('<td colspan="3" style="text-align:right;font-size:10px;color:#C3CCD3;padding-right:6px">'+
         'column total '+curSym()+' '+money(rowsTotal(c[which]))+'</td>');
     });
   });
