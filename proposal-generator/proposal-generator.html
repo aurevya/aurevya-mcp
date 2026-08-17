@@ -2217,6 +2217,7 @@ function removeStructNode(id){
      node: deleting the middle box of a chain previously left whatever hung
      below it orphaned, with no connector at all. Re-point each inbound
      edge's source at each outbound edge's target instead. */
+  const parentIds=st.edges.filter(e=>e.to===id).map(e=>e.from);
   const parents=st.edges.filter(e=>e.to===id);
   const children=st.edges.filter(e=>e.from===id);
   st.edges=st.edges.filter(e=>e.from!==id&&e.to!==id);
@@ -2235,6 +2236,9 @@ function removeStructNode(id){
   });
   renumberCompanyBoxes();
   if(removed&&removed.kind==='shareholder')layoutShareholderRow(st);
+  /* whatever fed the deleted box may now have a different number of
+     children — re-space them so the row stays centred */
+  parentIds.forEach(pid=>layoutChildren(st,pid));
   /* if that was the last box of its kind, its pages and glossary terms go
      with it — the deck shouldn't keep explaining a trust it no longer has */
   if(removed&&removed.entKey){
@@ -2307,17 +2311,15 @@ function addEntityUnder(parentId,key){
   /* directly beneath the parent, stepping down past anything already
      occupying that slot so a new box never lands on top of an existing one */
   const x=Math.max(0,Math.min(st.canvasW-d.w,parent.x+pd.w/2-d.w/2));
-  let y=parent.y+pd.h+18;
-  while(st.nodes.some(n=>{
-    const nd=NODE_DIM[n.kind]||NODE_DIM.box;
-    return Math.abs(n.y-y)<nd.h+4&&Math.abs(n.x-x)<d.w-4;
-  }))y+=18;
+  const y=parent.y+pd.h+20;
 
   /* entKey records what kind of thing this box is, so its explanatory
      pages and glossary terms can follow it in and out of the deck */
   st.nodes.push({id:id,kind:'box',entKey:spec.key,label:spec.box,x:x,y:y,primary:false,cap:''});
   st.edges.push({id:newStructId(),from:parentId,to:id,label:'100%'});
   st.canvasH=Math.max(st.canvasH,y+d.h+16);
+  /* spread this parent's children across a row if there's now more than one */
+  layoutChildren(st,parentId);
 
   if(spec.price){
     ['setup','fixed'].forEach(which=>{
@@ -2341,6 +2343,66 @@ function addEntityUnder(parentId,key){
   redrawStructure();
   liveBuild(0);
   openEntityPanel(id);   /* land on the new box, ready to price or rename */
+}
+
+/* Everything hanging below a node, transitively — so moving a box can take
+   whatever it owns along with it instead of stranding it. */
+function descendants(st,id,seen){
+  seen=seen||{};
+  const out=[];
+  st.edges.filter(e=>e.from===id).forEach(e=>{
+    if(seen[e.to])return;
+    seen[e.to]=1;
+    const n=st.nodes.find(x=>x.id===e.to);
+    if(!n)return;
+    out.push(n);
+    descendants(st,e.to,seen).forEach(d=>out.push(d));
+  });
+  return out;
+}
+
+/* Two or more entities under the same parent are siblings, not a chain, so
+   they belong on one row spread either side of the parent's centre line.
+   Stacking them in a single column (which is what happened before) put one
+   box directly beneath the other and made the two connectors overlap into
+   what looked like a single line passing through the first child. */
+function layoutChildren(st,parentId){
+  if(!st)return;
+  const parent=st.nodes.find(n=>n.id===parentId);if(!parent)return;
+  const pd=NODE_DIM[parent.kind]||NODE_DIM.box;
+  const kids=st.edges.filter(e=>e.from===parentId)
+    .map(e=>st.nodes.find(n=>n.id===e.to))
+    .filter(n=>n&&n.y>parent.y);
+  if(kids.length<2)return;
+
+  /* left-to-right in the order they were attached, so a newly added entity
+     appears at the right-hand end rather than being sorted into the middle
+     of boxes that were already placed */
+  const widths=kids.map(k=>(NODE_DIM[k.kind]||NODE_DIM.box).w);
+  const total=widths.reduce((a,b)=>a+b,0);
+  const avail=st.canvasW-4;
+  let gap=8;
+  if(total+gap*(kids.length-1)>avail){
+    gap=Math.max(2,(avail-total)/(kids.length-1));
+  }
+  const rowW=total+gap*(kids.length-1);
+  const pcx=parent.x+pd.w/2;
+  let x=Math.max(2,Math.min(st.canvasW-2-rowW,pcx-rowW/2));
+  const y=parent.y+pd.h+20;
+
+  kids.forEach((k,i)=>{
+    /* shift whatever this child owns by the same amount, so a sub-structure
+       travels with the box it belongs to */
+    const dx=x-k.x,dy=y-k.y;
+    if(dx||dy){
+      descendants(st,k.id).forEach(dn=>{dn.x+=dx;dn.y+=dy;});
+      k.x=x;k.y=y;
+    }
+    x+=widths[i]+gap;
+  });
+
+  const lowest=st.nodes.reduce((m,n)=>Math.max(m,n.y+(NODE_DIM[n.kind]||NODE_DIM.box).h),0);
+  st.canvasH=Math.max(st.canvasH,lowest+16);
 }
 
 /* Recompute which extra entity kinds are present from the diagram itself,
@@ -3099,8 +3161,47 @@ function renderEdgesSVG(st){
       (bcx-arrowW)+','+(tipY-arrowLen)+'" fill="#130429"/>';
   });
 
+  /* The mirror of the bus: one entity holding several below it fans out —
+     a stub down from the parent, a horizontal line spanning the children,
+     then a drop with an arrow into each. Drawn as a group so the branches
+     share one trunk rather than overlapping into what looks like a chain. */
+  const fanGroups={};
   st.edges.forEach(e=>{
-    if(busEdgeIds[e.id])return;   /* drawn as part of a bus above */
+    if(busEdgeIds[e.id])return;
+    const a=byId[e.from],b=byId[e.to];
+    if(a&&b&&b.y>a.y&&a.kind!=='shareholder')(fanGroups[e.from]=fanGroups[e.from]||[]).push(e);
+  });
+  const fanned=Object.keys(fanGroups).filter(k=>fanGroups[k].length>1);
+  fanned.forEach(pid=>{
+    const a=byId[pid];const da=NODE_DIM[a.kind]||NODE_DIM.box;
+    const kids=fanGroups[pid].map(e=>({e:e,n:byId[e.to]}));
+    const acx=a.x+da.w/2,aBottom=a.y+da.h;
+    const topKid=Math.min.apply(null,kids.map(k=>k.n.y));
+    let fanY=aBottom+(topKid-aBottom)/2;
+    if(!(fanY>aBottom+1))fanY=aBottom+1;
+    if(fanY>topKid-2)fanY=Math.max(aBottom+1,topKid-2);
+    const xs=kids.map(k=>k.n.x+(NODE_DIM[k.n.kind]||NODE_DIM.box).w/2);
+    /* trunk */
+    svg+='<line x1="'+acx+'" y1="'+aBottom+'" x2="'+acx+'" y2="'+fanY+'" stroke="#130429" stroke-width=".35"/>';
+    /* spanning line, stretched to include the trunk so it always connects */
+    svg+='<line x1="'+Math.min(acx,Math.min.apply(null,xs))+'" y1="'+fanY+
+      '" x2="'+Math.max(acx,Math.max.apply(null,xs))+'" y2="'+fanY+'" stroke="#130429" stroke-width=".35"/>';
+    const arrowLen=2.6,arrowW=1.3;
+    kids.forEach((k,i)=>{
+      const cx=xs[i],tipY=k.n.y;
+      svg+='<line x1="'+cx+'" y1="'+fanY+'" x2="'+cx+'" y2="'+(tipY-arrowLen)+'" stroke="#130429" stroke-width=".35"/>';
+      svg+='<polygon points="'+cx+','+tipY+' '+(cx+arrowW)+','+(tipY-arrowLen)+' '+
+        (cx-arrowW)+','+(tipY-arrowLen)+'" fill="#130429"/>';
+      if(k.e.label){
+        svg+='<text x="'+(cx+3.5)+'" y="'+((fanY+tipY)/2)+'" font-family="Cormorant Garamond, serif" '+
+          'font-style="italic" font-size="4.6" fill="#B59433">'+k.e.label+'</text>';
+      }
+      busEdgeIds[k.e.id]=true;   /* don't redraw it below */
+    });
+  });
+
+  st.edges.forEach(e=>{
+    if(busEdgeIds[e.id])return;   /* drawn as part of a bus or fan above */
     const a=byId[e.from],b=byId[e.to];if(!a||!b)return;
     const da=NODE_DIM[a.kind]||NODE_DIM.box,db=NODE_DIM[b.kind]||NODE_DIM.box;
     /* connect from whichever side of each box faces the other node, so
