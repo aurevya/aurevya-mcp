@@ -3280,6 +3280,12 @@ function pgOurGroup(){
   const maxScale=BP.ourGroupEntities.reduce((m,e)=>Math.max(m,e.logoScale||1),1);
   const bandH=+(LOGO_BASE*maxScale).toFixed(2);
 
+  /* Height of the "Operating in" band: the gold heading plus one row per
+     country, sized to whichever company lists the most, so every card
+     reserves the same space and the headings line up. */
+  const maxOps=BP.ourGroupEntities.reduce((m,e)=>Math.max(m,(e.ops||[]).length),0);
+  const opsBandH=+(2.9+maxOps*3.5).toFixed(1);
+
   const cards=BP.ourGroupEntities.map(e=>{
     const logoSrc=ASSET_DIR+'logo-'+(e.logo==='aurevya'?'full-color':e.logo)+'.png';
     const sc=e.logoScale||1;
@@ -3301,13 +3307,15 @@ function pgOurGroup(){
       '<span style="display:none;font-family:var(--serif);font-size:7.5pt;letter-spacing:.1em;color:var(--navy)">NEC</span>'+
       '</div>'
     ):'')+
-    /* "Operating in" + flags pinned to the bottom of the card via
-       margin-top:auto — .cols is a CSS grid, so every card in the same
-       row is already stretched to the same height; without this, cards
-       with shorter description text (fewer flags/countries) left the
-       "Operating in" row floating at a different height than its
-       neighbours, which is what looked misaligned. */
-    '<div style="margin-top:auto;padding-top:2mm">'+
+    /* "Operating in" + flags sit in a band of fixed height pinned to the
+       bottom of the card. The cards are already stretched to equal height
+       by the grid, but bottom-anchoring the block alone wasn't enough:
+       a company operating in one country has a shorter block than one
+       operating in two, so its heading sat a row lower than its
+       neighbours'. Reserving the same height for every card — sized to
+       the longest list — puts all six headings on one line, with the
+       flags flowing down from there. */
+    '<div style="margin-top:auto;padding-top:2mm;height:'+opsBandH+'mm">'+
     '<div style="font-size:6.2pt;color:var(--gold);text-align:center">Operating in:</div>'+
     e.ops.map(o=>'<div style="font-size:6.4pt;text-align:center;color:var(--slate);display:flex;align-items:center;justify-content:center;gap:1.2mm;margin-top:.6mm">'+flagSVG(o)+'<span>'+o+'</span></div>').join('')+
     '</div>'+
@@ -3644,9 +3652,13 @@ function pgStructure(st){
   }
   if(st.note)inner+='<div class="dgnote">Note: '+st.note+'</div>';
   return page('<div class="structpage">'+
+    /* No wordmark in the panel itself: the running footer already prints
+       "AUREVYA WEALTH" in gold, and because .pfoot spans the full page its
+       left-hand item lands inside this dark panel — so the panel's own copy
+       sat directly on top of the footer's, printing the name twice. */
     '<div class="lp"><h2>'+st.title+'</h2>'+(st.sub?'<div class="ss">'+st.sub+'</div>':'')+
       slot('structure-portrait','portrait',{style:'position:absolute;left:0;right:0;bottom:0;height:58%;'})+
-      '<div class="aw">AUREVYA WEALTH</div></div>'+
+      '</div>'+
     '<div class="rp">'+crest()+inner+foot()+'</div></div>');
 }
 
