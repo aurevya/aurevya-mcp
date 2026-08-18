@@ -748,7 +748,7 @@ BP.ourGroupEntities = [
   {cat:'Financial Services',name:'Aurevya Wealth',logo:'aurevya',logoScale:1.04,
    txt:'a globally recognised, award-winning boutique firm established over ten years ago, specializes in corporate and legacy management for institutions and high-net-worth individuals. Guided by the values of Innovation, Integrity, and Excellence, Aurevya offers holistic support that extends beyond finance, helping clients manage and preserve both their business and personal legacies.',
    ops:['Mauritius','United Arab Emirates']},
-  {cat:'',name:'Gulf Management Services (GMS)',logo:'gms',logoScale:1.04,
+  {cat:'',name:'Gulf Management Services (GMS)',logo:'gms',logoScale:1.25,
    txt:'is a corporate service provider headquartered in the United Arab Emirates. As a Registered Agent for RAK ICC, we offer a wide range of Corporate services, as well as Private Wealth solutions, across multiple global jurisdictions. Our team of experienced professionals is well-positioned to assist with your day-to-day legal entity management and global entity governance.',
    ops:['Mauritius','United Arab Emirates']},
   {cat:'',name:'Sanatan Dharma Private Wealth Limited (SDPW)',logo:'sdpw',
@@ -2213,6 +2213,8 @@ function removeCoreNodeFromStruct(id){
     const sh=st.nodes.find(n=>n.kind==='shareholder');
     if(sh&&sh.label==='SETTLOR')sh.label='SHAREHOLDER';
   }
+  /* close the gap the removed box left, same as any other delete */
+  realignStructure(st);
 
   const t=structTitleFor(STATE.entities);
   st.title=t.title;st.sub=t.sub;
@@ -2345,7 +2347,6 @@ function removeStructNode(id){
      node: deleting the middle box of a chain previously left whatever hung
      below it orphaned, with no connector at all. Re-point each inbound
      edge's source at each outbound edge's target instead. */
-  const parentIds=st.edges.filter(e=>e.to===id).map(e=>e.from);
   const parents=st.edges.filter(e=>e.to===id);
   const children=st.edges.filter(e=>e.from===id);
   st.edges=st.edges.filter(e=>e.from!==id&&e.to!==id);
@@ -2366,10 +2367,11 @@ function removeStructNode(id){
   /* the survivors may no longer need numbering — down to one of a kind,
      the name and its fee heading revert */
   syncEntityNames();
-  if(removed&&removed.kind==='shareholder')layoutShareholderRow(st);
-  /* whatever fed the deleted box may now have a different number of
-     children — re-space them so the row stays centred */
-  parentIds.forEach(pid=>layoutChildren(st,pid));
+  /* Re-space the whole diagram rather than only the deleted box's parent:
+     the gap it left cascades — a lone remaining sibling stays off to one
+     side, everything below it keeps the old column, and the canvas keeps
+     the height it grew to. */
+  realignStructure(st);
   /* if that was the last box of its kind, its pages and glossary terms go
      with it — the deck shouldn't keep explaining a trust it no longer has */
   if(removed&&removed.entKey){
@@ -2629,6 +2631,98 @@ function layoutChildren(st,parentId){
   st.canvasH=Math.max(st.canvasH,lowest+16);
 }
 
+/* ── re-align the whole diagram ───────────────────────────────────
+   Deleting a box leaves every survivor sitting on the coordinates it was
+   given while the deleted one was still there: a lone remaining child
+   stays parked off to one side where its sibling used to be, the row
+   above keeps the gap the removed block left, and the canvas keeps the
+   height it grew to. Nudging the affected parent isn't enough, because
+   the shift cascades — so positions are rebuilt from the connections.
+
+   Layout is bottom-up: leaves are packed left to right in their existing
+   order (so nothing jumps sides), each parent is centred over the span of
+   its children, and the finished tree is centred on the canvas. Depth
+   comes from the first inbound connector, which is what the drawing is
+   read down anyway. Shareholders are placed last, as a row over the
+   entity they hold — see layoutShareholderRow.
+
+   Only called when the shape of the structure changes (a delete, or a
+   shareholder added), never on a plain redraw: a box dragged somewhere
+   deliberate has to survive the next build. */
+const RELAYOUT_GAP_Y=20, RELAYOUT_GAP_X=8, RELAYOUT_TOP=10;
+function realignStructure(st){
+  st=st||STATE.struct;
+  if(!st||!st.nodes||!st.nodes.length)return;
+
+  const byId={};st.nodes.forEach(n=>byId[n.id]=n);
+  const ents=st.nodes.filter(n=>n.kind!=='shareholder');
+  if(!ents.length){layoutShareholderRow(st);return;}
+
+  /* first inbound connector from another entity is the parent; a
+     shareholder feeding a box doesn't make the box its child here,
+     because shareholders are laid out separately on top */
+  const parentOf={},kids={};
+  ents.forEach(n=>kids[n.id]=[]);
+  st.edges.forEach(e=>{
+    const a=byId[e.from],b=byId[e.to];
+    if(!a||!b||a.kind==='shareholder'||b.kind==='shareholder')return;
+    if(!parentOf[b.id]&&a.id!==b.id)parentOf[b.id]=a.id;
+  });
+  ents.forEach(n=>{
+    const p=parentOf[n.id];
+    /* guard against a cycle in hand-edited state — a node that would end
+       up its own ancestor is treated as a root instead of recursing */
+    if(p&&kids[p]&&!isAncestor(parentOf,p,n.id))kids[p].push(n);
+    else delete parentOf[n.id];
+  });
+  Object.keys(kids).forEach(k=>kids[k].sort((a,b)=>a.x-b.x));
+  const roots=ents.filter(n=>!parentOf[n.id]).sort((a,b)=>a.x-b.x);
+
+  /* vertical: each child sits a fixed gap below whatever feeds it, so
+     siblings share a line however different their parents' heights are */
+  const shTop=st.nodes.filter(n=>n.kind==='shareholder');
+  const shH=shTop.length?Math.max.apply(null,shTop.map(nodeDim).map(d=>d.h)):0;
+  const top=shTop.length?RELAYOUT_TOP+shH+16:RELAYOUT_TOP;
+  (function setY(list,y){
+    list.forEach(n=>{n.y=y;setY(kids[n.id],y+nodeDim(n).h+RELAYOUT_GAP_Y);});
+  })(roots,top);
+
+  /* horizontal: leaves packed in order, parents centred over their span */
+  let cursor=0;
+  const setX=n=>{
+    const w=nodeDim(n).w,ks=kids[n.id];
+    if(!ks.length){n.x=cursor;cursor+=w+RELAYOUT_GAP_X;return;}
+    ks.forEach(setX);
+    const last=ks[ks.length-1];
+    n.x=(ks[0].x+last.x+nodeDim(last).w)/2-w/2;
+    cursor=Math.max(cursor,n.x+w+RELAYOUT_GAP_X);
+  };
+  roots.forEach(setX);
+
+  /* centre the finished tree on the canvas */
+  const minX=Math.min.apply(null,ents.map(n=>n.x));
+  const maxX=Math.max.apply(null,ents.map(n=>n.x+nodeDim(n).w));
+  const shift=(st.canvasW-(maxX-minX))/2-minX;
+  ents.forEach(n=>{n.x=Math.max(0,Math.min(st.canvasW-nodeDim(n).w,n.x+shift));});
+
+  layoutShareholderRow(st);
+
+  const lowest=st.nodes.reduce((m,n)=>Math.max(m,n.y+nodeDim(n).h),0);
+  /* shrink back as well as grow — a canvas left at the height of a
+     structure that's since been trimmed prints a page of empty space */
+  st.canvasH=Math.max(150,Math.round(lowest+16));
+}
+
+/* would making `childId` a child of `parentId` close a loop? */
+function isAncestor(parentOf,nodeId,candidateId){
+  let cur=nodeId,guard=0;
+  while(cur&&guard++<200){
+    if(cur===candidateId)return true;
+    cur=parentOf[cur];
+  }
+  return false;
+}
+
 /* Recompute which extra entity kinds are present from the diagram itself,
    rather than incrementing a counter — that way removing a box, or removing
    one of two trusts, lands on the right answer without bookkeeping. */
@@ -2792,20 +2886,68 @@ function setEntityField(id,field,value){
   liveBuild(0);
 }
 
-/* Lay the shareholders out as a centred row at the top, evenly spaced —
-   what the decks show when a company is held by several partners. Called
-   whenever one is added or removed so the group stays balanced instead of
-   drifting left as they accumulate. */
+/* Lay the shareholders out as an evenly spaced row above the entity they
+   hold — what the decks show when a company is held by several partners.
+   Grouped by that entity, so two holders of one company sit either side of
+   its centre line while a holder of something else isn't dragged into the
+   same row.
+
+   This runs for a single shareholder too: after its partner is deleted the
+   survivor would otherwise stay parked at the left-hand end of where the
+   pair used to sit, with its connector running in at an angle. */
 function layoutShareholderRow(st){
   if(!st)return;
   const sh=st.nodes.filter(n=>n.kind==='shareholder');
-  if(sh.length<2)return;
-  const d=NODE_DIM.shareholder;
+  if(!sh.length)return;
+  const byId={};st.nodes.forEach(n=>byId[n.id]=n);
   const gap=6;
-  const total=sh.length*d.w+(sh.length-1)*gap;
-  let x=Math.max(0,(st.canvasW-total)/2);
-  const y=Math.min.apply(null,sh.map(n=>n.y));
-  sh.sort((a,b)=>a.x-b.x).forEach(n=>{n.x=x;n.y=y;x+=d.w+gap;});
+
+  const groups={};
+  sh.forEach(n=>{
+    const e=st.edges.find(x=>x.from===n.id&&byId[x.to]);
+    (groups[e?e.to:'_']=groups[e?e.to:'_']||[]).push(n);
+  });
+
+  Object.keys(groups).forEach(key=>{
+    const row=groups[key].sort((a,b)=>a.x-b.x);
+    const widths=row.map(n=>nodeDim(n).w);
+    const total=widths.reduce((a,b)=>a+b,0)+gap*(row.length-1);
+    const t=byId[key];
+    const cx=t?(t.x+nodeDim(t).w/2):st.canvasW/2;
+    let x=Math.max(0,Math.min(st.canvasW-total,cx-total/2));
+    const y=Math.min.apply(null,row.map(n=>n.y));
+    row.forEach((n,i)=>{n.x=x;n.y=y;x+=widths[i]+gap;});
+  });
+}
+
+/* ── shareholders, added the way entities are ─────────────────────
+   From the panel of the box they relate to: clicking a shareholder adds a
+   second holder of the same entity, clicking an entity adds a holder of
+   that entity. Either way the row is re-centred over what it holds, so the
+   blocks sit either side of the company rather than the new one being
+   tacked on at the right-hand end. */
+function addShareholderFor(id){
+  const st=STATE.struct;if(!st)return;
+  const n=st.nodes.find(x=>x.id===id);if(!n)return;
+  const target=n.kind==='shareholder'
+    ? (st.edges.find(e=>e.from===id)||{}).to
+    : n.id;
+  const d=NODE_DIM.shareholder;
+  const sh=st.nodes.filter(x=>x.kind==='shareholder');
+  /* level with the shareholders already there; failing that, a row's worth
+     above whatever it's being attached to */
+  const y=sh.length?Math.min.apply(null,sh.map(x=>x.y))
+                   :Math.max(0,n.y-d.h-16);
+  const nid=newStructId();
+  st.nodes.push({id:nid,kind:'shareholder',label:'SHAREHOLDER',
+    x:n.x+d.w+6,y:y,primary:false,cap:''});
+  if(target)st.edges.push({id:newStructId(),from:nid,to:target,label:''});
+  layoutShareholderRow(st);
+  st.canvasH=Math.max(st.canvasH,st.nodes.reduce((m,x)=>Math.max(m,x.y+nodeDim(x).h),0)+16);
+  renderStructEditorUI();
+  redrawStructure();
+  liveBuild(0);
+  openEntityPanel(nid);   /* land on the new block, ready to name it */
 }
 
 /* The 100% tally relevant to the box being edited, listing each owner so a
@@ -2897,6 +3039,21 @@ function openEntityPanel(id){
 
     '<div style="font-size:11px;font-weight:700;color:#130429;margin-bottom:6px">Add to this entity</div>'+
     (addonRows||'<div style="font-size:11px;color:#5A5468">No standard add-ons apply to this box.</div>')+
+
+    '<div style="font-size:11px;font-weight:700;color:#130429;margin:16px 0 2px">'+
+      (n.kind==='shareholder'?'Add another shareholder':'Add a shareholder')+'</div>'+
+    '<div style="font-size:10.5px;color:#8a8596;margin-bottom:7px">'+
+      (n.kind==='shareholder'
+        ? 'Joins the same entity this one holds. Split the percentages between them so they total 100%.'
+        : 'Sits above this box and holds it. Two or more are drawn as a single bus into the entity.')+'</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:5px">'+
+      '<button type="button" onclick="addShareholderFor(\''+id+'\')" '+
+      'style="width:auto;margin:0;padding:5px 9px;background:#fff;border:1px solid #CDD4DA;'+
+      'border-radius:14px;font-family:var(--sans);font-size:10.5px;color:#130429;cursor:pointer" '+
+      'onmouseover="this.style.borderColor=\'#B59433\';this.style.color=\'#B59433\'" '+
+      'onmouseout="this.style.borderColor=\'#CDD4DA\';this.style.color=\'#130429\'">'+
+      '+ Shareholder</button>'+
+    '</div>'+
 
     '<div style="font-size:11px;font-weight:700;color:#130429;margin:16px 0 2px">Add an entity beneath this one</div>'+
     '<div style="font-size:10.5px;color:#8a8596;margin-bottom:7px">'+
