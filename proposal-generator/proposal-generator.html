@@ -4,6 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Aurevya Wealth — Proposal Generator</title>
+<!-- Favicon inlined as a data URI rather than a file reference: this page
+     is opened straight off disk as often as it is served, and the decks it
+     exports are single self-contained files with no assets folder beside
+     them. A 32px render of the monogram costs about 2 KB. -->
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -3822,10 +3828,18 @@ function pgStructure(st){
 function pgACKeyFeatures(){
   const k=AC_KEYFEATURES;
   return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:22pt">'+k.title+'</h1>'+
-    '<div style="display:grid;grid-template-columns:34% 33% 33%;gap:6mm;margin-top:5mm">'+
+    /* 13mm, not 5: it puts the photograph's top edge at 33mm down the page,
+       which is where it sits in the source deck (measured off page 11 of
+       AWL_PROPOSAL_AC_20260805.pdf — photo at 33.3mm, title at 13.1mm). At
+       5mm the block started at ~25mm, level with the crest, so the right-hand
+       column ran straight into the logo. */
+    '<div style="display:grid;grid-template-columns:34% 33% 33%;gap:6mm;margin-top:13mm">'+
     slot('keyfeatures-photograph','photograph',{style:'height:70mm;'})+
-    '<div class="col">'+k.blocks.map(b=>'<h4>'+b.h+'</h4><p>'+b.p+'</p>').join('')+'</div>'+
-    '<div class="col"><ol style="padding-left:4mm;margin:0 0 3mm">'+
+    /* The source staggers the text below the photograph rather than aligning
+       the two — its columns start 26.6mm under a 159.5mm photo, so ~17% of
+       the image height. Ours is 70mm, hence 12mm. */
+    '<div class="col" style="padding-top:12mm">'+k.blocks.map(b=>'<h4>'+b.h+'</h4><p>'+b.p+'</p>').join('')+'</div>'+
+    '<div class="col" style="padding-top:12mm"><ol style="padding-left:4mm;margin:0 0 3mm">'+
       k.prohibited.map(x=>'<li style="font-size:7.4pt;line-height:1.42;color:var(--slate);margin-bottom:1.4mm">'+x+'</li>').join('')+
       '</ol>'+k.tail.map(t=>'<p>'+t+'</p>').join('')+'</div></div>'+foot()+'</div>');
 }
@@ -4371,8 +4385,12 @@ function buildExportHTML(){
      it has no business in a delivered document */
   clone.querySelectorAll('[data-sec]').forEach(el=>el.removeAttribute('data-sec'));
   const body=clone.innerHTML;
+  /* carry the favicon into the export — it's a data URI on this page, so the
+     delivered file keeps its tab icon with no assets folder alongside it */
+  const icon=document.querySelector('link[rel="icon"]');
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+
     p.label+' — '+($('fClient').value||'Proposal')+'</title>'+
+    (icon?'<link rel="icon" type="image/png" href="'+icon.getAttribute('href')+'">':'')+
     '<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">'+
     '<style>'+css+'\nbody{background:#fff}#app{display:block}#preview{padding:20px;height:auto}</style></head>'+
     '<body><div id="previewInner">'+body+'</div></body></html>';
