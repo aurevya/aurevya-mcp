@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>Upload Your KYC Documents — Aurevya Wealth</title>
+<!--
+  Per-party KYC upload.  /kyc-upload-party/<token>
+
+  This page replaces the React route of the same path. It is deliberately a
+  standalone file, alongside prequal.html and ubo-declaration-form.html, for
+  two reasons: the portal's React source has drifted well away from the
+  deployed bundle and can no longer rebuild it, and a public unauthenticated
+  form has no business living inside the staff/client application anyway.
+
+  Nothing here reads a table directly. Every call goes through a token-scoped
+  RPC (see rls-token-rpcs.sql), so the anon role holds no table grants and a
+  token can only ever reach its own record. The previous version selected
+  straight from structure_parties under a USING (true) policy, which returned
+  every party in every structure to anyone who asked.
+
+  Which checklist is shown depends on party_type, matching the React page:
+  individuals are asked for personal identity documents, corporate parties for
+  constitutional ones.
+-->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0f1e;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:24px 16px}
+.container{max-width:620px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#c9a227,#a07818);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0a0f1e}
+.logo-text{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:#c9a227}
+h1{font-size:24px;font-weight:600;margin-bottom:8px}
+.subtitle{color:#94a3b8;font-size:14px;line-height:1.6;margin-bottom:24px}
+.meta{background:#111a2e;border:1px solid #1e293b;border-radius:10px;padding:14px 16px;margin-bottom:24px;font-size:13px;color:#94a3b8}
+.meta b{color:#e2e8f0;font-weight:600}
+.doc{background:#111a2e;border:1px solid #1e293b;border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
+.doc-label{flex:1;font-size:13.5px;line-height:1.45}
+.doc-sub{display:block;font-size:11.5px;color:#64748b;margin-top:3px}
+.badge{font-size:11px;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.badge.pending{background:#3f2d0a;color:#e0b83c}
+.badge.approved{background:#0d2f1d;color:#4ade80}
+.badge.rejected{background:#3b1111;color:#f87171}
+label.upload{background:#c9a227;color:#0a0f1e;font-weight:600;font-size:12.5px;padding:8px 14px;border-radius:7px;cursor:pointer;white-space:nowrap}
+label.upload.busy{opacity:.55;cursor:default}
+input[type=file]{display:none}
+.state-card{background:#111a2e;border:1px solid #1e293b;border-radius:12px;padding:36px 28px;text-align:center}
+.state-icon{font-size:40px;margin-bottom:14px}
+.state-title{font-size:18px;font-weight:600;margin-bottom:8px}
+.state-title.red{color:#f87171}.state-title.green{color:#4ade80}
+.state-body{color:#94a3b8;font-size:14px;line-height:1.6}
+.error-msg{background:#3b1111;border:1px solid #7f1d1d;color:#fca5a5;border-radius:8px;padding:11px 14px;font-size:13px;margin-bottom:14px}
+.done{margin-top:22px;padding:14px 16px;background:#0d2f1d;border:1px solid #14532d;border-radius:10px;color:#86efac;font-size:13px;line-height:1.5}
+a{color:#c9a227}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo"><div class="logo-icon">A</div><div class="logo-text">Aurevya Wealth</div></div>
+  <div id="loading" class="state-card"><div class="state-icon">⏳</div><div class="state-title">Loading…</div></div>
+  <div id="not-found" style="display:none"></div>
+  <div id="main" style="display:none"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://wxwbfkhvkrwtmsgwdkjy.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4d2Jma2h2a3J3dG1zZ3dka2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTM5NDAsImV4cCI6MjA5NTg4OTk0MH0.RVFvV3Tu6vgIs3KvPsjOrfdsLaevncysHrirLjAATXM';
+
+/* Token comes from the path (/kyc-upload/<token>), which _redirects rewrites
+   onto this file while leaving the URL alone — so location.pathname still
+   carries it. Falls back to ?token= so the page can be linked either way. */
+const token = (location.pathname.split('/kyc-upload-party/')[1] || '').replace(/\/$/, '')
+           || new URLSearchParams(location.search).get('token') || '';
+
+const DOC_TYPES_INDIVIDUAL = [
+  {type:'Passport',             label:'Passport (certified copy)'},
+  {type:'National ID',          label:'National ID Card (certified copy)'},
+  {type:'Proof of Address',     label:'Proof of address — utility bill or bank statement (last 3 months)'},
+  {type:'Source of Wealth',     label:'Source of wealth declaration (signed)'},
+  {type:'Source of Funds',      label:'Source of funds documentation (bank statement or investment portfolio)'},
+  {type:'CV / Biography',       label:'CV / biography (for directors and trustees)'},
+  {type:'Company Registration', label:'Company registration documents (if applicable)'},
+  {type:'UBO Declaration',      label:'UBO Declaration (download, complete and upload)'}
+];
+
+const DOC_TYPES_CORPORATE = [
+  {type:'Certificate of Incorporation', label:'Certificate of Incorporation (certified copy)'},
+  {type:'Memorandum & Articles',        label:'Memorandum & Articles of Association'},
+  {type:'Register of Directors',        label:'Register of Directors'},
+  {type:'Register of Shareholders',     label:'Register of Shareholders / Members'},
+  {type:'Good Standing',                label:'Certificate of Good Standing (issued within 3 months)'},
+  {type:'UBO Declaration',              label:'UBO Declaration (download, complete and upload)'}
+];
+
+/* set once the party is known */
+let DOC_TYPES = DOC_TYPES_INDIVIDUAL;
+
+const H = {'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY};
+
+/* Every read and write is an RPC. Errors are surfaced rather than swallowed:
+   the page this replaces ignored the result of its insert, so a rejected
+   write looked identical to a successful one. */
+async function rpc(fn, args){
+  const r = await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn, {
+    method:'POST', headers:H, body:JSON.stringify(args||{})
+  });
+  const text = await r.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch(e){ data = text; }
+  if(!r.ok) throw new Error((data && data.message) || ('Request failed ('+r.status+')'));
+  return data;
+}
+
+let record = null, docs = [];
+
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function show(id){ ['loading','not-found','main'].forEach(x=>{
+  const el=document.getElementById(x); if(el) el.style.display = (x===id?'':'none'); }); }
+
+function notFound(){
+  document.getElementById('not-found').innerHTML =
+    '<div class="state-card"><div class="state-icon">⚠️</div>'+
+    '<div class="state-title red">Link Not Found</div>'+
+    '<div class="state-body">This link is invalid or has expired. '+
+    'Please contact your Aurevya advisor at '+
+    '<a href="mailto:byappointment@aurevya.com">byappointment@aurevya.com</a>.</div></div>';
+  show('not-found');
+}
+
+async function init(){
+  if(!token){ notFound(); return; }
+  try{
+    const rows = await rpc('party_by_upload_token', {p_token: token});
+    if(!rows || !rows.length){ notFound(); return; }
+    record = rows[0];
+    DOC_TYPES = record.party_type === 'corporate' ? DOC_TYPES_CORPORATE : DOC_TYPES_INDIVIDUAL;
+    docs = await rpc('kyc_documents_by_upload_token', {p_token: token}) || [];
+    render();
+  }catch(e){ notFound(); }
+}
+
+function docFor(type){ return docs.filter(d => d.document_type === type)[0] || null; }
+
+function render(){
+  const outstanding = DOC_TYPES.filter(d => !docFor(d.type)).length;
+  document.getElementById('main').innerHTML =
+    '<h1>Upload Your KYC Documents</h1>'+
+    '<p class="subtitle">You have been named as a party in the structure below, so we need '+
+    'certified copies of the documents listed. You can upload them one at a time and come '+
+    'back to this link at any point.</p>'+
+    '<div class="meta"><b>'+esc(record.full_name)+'</b>'+
+      (record.roles && record.roles.length ? ' · '+esc(record.roles.join(' / ')) : '')+
+      (record.structure_name ? '<br>Structure: '+esc(record.structure_name)+
+        (record.service_type ? ' · '+esc(record.service_type) : '') : '')+'</div>'+
+    '<div id="err"></div>'+
+    DOC_TYPES.map(d => {
+      const got = docFor(d.type);
+      return '<div class="doc">'+
+        '<div class="doc-label">'+esc(d.label)+
+          (got ? '<span class="doc-sub">'+esc(got.file_name)+'</span>' : '')+'</div>'+
+        (got
+          ? '<span class="badge '+esc(got.status||'pending')+'">'+esc(got.status||'pending')+'</span>'
+          : '<label class="upload" for="f_'+esc(d.type)+'">Upload'+
+            '<input type="file" id="f_'+esc(d.type)+'" '+
+            'onchange="upload('+JSON.stringify(d.type).replace(/"/g,'&quot;')+',this)"/></label>')+
+      '</div>';
+    }).join('')+
+    (outstanding === 0
+      ? '<div class="done">All requested documents have been received. Our compliance team '+
+        'will be in touch if anything further is needed.</div>'
+      : '');
+  show('main');
+}
+
+function setErr(msg){
+  const el = document.getElementById('err');
+  if(el) el.innerHTML = msg ? '<div class="error-msg">'+esc(msg)+'</div>' : '';
+}
+
+async function upload(type, input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  setErr('');
+  const lbl = input.parentElement;
+  lbl.classList.add('busy'); lbl.childNodes[0].nodeValue = 'Uploading…';
+  try{
+    /* Same object-path convention the React page used, so anything already
+       uploaded stays where compliance expects to find it. */
+    const ext  = file.name.split('.').pop();
+    const path = 'party/'+record.id+'/'+type.replace(/[\s/&]+/g,'_')+'_'+Date.now()+'.'+ext;
+
+    const up = await fetch(SUPABASE_URL+'/storage/v1/object/kyc-documents/'+encodeURI(path), {
+      method:'POST',
+      headers:{'apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY,
+               'Content-Type':file.type||'application/octet-stream'},
+      body:file
+    });
+    if(!up.ok) throw new Error('Upload failed ('+up.status+'). Please try again.');
+
+    await rpc('record_kyc_upload', {
+      p_token: token, p_document_type: type, p_file_name: file.name,
+      p_file_path: path, p_file_size: file.size, p_mime_type: file.type || null
+    });
+
+    docs = await rpc('kyc_documents_by_upload_token', {p_token: token}) || [];
+    render();
+  }catch(e){
+    lbl.classList.remove('busy'); lbl.childNodes[0].nodeValue = 'Upload';
+    setErr(e.message || 'Something went wrong. Please try again.');
+  }
+}
+
+init();
+</script>
+</body>
+</html>

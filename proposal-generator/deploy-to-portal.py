@@ -134,6 +134,50 @@ ROUTE_ORIGINAL = 'path:"proposals",element:n.jsx(RS,{})'
 INCLUDE_EXTS = {".html", ".png", ".json", ".md"}
 SKIP_DIRS = {"raw"}
 
+# ── 3. Favicon ───────────────────────────────────────────────────────────
+# The deployed zip still carries the placeholder favicon.svg (a gold "A" on
+# a navy plate) that shipped with the original Vite scaffold. These replace
+# it with the real Aurevya monogram, and the <link> tags in index.html are
+# repointed to match. The .ico holds 16/32/48 renders, each downsampled from
+# its own high-resolution draw — the vine is hairline-thin, and one image
+# scaled down by the browser loses the strokes entirely.
+#
+# Source files live in this folder's assets/, so they travel with the
+# generator and there is nothing extra to remember to copy.
+FAVICON_FILES = ["favicon.ico", "favicon.png", "apple-touch-icon.png"]
+
+# ── 4. Public forms ──────────────────────────────────────────────────────
+# The unauthenticated pages — the two KYC upload links, the UBO declaration
+# and the pre-qualification questionnaire — are served as standalone HTML
+# from the site root, not through the React bundle, along with the
+# _redirects that route to them.
+#
+# They live outside the bundle because the portal's React source has drifted
+# a long way from what is deployed (the live build has fourteen routes the
+# source has never had) and can no longer rebuild it. Keeping the public
+# forms as plain files means they can be changed, reviewed and tested
+# without touching the bundle at all — and a form open to the whole internet
+# is better off outside the staff application regardless.
+#
+# Each one talks to the database only through the token-scoped RPCs in
+# rls-token-rpcs.sql. Deploy this at the same time as running that script:
+# the pages need the functions, and the functions are what let the old
+# blanket-read policies be dropped.
+PUBLIC_DIR = ROOT / "portal-public"
+PUBLIC_FILES = [
+    "kyc-upload.html",
+    "kyc-upload-party.html",
+    "ubo-declaration-form.html",
+    "prequal.html",
+    "_redirects",
+]
+FAVICON_OLD_LINK = '<link rel="icon" type="image/svg+xml" href="/favicon.svg" />'
+FAVICON_NEW_LINK = (
+    '<link rel="icon" href="/favicon.ico" sizes="any" />\n'
+    '    <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512" />\n'
+    '    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />'
+)
+
 
 def main():
     print(f"Latest deploy found: {SOURCE_ZIP.name}")
@@ -182,31 +226,90 @@ def main():
         else:
             print("  route: neither iframe nor original form found — leaving untouched")
 
+        # -- favicon: point index.html at the real monogram ---------------
+        # Derive the zip's top-level folder from the bundle path rather than
+        # hardcoding it, so this keeps working if the dist folder is renamed.
+        root = BUNDLE_PATH.split("/")[0]
+        index_path = f"{root}/index.html"
+        index_html = None
+        if index_path in names:
+            index_html = zin.read(index_path).decode("utf-8")
+            if FAVICON_NEW_LINK.splitlines()[0] in index_html:
+                print("  favicon already wired up in index.html — skipping")
+            elif FAVICON_OLD_LINK in index_html:
+                index_html = index_html.replace(FAVICON_OLD_LINK, FAVICON_NEW_LINK)
+                print("  favicon: index.html repointed from the placeholder to the monogram")
+            else:
+                print("  favicon: no recognised <link rel=icon> in index.html — left untouched")
+                index_html = None
+        else:
+            print(f"  favicon: {index_path} not in the zip — skipping")
+
+        missing_icons = [f for f in FAVICON_FILES if not (HERE / "assets" / f).exists()]
+        if missing_icons:
+            print("  favicon: missing from assets/ — " + ", ".join(missing_icons))
+
+        # Work out what this run will write from disk, so those entries can
+        # be skipped when copying the source zip across. Without this, every
+        # re-run appends a second copy of each generator file and each icon
+        # under a name already in the archive — the zip still works (readers
+        # take the first match) but it grows on every deploy and hides the
+        # fact that the older copy is the one being served.
+        from_disk = {}
+        for path in HERE.rglob("*"):
+            if path.is_dir():
+                continue
+            rel = path.relative_to(HERE)
+            if any(part in SKIP_DIRS for part in rel.parts):
+                continue
+            if path.suffix.lower() not in INCLUDE_EXTS:
+                continue
+            from_disk[f"{root}/proposal-generator/{rel.as_posix()}"] = path
+        for name in FAVICON_FILES:
+            src = HERE / "assets" / name
+            if src.exists():
+                from_disk[f"{root}/{name}"] = src
+
+        missing_public = []
+        for name in PUBLIC_FILES:
+            src = PUBLIC_DIR / name
+            if src.exists():
+                from_disk[f"{root}/{name}"] = src
+            else:
+                missing_public.append(name)
+        if missing_public:
+            # Loud, because a half-deployed set is worse than none: the
+            # _redirects could point at a page that isn't there.
+            sys.exit(
+                "portal-public/ is missing: " + ", ".join(missing_public) +
+                "\nNothing has been written. These files and the RPCs in "
+                "rls-token-rpcs.sql have to ship together."
+            )
+        print(f"  public forms: {len(PUBLIC_FILES)} file(s) from portal-public/")
+
         print(f"Writing {OUTPUT_ZIP.name} ...")
         with zipfile.ZipFile(OUTPUT_ZIP, "w", zipfile.ZIP_DEFLATED) as zout:
-            # copy everything from the source zip, substituting the patched bundle
+            # copy everything from the source zip, substituting the patched
+            # bundle and (if it was rewritten) index.html, and leaving out
+            # anything about to be written fresh from disk
+            replaced = 0
             for item in zin.infolist():
+                if item.filename in from_disk:
+                    replaced += 1
+                    continue
                 if item.filename == BUNDLE_PATH:
                     data = patched.encode("utf-8")
+                elif index_html is not None and item.filename == index_path:
+                    data = index_html.encode("utf-8")
                 else:
                     data = zin.read(item.filename)
                 zout.writestr(item, data)
 
-            # add the new generator + its assets under dist132/proposal-generator/
-            added = 0
-            for path in HERE.rglob("*"):
-                if path.is_dir():
-                    continue
-                if any(part in SKIP_DIRS for part in path.relative_to(HERE).parts):
-                    continue
-                if path.suffix.lower() not in INCLUDE_EXTS:
-                    continue
-                rel = path.relative_to(HERE)
-                arcname = f"dist132/proposal-generator/{rel.as_posix()}"
+            for arcname, path in from_disk.items():
                 zout.write(path, arcname)
-                added += 1
+            added = len(from_disk)
 
-    print(f"  {added} generator files added under proposal-generator/")
+    print(f"  {added} files written from disk ({replaced} refreshed in place)")
     print(f"\nDone: {OUTPUT_ZIP}")
     print("Drag this zip onto your Netlify site to deploy.")
 

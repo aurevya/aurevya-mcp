@@ -1,0 +1,12 @@
+# Public, unauthenticated forms are served as standalone pages, not through
+# the React app. 200 rewrites, so the browser keeps the original URL and the
+# page can still read its token out of location.pathname.
+#
+# These four lines must come before the catch-all: Netlify takes the first
+# match, so a /* rule above them would swallow everything.
+/prequal/*            /prequal.html            200
+/kyc-upload/*         /kyc-upload.html         200
+/kyc-upload-party/*   /kyc-upload-party.html   200
+/ubo-declaration/*    /ubo-declaration-form.html 200
+
+/*                    /index.html              200

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>UBO Declaration Form — Aurevya Wealth Management</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0f1e;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:24px 16px}
+.container{max-width:580px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#c9a227,#a07818);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#0a0f1e}
+.logo-name{font-weight:700;font-size:16px;color:#e2e8f0}
+.logo-sub{font-size:11px;color:#c9a227}
+.card{background:#0f1623;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:28px}
+h1{font-size:18px;font-weight:700;color:#c9a227;margin-bottom:4px}
+.subtitle{font-size:13px;color:#8fa3bc;margin-bottom:24px;line-height:1.5}
+.section{margin-bottom:20px}
+.section-title{font-size:11px;font-weight:700;color:#c9a227;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(201,162,39,0.2)}
+.field{margin-bottom:14px}
+label{display:block;font-size:12px;color:#8fa3bc;margin-bottom:5px;font-weight:500}
+input,textarea,select{width:100%;padding:9px 12px;border-radius:7px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:#e2e8f0;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
+input:focus,textarea:focus,select:focus{border-color:rgba(201,162,39,0.5)}
+textarea{resize:vertical;min-height:72px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.radio-group{display:flex;gap:16px;margin-top:4px}
+.radio-group label{display:flex;align-items:center;gap:6px;font-size:13px;color:#e2e8f0;cursor:pointer;font-weight:400}
+.radio-group input[type=radio]{width:auto;cursor:pointer}
+.sig-wrap{border:1px solid rgba(255,255,255,0.1);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.03)}
+canvas{display:block;touch-action:none;cursor:crosshair}
+.sig-footer{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-top:1px solid rgba(255,255,255,0.07)}
+.sig-hint{font-size:11px;color:#8fa3bc}
+.btn-clear{background:none;border:1px solid rgba(255,255,255,0.1);color:#8fa3bc;font-size:11px;padding:3px 10px;border-radius:5px;cursor:pointer}
+.btn-clear:hover{border-color:rgba(239,68,68,0.4);color:#ef4444}
+.decl-check{display:flex;gap:10px;align-items:flex-start;padding:14px;background:rgba(201,162,39,0.05);border:1px solid rgba(201,162,39,0.15);border-radius:8px}
+.decl-check input[type=checkbox]{width:16px;height:16px;flex-shrink:0;margin-top:2px;cursor:pointer;accent-color:#c9a227}
+.decl-check span{font-size:12px;color:#c9b96b;line-height:1.6}
+.btn-submit{width:100%;padding:13px;border-radius:9px;border:none;background:#c9a227;color:#0a0f1e;font-size:14px;font-weight:700;cursor:pointer;margin-top:20px;transition:opacity .2s}
+.btn-submit:disabled{opacity:.45;cursor:not-allowed}
+.success{text-align:center;padding:40px 20px}
+.success-icon{font-size:48px;margin-bottom:16px}
+.success h2{color:#10B981;font-size:20px;margin-bottom:8px}
+.success p{color:#8fa3bc;font-size:14px;line-height:1.6}
+.error-msg{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:7px;padding:10px 14px;font-size:13px;color:#ef4444;margin-top:12px}
+.loading{text-align:center;padding:60px 20px;color:#8fa3bc}
+select option{background:#0f1623}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div><div class="logo-name">Aurevya Wealth Management</div><div class="logo-sub">Secure UBO Declaration</div></div>
+  </div>
+
+  <div class="card" id="main">
+    <div class="loading" id="loading">Loading…</div>
+    <div id="form-wrap" style="display:none"></div>
+    <div class="success" id="success" style="display:none">
+      <div class="success-icon">✅</div>
+      <h2>Declaration Submitted</h2>
+      <p>Thank you. Your UBO Declaration has been received.<br>Aurevya Wealth Management has been notified.</p>
+    </div>
+    <div class="success" id="already-done" style="display:none">
+      <div class="success-icon">✅</div>
+      <h2>Already Submitted</h2>
+      <p>Your UBO Declaration has already been submitted successfully.<br>No further action is required.</p>
+    </div>
+    <div id="not-found" style="display:none;text-align:center;padding:40px 20px">
+      <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+      <p style="color:#ef4444;font-size:14px">Invalid or expired link. Please contact your advisor.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://wxwbfkhvkrwtmsgwdkjy.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4d2Jma2h2a3J3dG1zZ3dka2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTM5NDAsImV4cCI6MjA5NTg4OTk0MH0.RVFvV3Tu6vgIs3KvPsjOrfdsLaevncysHrirLjAATXM';
+const H = {'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY};
+
+/* Everything goes through a token-scoped RPC now (see rls-token-rpcs.sql).
+   The page used to select straight from structure_parties and insert straight
+   into ubo_declarations, both under USING (true) / WITH CHECK (true) policies
+   — so any visitor could read every party in every structure, and file a
+   declaration against any party_id they cared to name. The token is now
+   checked by the database rather than assumed by the page.
+
+   No Prefer: return=representation. Once the SELECT policies are dropped,
+   asking for the row back makes the whole write fail. */
+async function rpc(fn,args){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{
+    method:'POST',headers:H,body:JSON.stringify(args||{})});
+  const text=await r.text();
+  let data=null;
+  try{data=text?JSON.parse(text):null;}catch(e){data=text;}
+  if(!r.ok)throw new Error((data&&data.message)||('Request failed ('+r.status+')'));
+  return data;
+}
+
+const token = new URLSearchParams(location.search).get('token');
+let party = null;
+let canvasEl, ctx2d, isDrawing=false, hasSig=false;
+
+async function init(){
+  if(!token){show('not-found');return;}
+  try{
+    const data = await rpc('party_by_upload_token',{p_token:token});
+    if(!data||!data.length){show('not-found');return;}
+    party = data[0];
+    if(await rpc('ubo_declaration_exists',{p_token:token})){show('already-done');return;}
+  }catch(e){show('not-found');return;}
+  renderForm();
+}
+
+function show(id){
+  document.getElementById('loading').style.display='none';
+  document.getElementById(id).style.display='';
+}
+
+function renderForm(){
+  document.getElementById('loading').style.display='none';
+  const wrap = document.getElementById('form-wrap');
+  wrap.style.display='';
+  wrap.innerHTML = `
+    <h1>UBO Declaration Form</h1>
+    <p class="subtitle">As a Shareholder of ${escHtml(party.full_name||'')}'s structure, you are required to complete this Ultimate Beneficial Owner declaration. All information is held in strict confidence.</p>
+    <div class="section">
+      <div class="section-title">Personal Details</div>
+      <div class="field"><label>Full Legal Name *</label><input id="f_name" value="${escHtml(party.full_name||'')}"/></div>
+      <div class="grid2">
+        <div class="field"><label>Date of Birth *</label><input id="f_dob" type="date"/></div>
+        <div class="field"><label>Nationality *</label><input id="f_nat" placeholder="e.g. British"/></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Country of Residence *</label><input id="f_res" placeholder="e.g. United Kingdom"/></div>
+        <div class="field"><label>Ownership / Control % *</label><input id="f_pct" type="number" min="0" max="100" placeholder="e.g. 25"/></div>
+      </div>
+      <div class="field"><label>Residential Address *</label><textarea id="f_addr" placeholder="Full residential address"></textarea></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Source of Wealth</div>
+      <div class="field"><label>Describe your source of wealth / funds *</label><textarea id="f_sow" placeholder="e.g. Business income, investment returns, inheritance..."></textarea></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Politically Exposed Person (PEP)</div>
+      <div class="field">
+        <label>Are you, or are you closely associated with, a Politically Exposed Person?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="pep" value="no" checked> No</label>
+          <label><input type="radio" name="pep" value="yes"> Yes</label>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Digital Signature</div>
+      <p style="font-size:12px;color:#8fa3bc;margin-bottom:10px">Please sign in the box below using your mouse or finger.</p>
+      <div class="sig-wrap"><canvas id="sigCanvas" height="150"></canvas><div class="sig-footer"><span class="sig-hint" id="sigHint">Draw your signature above</span><button class="btn-clear" onclick="clearSig()">Clear</button></div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Declaration</div>
+      <div class="decl-check"><input type="checkbox" id="decl" onchange="checkReady()"/><span>I declare that the information provided above is true, accurate and complete to the best of my knowledge and belief. I understand that providing false information is a criminal offence.</span></div>
+    </div>
+    <div id="err-msg"></div>
+    <button class="btn-submit" id="submitBtn" disabled onclick="submitForm()">Submit UBO Declaration</button>
+  `;
+  setupCanvas();
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function setupCanvas(){
+  canvasEl = document.getElementById('sigCanvas');
+  canvasEl.width = canvasEl.parentElement.offsetWidth || 540;
+  ctx2d = canvasEl.getContext('2d');
+  ctx2d.strokeStyle='#c9a227';ctx2d.lineWidth=2.5;ctx2d.lineCap='round';ctx2d.lineJoin='round';
+  // Mouse
+  canvasEl.addEventListener('mousedown',e=>{isDrawing=true;const p=pos(e);ctx2d.beginPath();ctx2d.moveTo(p.x,p.y);});
+  canvasEl.addEventListener('mousemove',e=>{if(!isDrawing)return;const p=pos(e);ctx2d.lineTo(p.x,p.y);ctx2d.stroke();markSig();});
+  canvasEl.addEventListener('mouseup',()=>isDrawing=false);
+  canvasEl.addEventListener('mouseleave',()=>isDrawing=false);
+  // Touch
+  canvasEl.addEventListener('touchstart',e=>{e.preventDefault();isDrawing=true;const p=pos(e.touches[0]);ctx2d.beginPath();ctx2d.moveTo(p.x,p.y);});
+  canvasEl.addEventListener('touchmove',e=>{e.preventDefault();if(!isDrawing)return;const p=pos(e.touches[0]);ctx2d.lineTo(p.x,p.y);ctx2d.stroke();markSig();});
+  canvasEl.addEventListener('touchend',()=>isDrawing=false);
+}
+
+function pos(e){const r=canvasEl.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+
+function markSig(){if(!hasSig){hasSig=true;document.getElementById('sigHint').textContent='Signature drawn ✓';document.getElementById('sigHint').style.color='#10B981';checkReady();}}
+
+function clearSig(){ctx2d.clearRect(0,0,canvasEl.width,canvasEl.height);hasSig=false;document.getElementById('sigHint').textContent='Draw your signature above';document.getElementById('sigHint').style.color='';checkReady();}
+
+function checkReady(){
+  const decl = document.getElementById('decl')&&document.getElementById('decl').checked;
+  const btn = document.getElementById('submitBtn');
+  if(btn) btn.disabled = !(decl && hasSig);
+}
+
+async function submitForm(){
+  const name=document.getElementById('f_name').value.trim();
+  const dob=document.getElementById('f_dob').value;
+  const nat=document.getElementById('f_nat').value.trim();
+  const res=document.getElementById('f_res').value.trim();
+  const pct=document.getElementById('f_pct').value;
+  const addr=document.getElementById('f_addr').value.trim();
+  const sow=document.getElementById('f_sow').value.trim();
+  const pep=document.querySelector('input[name=pep]:checked').value==='yes';
+  if(!name||!dob||!nat||!res||!pct||!addr||!sow){setErr('Please fill in all required fields.');return;}
+  const sigData = canvasEl.toDataURL('image/png');
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.textContent='Submitting…';
+  setErr('');
+  try{
+    /* One call: it derives party_id and onboarding_id from the token, refuses
+       a duplicate, and writes the companion kyc_documents row for compliance.
+       The previous version posted file_url and notes to kyc_documents —
+       neither is a column on that table, so that insert was being rejected
+       and the page never looked at the response. */
+    await rpc('submit_ubo_declaration',{
+      p_token:token,
+      p_full_name:name, p_date_of_birth:dob, p_nationality:nat,
+      p_country_of_residence:res, p_residential_address:addr,
+      p_ownership_percentage:parseFloat(pct), p_source_of_wealth:sow,
+      p_is_pep:pep, p_signature_data:sigData
+    });
+    show('success');
+  }catch(e){
+    setErr('Submission failed: '+e.message);
+    btn.disabled=false;btn.textContent='Submit UBO Declaration';
+  }
+}
+
+function setErr(msg){const el=document.getElementById('err-msg');if(el)el.innerHTML=msg?'<div class="error-msg">'+escHtml(msg)+'</div>':'';}
+
+init();
+</script>
+</body>
+</html>

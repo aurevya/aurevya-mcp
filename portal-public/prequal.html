@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pre-Qualification Form | Aurevya Wealth</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0a0f1e;
+      color: #e2e8f0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px 56px;
+    }
+
+    .card { width: 100%; max-width: 580px; }
+
+    .logo {
+      font-size: 18px; font-weight: 700; color: #c9a227;
+      letter-spacing: 0.08em; margin-bottom: 4px;
+    }
+    .tagline {
+      font-size: 11px; color: #8fa3bc; letter-spacing: 0.06em;
+      margin-bottom: 28px; text-transform: uppercase;
+    }
+    .heading { font-size: 22px; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
+    .subheading { font-size: 13px; color: #8fa3bc; margin-bottom: 28px; line-height: 1.7; }
+
+    .section-title {
+      font-size: 11px; font-weight: 700; color: #c9a227;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 14px; margin-top: 28px;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(201,162,39,0.2);
+    }
+
+    .field-group { margin-bottom: 18px; }
+
+    .field-label {
+      display: block; font-size: 12px; font-weight: 600; color: #8fa3bc;
+      margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .field-label .multi-hint {
+      color: #c9a227; margin-left: 4px; font-weight: 400; font-size: 11px;
+      text-transform: none;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+    }
+
+    .option-card {
+      padding: 10px 14px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: #94a3b8; font-size: 13px; cursor: pointer;
+      transition: all 0.15s; user-select: none;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .option-card:hover { border-color: rgba(201,162,39,0.3); color: #e2e8f0; }
+    .option-card.selected {
+      border-color: rgba(201,162,39,0.6);
+      background: rgba(201,162,39,0.1);
+      color: #e2e8f0;
+    }
+
+    .dot {
+      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.2); background: transparent;
+      transition: all 0.15s;
+    }
+    .option-card.selected .dot {
+      border: 4px solid #c9a227;
+    }
+
+    textarea {
+      width: 100%; padding: 10px 14px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: #e2e8f0; font-size: 13px; font-family: inherit;
+      outline: none; resize: vertical; min-height: 90px; line-height: 1.6;
+    }
+    textarea::placeholder { color: #4a5568; }
+    textarea:focus { border-color: rgba(201,162,39,0.4); }
+
+    .consent-box {
+      display: flex; align-items: flex-start; gap: 10px;
+      margin-top: 24px; margin-bottom: 24px; padding: 14px 16px;
+      background: rgba(201,162,39,0.05);
+      border: 1px solid rgba(201,162,39,0.15); border-radius: 8px;
+    }
+    .consent-box input[type="checkbox"] { margin-top: 2px; accent-color: #c9a227; cursor: pointer; flex-shrink: 0; }
+    .consent-box label { font-size: 13px; color: #e2e8f0; line-height: 1.7; cursor: pointer; }
+
+    .submit-btn {
+      width: 100%; padding: 14px; border-radius: 8px; border: none;
+      font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+      transition: all 0.2s; cursor: pointer;
+      background: rgba(201,162,39,0.2); color: #8fa3bc;
+    }
+    .submit-btn.ready {
+      background: #c9a227; color: #0a0f1e; cursor: pointer;
+    }
+    .submit-btn:disabled { cursor: not-allowed; }
+
+    .validation-hint { font-size: 11px; color: #F59E0B; margin-bottom: 12px; }
+
+    .state-card {
+      text-align: center; padding: 48px 28px; border-radius: 12px;
+    }
+    .state-card.success {
+      background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.2);
+    }
+    .state-card.error {
+      background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2);
+    }
+    .state-icon { font-size: 40px; margin-bottom: 14px; }
+    .state-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+    .state-title.green { color: #10B981; }
+    .state-title.red { color: #ef4444; }
+    .state-body { font-size: 13px; color: #8fa3bc; line-height: 1.7; }
+    .state-body a { color: #c9a227; }
+    .state-close { margin-top: 20px; font-size: 12px; color: rgba(143,163,188,0.5); }
+
+    .footer {
+      margin-top: 28px; font-size: 11px; color: rgba(143,163,188,0.4);
+      text-align: center; line-height: 1.6;
+    }
+    .footer a { color: rgba(201,162,39,0.5); text-decoration: none; }
+
+    #loading { text-align: center; padding-top: 80px; color: #8fa3bc; font-size: 14px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">AUREVYA</div>
+  <div class="tagline">Wealth Management · By Appointment</div>
+
+  <div id="loading">Loading your form…</div>
+  <div id="state-view" style="display:none;"></div>
+  <div id="form-view" style="display:none;">
+    <div class="heading">Pre-Qualification Form</div>
+    <div class="subheading" id="greeting"></div>
+
+    <form id="prequal-form" autocomplete="off" novalidate>
+
+      <div class="section-title">Your Interests</div>
+
+      <div class="field-group">
+        <span class="field-label">What services are you interested in? <span class="multi-hint">(select all that apply)</span></span>
+        <div class="option-grid" data-key="services" data-multi="true">
+          <div class="option-card" data-value="Offshore Company / GBC"><div class="dot"></div>Offshore Company / GBC</div>
+          <div class="option-card" data-value="Trust"><div class="dot"></div>Trust</div>
+          <div class="option-card" data-value="Foundation"><div class="dot"></div>Foundation</div>
+          <div class="option-card" data-value="Holding Structure"><div class="dot"></div>Holding Structure</div>
+          <div class="option-card" data-value="Private Wealth Management"><div class="dot"></div>Private Wealth Management</div>
+          <div class="option-card" data-value="Family Office"><div class="dot"></div>Family Office</div>
+          <div class="option-card" data-value="Estate Planning"><div class="dot"></div>Estate Planning</div>
+          <div class="option-card" data-value="Other"><div class="dot"></div>Other</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <span class="field-label">Preferred jurisdiction of interest</span>
+        <div class="option-grid" data-key="jurisdiction" data-multi="false">
+          <div class="option-card" data-value="Mauritius"><div class="dot"></div>Mauritius</div>
+          <div class="option-card" data-value="UAE / Dubai"><div class="dot"></div>UAE / Dubai</div>
+          <div class="option-card" data-value="British Virgin Islands"><div class="dot"></div>British Virgin Islands</div>
+          <div class="option-card" data-value="Cayman Islands"><div class="dot"></div>Cayman Islands</div>
+          <div class="option-card" data-value="Seychelles"><div class="dot"></div>Seychelles</div>
+          <div class="option-card" data-value="Singapore"><div class="dot"></div>Singapore</div>
+          <div class="option-card" data-value="No preference"><div class="dot"></div>No preference</div>
+        </div>
+      </div>
+
+      <div class="section-title">Your Situation</div>
+
+      <div class="field-group">
+        <span class="field-label">Primary objective</span>
+        <div class="option-grid" data-key="objective" data-multi="false">
+          <div class="option-card" data-value="Asset Protection"><div class="dot"></div>Asset Protection</div>
+          <div class="option-card" data-value="Wealth Structuring"><div class="dot"></div>Wealth Structuring</div>
+          <div class="option-card" data-value="Tax Efficiency"><div class="dot"></div>Tax Efficiency</div>
+          <div class="option-card" data-value="Business Expansion"><div class="dot"></div>Business Expansion</div>
+          <div class="option-card" data-value="Investment Holding"><div class="dot"></div>Investment Holding</div>
+          <div class="option-card" data-value="Succession / Estate"><div class="dot"></div>Succession / Estate</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <span class="field-label">Approximate assets / investment value</span>
+        <div class="option-grid" data-key="asset_value" data-multi="false">
+          <div class="option-card" data-value="Under $500K"><div class="dot"></div>Under $500K</div>
+          <div class="option-card" data-value="$500K – $1M"><div class="dot"></div>$500K – $1M</div>
+          <div class="option-card" data-value="$1M – $5M"><div class="dot"></div>$1M – $5M</div>
+          <div class="option-card" data-value="$5M – $10M"><div class="dot"></div>$5M – $10M</div>
+          <div class="option-card" data-value="Over $10M"><div class="dot"></div>Over $10M</div>
+          <div class="option-card" data-value="Prefer not to say"><div class="dot"></div>Prefer not to say</div>
+        </div>
+      </div>
+
+      <div class="section-title">Timing</div>
+
+      <div class="field-group">
+        <span class="field-label">Timeline to proceed</span>
+        <div class="option-grid" data-key="timeline" data-multi="false">
+          <div class="option-card" data-value="Immediately"><div class="dot"></div>Immediately</div>
+          <div class="option-card" data-value="Within 3 months"><div class="dot"></div>Within 3 months</div>
+          <div class="option-card" data-value="3 – 6 months"><div class="dot"></div>3 – 6 months</div>
+          <div class="option-card" data-value="6 – 12 months"><div class="dot"></div>6 – 12 months</div>
+          <div class="option-card" data-value="Just exploring"><div class="dot"></div>Just exploring</div>
+        </div>
+      </div>
+
+      <div class="section-title">Additional Info</div>
+
+      <div class="field-group">
+        <span class="field-label">Are you currently working with another wealth manager or advisor?</span>
+        <div class="option-grid" data-key="existing_advisor" data-multi="false">
+          <div class="option-card" data-value="Yes"><div class="dot"></div>Yes</div>
+          <div class="option-card" data-value="No"><div class="dot"></div>No</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <span class="field-label">Anything else you'd like us to know? <span style="color:#8fa3bc;font-weight:400;">(optional)</span></span>
+        <textarea id="notes" placeholder="Specific questions, existing structures, concerns, or context for your advisor…"></textarea>
+      </div>
+
+      <div class="consent-box">
+        <input type="checkbox" id="consent" />
+        <label for="consent">
+          I agree that Aurevya Wealth Management may use my responses to prepare for my consultation.
+          My information will be handled in accordance with applicable data protection regulations.
+        </label>
+      </div>
+
+      <div class="validation-hint" id="validation-hint" style="display:none;">
+        Please answer all questions before submitting.
+      </div>
+
+      <button type="submit" class="submit-btn" id="submit-btn" disabled>
+        Submit Pre-Qualification →
+      </button>
+    </form>
+  </div>
+
+  <div class="footer">
+    Aurevya Wealth Ltd · Secure &amp; Confidential ·
+    <a href="https://www.aurevya.com">www.aurevya.com</a>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://wxwbfkhvkrwtmsgwdkjy.supabase.co'
+  const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4d2Jma2h2a3J3dG1zZ3dka2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTM5NDAsImV4cCI6MjA5NTg4OTk0MH0.RVFvV3Tu6vgIs3KvPsjOrfdsLaevncysHrirLjAATXM'
+
+  const EMAILJS_URL = 'https://api.emailjs.com/api/v1.0/email/send'
+  const EMAILJS_SERVICE  = 'service_cj5jbwp'
+  const EMAILJS_TEMPLATE = 'template_generic'
+  const EMAILJS_KEY      = 'KvpkKpBBnGSjjVq3e'
+
+  async function sendEmail(to_email, to_name, subject, message) {
+    try {
+      await fetch(EMAILJS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: EMAILJS_SERVICE,
+          template_id: EMAILJS_TEMPLATE,
+          user_id: EMAILJS_KEY,
+          template_params: { to_email, to_name, subject, message }
+        })
+      })
+    } catch (e) { console.warn('Email send failed:', e) }
+  }
+
+  function formatAnswersForEmail(ans, notes) {
+    return [
+      'SERVICES INTERESTED IN: ' + (ans.services.join(', ') || '—'),
+      'PREFERRED JURISDICTION:  ' + (ans.jurisdiction || '—'),
+      'PRIMARY OBJECTIVE:       ' + (ans.objective || '—'),
+      'ASSET VALUE:             ' + (ans.asset_value || '—'),
+      'TIMELINE:                ' + (ans.timeline || '—'),
+      'EXISTING ADVISOR:        ' + (ans.existing_advisor || '—'),
+      notes ? 'ADDITIONAL NOTES:\n' + notes : null,
+    ].filter(Boolean).join('\n')
+  }
+
+  const REQUIRED_KEYS = ['services', 'jurisdiction', 'objective', 'asset_value', 'timeline', 'existing_advisor']
+
+  const answers = { services: [], jurisdiction: null, objective: null, asset_value: null, timeline: null, existing_advisor: null }
+  let record = null
+  let consentGiven = false
+
+  // Extract token from path: /prequal/<token>
+  const token = window.location.pathname.split('/prequal/')[1]?.replace(/\/$/, '')
+
+  /* Reads and writes go through token-scoped RPCs (see rls-token-rpcs.sql).
+     pre_qual_responses used to carry FOR SELECT USING (true) granted to
+     public, so anybody could read every prospect's contact details and
+     answers. The token is now checked by the database.
+
+     Note the absence of Prefer: return=representation — with the SELECT
+     policy gone, asking for the row back makes the write itself fail. */
+  function apiHeaders(extra = {}) {
+    return {
+      'apikey': ANON_KEY,
+      'Authorization': 'Bearer ' + ANON_KEY,
+      'Content-Type': 'application/json',
+      ...extra
+    }
+  }
+
+  async function rpc(fn, args) {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+      method: 'POST', headers: apiHeaders(), body: JSON.stringify(args || {})
+    })
+    const text = await r.text()
+    let data = null
+    try { data = text ? JSON.parse(text) : null } catch (e) { data = text }
+    if (!r.ok) throw new Error((data && data.message) || ('Request failed (' + r.status + ')'))
+    return data
+  }
+
+  function showState(type, icon, title, body, extra) {
+    document.getElementById('loading').style.display = 'none'
+    document.getElementById('form-view').style.display = 'none'
+    const el = document.getElementById('state-view')
+    el.style.display = 'block'
+    el.innerHTML = `
+      <div class="state-card ${type}">
+        <div class="state-icon">${icon}</div>
+        <div class="state-title ${type === 'success' ? 'green' : 'red'}">${title}</div>
+        <div class="state-body">${body}</div>
+        ${extra ? `<div class="state-close">${extra}</div>` : ''}
+      </div>`
+  }
+
+  function showForm() {
+    document.getElementById('loading').style.display = 'none'
+    document.getElementById('form-view').style.display = 'block'
+  }
+
+  function isComplete() {
+    return REQUIRED_KEYS.every(k => {
+      const v = answers[k]
+      return Array.isArray(v) ? v.length > 0 : v !== null && v !== undefined
+    })
+  }
+
+  function updateSubmitBtn() {
+    const btn = document.getElementById('submit-btn')
+    const ready = isComplete() && consentGiven
+    btn.disabled = !ready
+    btn.className = 'submit-btn' + (ready ? ' ready' : '')
+    const hint = document.getElementById('validation-hint')
+    hint.style.display = (!isComplete() && consentGiven) ? 'block' : 'none'
+  }
+
+  // Wire up option cards
+  document.querySelectorAll('[data-key]').forEach(grid => {
+    const key = grid.dataset.key
+    const multi = grid.dataset.multi === 'true'
+
+    grid.querySelectorAll('.option-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const val = card.dataset.value
+        if (multi) {
+          const idx = answers[key].indexOf(val)
+          if (idx > -1) { answers[key].splice(idx, 1); card.classList.remove('selected') }
+          else { answers[key].push(val); card.classList.add('selected') }
+        } else {
+          grid.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'))
+          answers[key] = val
+          card.classList.add('selected')
+        }
+        updateSubmitBtn()
+      })
+    })
+  })
+
+  document.getElementById('consent').addEventListener('change', e => {
+    consentGiven = e.target.checked
+    updateSubmitBtn()
+  })
+
+  document.getElementById('prequal-form').addEventListener('submit', async e => {
+    e.preventDefault()
+    if (!isComplete() || !consentGiven) return
+
+    const btn = document.getElementById('submit-btn')
+    btn.disabled = true
+    btn.textContent = 'Submitting…'
+
+    /* submit_prequal only updates a row whose submitted_at is still null, so
+       re-opening a completed link cannot overwrite what was sent. */
+    const ok = await rpc('submit_prequal', {
+      p_token: token,
+      p_responses: {
+          services: answers.services,
+          jurisdiction: answers.jurisdiction,
+          objective: answers.objective,
+          asset_value: answers.asset_value,
+          timeline: answers.timeline,
+          existing_advisor: answers.existing_advisor,
+          notes: document.getElementById('notes').value
+      }
+    })
+
+    if (ok) {
+      const firstName = (record.name || '').split(' ')[0] || 'there'
+      const notes = document.getElementById('notes').value
+
+      // 1. Update lead status in the relevant leads table
+      const leadsTable = record.lead_type === 'whatsapp' ? 'whatsapp_leads' : 'website_leads'
+      if (record.lead_id) {
+        await supabasePatch(leadsTable, 'id=eq.' + record.lead_id, { pre_qual_submitted_at: new Date().toISOString() })
+      }
+
+      // 2. Notify the team
+      const teamBody = [
+        'A lead has completed their pre-qualification form.',
+        '',
+        'LEAD DETAILS',
+        'Name:    ' + (record.name || '—'),
+        'Email:   ' + (record.email || '—'),
+        'WhatsApp:' + (record.whatsapp || '—'),
+        '',
+        'THEIR RESPONSES',
+        formatAnswersForEmail(answers, notes),
+        '',
+        'Review in the admin portal: https://aurevya-portal.netlify.app/admin/onboarding',
+      ].join('\n')
+
+      await sendEmail(
+        'byappointment@aurevya.com',
+        'Aurevya Team',
+        '🟡 Pre-Qual Submitted — ' + (record.name || 'New Lead'),
+        teamBody
+      )
+
+      // 3. Send confirmation to the lead
+      if (record.email) {
+        await sendEmail(
+          record.email,
+          record.name || 'there',
+          'Aurevya Wealth — Pre-Qualification Received',
+          `Dear ${record.name || 'there'},\n\nThank you for completing the pre-qualification form. We have received your responses and our team will review them ahead of your consultation.\n\nWe will be in touch shortly to confirm your appointment details and ensure the right advisor is matched to your needs.\n\nIf you have any questions in the meantime, please contact us at byappointment@aurevya.com.\n\nThe Oracle | Aurevya Wealth\nbyappointment@aurevya.com | www.aurevya.com`
+        )
+      }
+
+      showState('success', '✅', `Thank You, ${firstName}`,
+        'Your responses have been received. Our team will review your pre-qualification and reach out ahead of your consultation to confirm the details.',
+        'You may now close this tab.')
+    } else {
+      btn.disabled = false
+      btn.textContent = 'Submit Pre-Qualification →'
+      btn.className = 'submit-btn ready'
+      alert('Submission failed. Please try again or contact byappointment@aurevya.com.')
+    }
+  })
+
+  // Load
+  ;(async () => {
+    if (!token) {
+      showState('error', '⚠️', 'Link Not Found',
+        'This link is invalid or has expired. Please contact your Aurevya advisor.')
+      return
+    }
+
+    try {
+      const rows = await rpc('prequal_by_token', { p_token: token })
+      if (!Array.isArray(rows) || rows.length === 0) {
+        showState('error', '⚠️', 'Link Not Found',
+          'This link is invalid or has expired. Please contact your Aurevya advisor at <a href="mailto:byappointment@aurevya.com">byappointment@aurevya.com</a>.')
+        return
+      }
+      record = rows[0]
+
+      if (record.submitted_at) {
+        showState('success', '✅', 'Already Submitted',
+          'Your pre-qualification form has already been submitted. Our team will be in touch shortly.<br><br>' +
+          'Questions? Contact us at <a href="mailto:byappointment@aurevya.com">byappointment@aurevya.com</a>.')
+        return
+      }
+
+      const firstName = (record.name || '').split(' ')[0]
+      document.getElementById('greeting').textContent =
+        (firstName ? `Hello ${firstName}, please` : 'Please') +
+        ' take two minutes to complete this short questionnaire. Your responses help us prepare your advisor and ensure the most relevant guidance for your consultation.'
+
+      showForm()
+    } catch (err) {
+      showState('error', '⚠️', 'Unable to Load Form',
+        'Something went wrong. Please try again or contact <a href="mailto:byappointment@aurevya.com">byappointment@aurevya.com</a>.')
+    }
+  })()
+</script>
+</body>
+</html>
