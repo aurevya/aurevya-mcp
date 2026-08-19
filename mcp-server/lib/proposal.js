@@ -251,6 +251,24 @@ async function configurePage(page, opts) {
       // renumber same-kind entities and push those names onto their fee
       // headings, then redraw — same order the canvas uses
       if (typeof syncEntityNames === 'function') syncEntityNames();
+
+      // Re-space the finished diagram, exactly as the canvas does after any
+      // change of shape. addEntityUnder() centres each row under its own
+      // parent as it goes, but nothing re-centres the tree as a whole, so a
+      // nested structure — entities under an entity that is itself one of
+      // several — ends up sitting off the page's centre line. Measured at
+      // 14mm out on a four-entity nested example; boxes never overlapped and
+      // each parent was correctly centred over its own children, so this is
+      // purely where the whole drawing sits on the page.
+      //
+      // After syncEntityNames, not before: numbering changes labels, and a
+      // label that wraps to a second line changes the node's drawn height,
+      // which is what the spacing is measured from.
+      //
+      // typeof-guarded like the calls around it, so this still works against
+      // a generator deployed before realignStructure existed.
+      if (typeof realignStructure === 'function') realignStructure(STATE.struct);
+
       if (typeof renderFeeEditor === 'function') renderFeeEditor();
       if (typeof renderStructEditorUI === 'function') renderStructEditorUI();
       if (typeof build === 'function') build();
