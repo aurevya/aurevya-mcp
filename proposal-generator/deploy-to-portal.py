@@ -163,6 +163,55 @@ FAVICON_FILES = ["favicon.ico", "favicon.png", "apple-touch-icon.png"]
 # rls-token-rpcs.sql. Deploy this at the same time as running that script:
 # the pages need the functions, and the functions are what let the old
 # blanket-read policies be dropped.
+# ── 5. Staff landing on the client portal ────────────────────────────────
+# The auth provider sets `user` synchronously but fetches `profile` over the
+# network, and it clears `loading` independently of that fetch:
+#
+#   getSession().then(({data:{session}}) => {
+#       setUser(session?.user ?? null);
+#       session?.user ? loadProfile(session.user.id) : setLoading(false);
+#   });
+#   onAuthStateChange((evt, sess) => {
+#       setUser(sess?.user ?? null);
+#       sess?.user ? loadProfile(sess.user.id) : (setProfile(null), setLoading(false));
+#   });
+#
+# So on a browser that arrives with no session, loading goes false first.
+# The person then signs in, `user` is set immediately, and the profiles fetch
+# is still in flight — a window in which the app has a signed-in user, no
+# profile, and loading === false.
+#
+# Both routing decisions read the role straight off that missing profile and
+# treat "no profile yet" as "not staff":
+#
+#   root:  role === 'admin' || role === 'staff' ? /admin/dashboard
+#                                               : /portal/dashboard
+#   guard: requireAdmin && role !== 'admin' && role !== 'staff' -> /portal/dashboard
+#
+# so a staff member is sent to /portal/dashboard a fraction of a second
+# before their role arrives. And it sticks, because /portal has no role check
+# of its own — nothing sends them back once the profile finally loads.
+#
+# The fix treats a signed-in user with no profile as still loading, which is
+# what it is. Verified against the transcribed decision logic: in that window
+# the old code answers /portal/dashboard and the new one waits, and once the
+# profile lands both answer /admin/dashboard.
+#
+# This does not touch the role checks themselves — only when they are allowed
+# to run.
+LANDING_OLD_ROOT = (
+    'function Fk(){const{user:e,profile:t,loading:r}=Ae();return r?null:e?'
+)
+LANDING_NEW_ROOT = (
+    'function Fk(){const{user:e,profile:t,loading:r}=Ae();return r||e&&!t?null:e?'
+)
+LANDING_OLD_GUARD = (
+    'function ff({children:e,requireAdmin:t}){const{user:r,profile:s,loading:i}=Ae();return i?'
+)
+LANDING_NEW_GUARD = (
+    'function ff({children:e,requireAdmin:t}){const{user:r,profile:s,loading:i}=Ae();return i||r&&!s?'
+)
+
 PUBLIC_DIR = ROOT / "portal-public"
 PUBLIC_FILES = [
     "kyc-upload.html",
@@ -225,6 +274,28 @@ def main():
             print("  route already original — nothing to revert")
         else:
             print("  route: neither iframe nor original form found — leaving untouched")
+
+        # -- staff landing: wait for the profile before deciding a route --
+        for label, old, new in (
+            ("root redirect", LANDING_OLD_ROOT, LANDING_NEW_ROOT),
+            ("route guard",   LANDING_OLD_GUARD, LANDING_NEW_GUARD),
+        ):
+            if new in patched:
+                print(f"  staff landing: {label} already patched — skipping")
+            elif patched.count(old) == 1:
+                patched = patched.replace(old, new)
+                print(f"  staff landing: {label} now waits for the profile to load")
+            elif patched.count(old) == 0:
+                sys.exit(
+                    f"Could not find the {label} in the bundle, in either form. "
+                    "It was rebuilt since this script was written. Nothing has "
+                    "been changed."
+                )
+            else:
+                sys.exit(
+                    f"The {label} appears {patched.count(old)} times (expected 1) "
+                    "— refusing to patch automatically."
+                )
 
         # -- favicon: point index.html at the real monogram ---------------
         # Derive the zip's top-level folder from the bundle path rather than
