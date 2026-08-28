@@ -769,7 +769,7 @@ if (process.env.PORT) {
 
   app.post('/api/render-pdf', async (req, res) => {
     if (!applyCors(req, res)) return;
-    const { html, landscape } = req.body || {};
+    const { html } = req.body || {};
     if (typeof html !== 'string' || !html.trim()) {
       res.status(400).json({ error: 'No document was sent to render.' });
       return;
@@ -783,7 +783,7 @@ if (process.env.PORT) {
     }
 
     try {
-      const pdf = await renderHtmlToPdf(html, { landscape: landscape !== false });
+      const pdf = await renderHtmlToPdf(html);
       res.set('Content-Type', 'application/pdf');
       res.set('Content-Length', String(pdf.length));
       res.status(200).end(Buffer.from(pdf));

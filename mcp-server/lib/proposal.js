@@ -468,7 +468,26 @@ export function pdfRequestAllowed(url) {
   }
 }
 
-export async function renderHtmlToPdf(html, { landscape = true } = {}) {
+/** The page box the deck asks for, read out of its own `@page` rule.
+ *
+ *  preferCSSPageSize alone was not enough: the first PDF this produced came
+ *  out 792x612pt — Chrome's default Letter, landscaped — even though the
+ *  stylesheet carries `@page{size:297mm 186mm;margin:0}`. Every deck page
+ *  then reflowed against the wrong box, so pages ran together and the text
+ *  layer of PDF page 1 held the cover, the contents and part of a later
+ *  page all at once.
+ *
+ *  Reading the size and passing it explicitly removes the guesswork. The
+ *  fallback is the deck's real size rather than Letter, so a stylesheet
+ *  that stops declaring @page degrades to something sane.
+ */
+export function pdfPageSize(html) {
+  const m = /@page\s*\{[^}]*?\bsize\s*:\s*([\d.]+)(mm|cm|in|pt|px)\s+([\d.]+)(mm|cm|in|pt|px)/i.exec(html || '');
+  if (!m) return { width: '297mm', height: '186mm', fromCss: false };
+  return { width: m[1] + m[2], height: m[3] + m[4], fromCss: true };
+}
+
+export async function renderHtmlToPdf(html) {
   const dir = path.dirname(GENERATOR_PATH);
   const tmp = path.join(dir, `.render-${Date.now()}-${Math.random().toString(36).slice(2)}.html`);
   fs.writeFileSync(tmp, html, 'utf8');
@@ -492,12 +511,16 @@ export async function renderHtmlToPdf(html, { landscape = true } = {}) {
        whatever the renderer happened to substitute mid-load */
     await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
 
+    const size = pdfPageSize(html);
     return await page.pdf({
       printBackground: true,
-      /* honour the @page size the deck's own stylesheet declares — the deck
-         is 297 x 186mm, not A4, and forcing A4 would scale every page */
+      /* Explicit width and height, taken from the deck's own @page rule.
+         Note there is no `landscape` here: the size read from the CSS is
+         already the right way round (297 wide by 186 tall), and asking for
+         landscape on top of that would swap the two and crop every page. */
+      width: size.width,
+      height: size.height,
       preferCSSPageSize: true,
-      landscape,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
     });
   } finally {

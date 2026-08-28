@@ -8,7 +8,8 @@ let fails=0;const ok=(l,c,x)=>{console.log((c?'PASS  ':'FAIL  ')+l+(x!==undefine
 /* every @font-face src must point at a file that exists */
 const srcs=[...html.matchAll(/@font-face\{[^}]*?font-weight:(\d+);[^}]*?url\('([^']+)'\)/gs)]
   .map(m=>({weight:+m[1],url:m[2]}));
-ok('four weights are declared', srcs.length===4, srcs.map(s=>s.weight).join(', '));
+ok('nine faces declared (4 Riviera + 5 Cormorant)', srcs.length===9,
+   srcs.length+' declared');
 srcs.forEach(s=>{
   const p=path.join(ROOT,'proposal-generator',s.url);
   ok('  '+s.weight+' -> '+path.basename(s.url)+' exists', fs.existsSync(p),
@@ -27,11 +28,20 @@ ok('a fallback stack remains', /--sans:'Riviera Nights',\s*'Jost'/.test(html));
 /* count inside the @font-face blocks only — the prose above them mentions
    font-display too, and matching the whole file counted that as well */
 const faces=html.match(/@font-face\{[^}]*\}/gs)||[];
-ok('four @font-face blocks', faces.length===4, faces.length+' found');
+ok('nine @font-face blocks', faces.length===9, faces.length+' found');
 ok('font-display:block on every face',
    faces.every(f=>/font-display:block/.test(f)));
-ok('every face names the same family',
-   faces.every(f=>/font-family:'Riviera Nights'/.test(f)));
+ok('both families are declared',
+   faces.some(f=>/'Riviera Nights'/.test(f))&&faces.some(f=>/'Cormorant Garamond'/.test(f)));
+
+/* the fault that produced the broken PDF: the deck fetched its serif from
+   Google, which the render container could not reach, so every heading
+   fell back to Times */
+ok('the deck no longer depends on Google Fonts',
+   !/href="https:\/\/fonts\.googleapis\.com/.test(html));
+ok('nor does the exported deck', (()=>{
+   const m=html.match(/function buildExportHTML\(\)\{[\s\S]*?\n\}/)[0];
+   return !/fonts\.googleapis\.com/.test(m);})());
 
 /* the trap that bit logo-white.svg: will the deploy actually carry them? */
 const dep=fs.readFileSync(ROOT+'/proposal-generator/deploy-to-portal.py','utf8');
