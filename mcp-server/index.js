@@ -614,8 +614,14 @@ function buildServer(sessionId) {
 if (process.env.PORT) {
   const express = (await import('express')).default;
   const app = express();
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  /* 25mb, not the 100kb default. A deck posted for rendering carries its
+     own settings and, on the older export path, the whole document with
+     its fonts inlined — which is a few hundred KB. At the default the
+     server answered with a 413 that carried no CORS headers, so the
+     browser could not read the reason and reported it as "could not reach
+     the PDF service": a size limit presenting as a network outage. */
+  app.use(express.json({ limit: '25mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
   const LOGIN_PAGE = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Aurevya — Sign in for Claude</title>
@@ -765,6 +771,23 @@ if (process.env.PORT) {
   app.options('/api/render-pdf', (req, res) => {
     if (!applyCors(req, res)) return;
     res.status(204).end();
+  });
+
+  /* Body-parser failures (oversized payload, malformed JSON) are thrown
+     before any route runs, so without this they are answered by Express's
+     default handler — an HTML error page with no CORS headers, which the
+     browser cannot read and reports as a network failure. Answering in
+     JSON, with the headers, means the dialog can say what actually went
+     wrong. */
+  app.use((err, req, res, next) => {
+    if (!err || !req.path.startsWith('/api/')) return next(err);
+    applyCors(req, res);
+    const tooBig = err.type === 'entity.too.large' || err.status === 413;
+    res.status(tooBig ? 413 : 400).json({
+      error: tooBig
+        ? 'That deck is too large to send for rendering.'
+        : ('Could not read the request: ' + (err.message || 'bad request')),
+    });
   });
 
   app.post('/api/render-pdf', async (req, res) => {
