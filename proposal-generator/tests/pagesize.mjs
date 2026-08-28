@@ -5,14 +5,14 @@ let fails=0;const ok=(l,c,x)=>{console.log((c?'PASS  ':'FAIL  ')+l+(x!==undefine
 /* the real exported deck */
 const real=fs.readFileSync('/tmp/export-sample.html','utf8');
 const s=pdfPageSize(real);
-ok('reads the deck\'s own page box', s.width==='297mm'&&s.height==='186mm'&&s.fromCss,
+ok('reads the deck\'s own page box', s.width==='300mm'&&s.height==='190mm'&&s.fromCss,
    `${s.width} x ${s.height}`);
 ok('  ...which is NOT Letter (216 x 279mm)', !(s.width==='216mm'));
 
 /* the shape that produced the broken file */
 ok('a deck with no @page falls back to the deck size, not Letter',
    (()=>{const f=pdfPageSize('<html><style>body{}</style></html>');
-         return f.width==='297mm'&&f.height==='186mm'&&f.fromCss===false;})());
+         return f.width==='300mm'&&f.height==='190mm'&&f.fromCss===false;})());
 
 /* other units and spacings */
 [['@page{size:210mm 297mm}','210mm','297mm'],

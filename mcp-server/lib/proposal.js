@@ -478,12 +478,12 @@ export function pdfRequestAllowed(url) {
  *  page all at once.
  *
  *  Reading the size and passing it explicitly removes the guesswork. The
- *  fallback is the deck's real size rather than Letter, so a stylesheet
- *  that stops declaring @page degrades to something sane.
+ *  fallback is the deck's real size (300 x 190mm) rather than Letter, so a
+ *  stylesheet that stops declaring @page degrades to something sane.
  */
 export function pdfPageSize(html) {
   const m = /@page\s*\{[^}]*?\bsize\s*:\s*([\d.]+)(mm|cm|in|pt|px)\s+([\d.]+)(mm|cm|in|pt|px)/i.exec(html || '');
-  if (!m) return { width: '297mm', height: '186mm', fromCss: false };
+  if (!m) return { width: '300mm', height: '190mm', fromCss: false };
   return { width: m[1] + m[2], height: m[3] + m[4], fromCss: true };
 }
 

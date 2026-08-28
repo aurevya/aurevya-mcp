@@ -117,9 +117,15 @@
   --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
   --sans:'Riviera Nights','Jost','Avenir Next',Avenir,'Segoe UI',Helvetica,Arial,sans-serif;
 
-  /* Page geometry — landscape deck */
-  --pw:297mm;
-  --ph:186mm;
+  /* Page geometry — landscape deck.
+
+     300 x 190mm, measured off the approved deck (SAMPLE CORRECT PROPOSAL:
+     299.86 x 190.15mm). It was 297 x 186 before, which is neither A4 nor
+     the template — a near-miss that made every page 4mm shorter than the
+     original and left less room for content that was designed against the
+     real thing. */
+  --pw:300mm;
+  --ph:190mm;
 }
 
 *{box-sizing:border-box;}
@@ -618,14 +624,35 @@ table.deckfee tr.tot td{
 /* ═══════════════════════════════════════════════════════════════
    PRINT
    ═══════════════════════════════════════════════════════════════ */
-@page{size:297mm 186mm;margin:0;}
+@page{size:300mm 190mm;margin:0;}
 @media print{
-  body{background:#fff;}
+  html,body{margin:0;padding:0;background:#fff;}
   #sidebar,#toolbar,.noprint{display:none !important;}
   #app{display:block;}
   #preview{padding:0;height:auto;overflow:visible;}
-  #previewInner{max-width:none;}
-  .page{margin:0;box-shadow:none;}
+  #previewInner{max-width:none;margin:0;padding:0;}
+
+  /* One deck page per sheet. break-inside is the load-bearing line: without
+     it the renderer is free to split a .page across two sheets the moment
+     its content is a hair too tall, and once one page splits every page
+     after it shifts — which is how a 21-page deck came out as 22 sheets
+     with footers stranded at the tops of pages and headings halfway down.
+
+     The page box is declared to match .page exactly (see @page above), so
+     nothing should overflow in the first place; this makes it so that if
+     anything ever does, the page is clipped rather than the whole document
+     being knocked out of alignment.
+
+     Both the modern and the legacy property names are given: the renderer
+     honours one or the other depending on version, and the cost of naming
+     both is nothing. */
+  .page{
+    margin:0;box-shadow:none;overflow:hidden;
+    break-inside:avoid;page-break-inside:avoid;
+    break-after:page;page-break-after:always;
+  }
+  .page:last-child{break-after:auto;page-break-after:auto;}
+
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
 
@@ -4157,10 +4184,12 @@ function renderEdgesSVG(st){
   return svg;
 }
 
-/* Usable area inside .structpage .rp: the panel is 68% of the 297mm page
+/* Usable area inside .structpage .rp: the panel is 68% of the 300mm page
    less its 12mm side and 14mm top/bottom padding, with a little more taken
-   off the bottom for the running footer. */
-const STRUCT_FIT={w:176,h:150};
+   off the bottom for the running footer. Kept in step with --pw/--ph — a
+   diagram measured against the old 297 x 186 page would be scaled down
+   slightly more than it needs to be. */
+const STRUCT_FIT={w:178,h:154};
 
 /* How tall the chart actually is, and how much to scale it by to fit.
    Width is measured against the logical canvas rather than the content
