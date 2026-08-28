@@ -14,6 +14,46 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* ── Riviera Nights ───────────────────────────────────────────────
+   The body face of the printed template, matching the fonts embedded in
+   AWL_PROPOSAL_AC_20260805.pdf. Converted from the supplied .otf files to
+   .woff2, which is a third of the size for identical outlines.
+
+   A licensed font. The originals are not in this repository; these are.
+   Check the licence covers web embedding — the files are served from the
+   portal, so it is a webfont licence that applies, not a desktop one.
+
+   A note on weight 600, which the stylesheet below asks for in 32 places:
+   the family has no semibold. CSS resolves a missing weight above 500 by
+   looking upwards first, so those land on Bold (700). That matches the
+   printed template, which uses Regular and Bold with no intermediate
+   weight — but it is a real decision rather than an accident, and mapping
+   600 to Medium instead is a one-line change here if the headings come out
+   heavier than intended.
+
+   font-display:block matters for the PDF specifically: with the default
+   (swap) the renderer can lay a page out in the fallback and then repaint,
+   and a page captured mid-swap comes out in the wrong font.
+
+   Ultralight (250) and Black (900) also exist in the supplied family and
+   are not declared, because nothing in the deck asks for them.        */
+@font-face{
+  font-family:'Riviera Nights';font-style:normal;font-weight:300;
+  font-display:block;src:url('assets/fonts/RivieraNights-Light.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Riviera Nights';font-style:normal;font-weight:400;
+  font-display:block;src:url('assets/fonts/RivieraNights-Regular.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Riviera Nights';font-style:normal;font-weight:500;
+  font-display:block;src:url('assets/fonts/RivieraNights-Medium.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Riviera Nights';font-style:normal;font-weight:700;
+  font-display:block;src:url('assets/fonts/RivieraNights-Bold.woff2') format('woff2');
+}
+
 /* ═══════════════════════════════════════════════════════════════
    AUREVYA WEALTH — DESIGN TOKENS
    Derived from the sample proposal decks.
@@ -35,8 +75,17 @@
   --paper:#FFFFFF;
   --paper-alt:#F1F1F2;     /* disclaimer page bg */
 
+  /* The template these decks reproduce sets its body copy in Riviera Nights
+     and its display type in Cormorant Garamond (checked against the fonts
+     embedded in AWL_PROPOSAL_AC_20260805.pdf: RivieraNights Regular/Bold/
+     Medium/Light on all 21 pages, CormorantGaramond on 16).
+
+     Riviera Nights is a licensed face, so it is not fetched from a CDN —
+     drop the files into assets/fonts/ and the @font-face rules below pick
+     them up. Until then Jost stands in, which is the closest of the fonts
+     already available and keeps the metrics roughly honest. */
   --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
-  --sans:'Jost','Avenir Next',Avenir,'Segoe UI',Helvetica,Arial,sans-serif;
+  --sans:'Riviera Nights','Jost','Avenir Next',Avenir,'Segoe UI',Helvetica,Arial,sans-serif;
 
   /* Page geometry — landscape deck */
   --pw:297mm;
@@ -118,6 +167,27 @@ table.fees td.grp{
 }
 /* per-line delete — deliberately quiet until hovered, so a column of them
    doesn't compete with the figures */
+/* Drag handle. Quiet until the row is hovered, so a long list doesn't read
+   as a column of controls. */
+td.feeGripCell{
+  width:20px;text-align:center;cursor:grab;
+  user-select:none;-webkit-user-select:none;
+}
+td.feeGripCell:active{cursor:grabbing;}
+/* the glyph must not swallow the mousedown — the handler looks for the
+   cell, and pointer-events:none on the span keeps the target simple */
+.feeGrip{
+  color:#DCE3E8;font-size:11px;letter-spacing:-2px;line-height:1;
+  display:inline-block;transform:rotate(90deg);pointer-events:none;
+}
+tr:hover .feeGrip{color:#9AA7B2;}
+td.feeGripCell:hover .feeGrip{color:var(--gold);}
+
+/* the row being carried */
+tr.feedragging{opacity:.4;}
+/* where it will land — a gold rule on the edge the drop is aimed at */
+tr.feedropabove td{box-shadow:inset 0 2px 0 0 var(--gold);}
+tr.feedropbelow td{box-shadow:inset 0 -2px 0 0 var(--gold);}
 button.feeDel{
   width:18px;height:18px;padding:0;line-height:1;border-radius:50%;
   border:1px solid #DFE3E7;background:#fff;color:#94A3AE;cursor:pointer;
@@ -266,11 +336,40 @@ h1.ptitle em{font-style:italic;}
 
 /* ── SECTION DIVIDER ───────────────────────────────────── */
 .divider{position:relative;height:100%;display:flex;align-items:center;}
+
+/* Scrim behind the divider title.
+   The night-gate photograph is dark enough to carry white type unaided, but
+   the CIS cityscape is a bright daylight office and the heading disappeared
+   into the windows behind it. Rather than darken the whole image — which
+   would flatten the photographs that are already working — this veils only
+   the right-hand band the title sits in, fading to nothing across the middle
+   so the left of the picture is untouched.
+
+   Tinted with --plum rather than black: a neutral grey veil turns the warm
+   lamplight in the gate photograph muddy, where the plum sits under it.
+   Sits at z-index 1, between the photograph and the title's z-index 2. */
+.divider::before{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(100deg,
+    rgba(19,4,41,0)    28%,
+    rgba(19,4,41,.34)  48%,
+    rgba(19,4,41,.66)  70%,
+    rgba(19,4,41,.76) 100%);
+}
+/* These figures were measured, not eyeballed. White type on the CIS
+   cityscape scored 1.92:1 against what sits behind it — illegible — and
+   1.10:1 at the worst spots. The values above bring that to 8.9:1 average
+   and 4.9:1 at worst, clear of the 4.5:1 mark. On the night-gate
+   photograph, already at 16.6:1, they change almost nothing (18.9:1), so
+   the dark dividers are not paying for the bright one. */
 .divider .dtitle{
   position:relative;z-index:2;margin-left:auto;margin-right:14mm;text-align:left;max-width:46%;
 }
 .divider .dtitle h2{
   font-family:var(--serif);font-size:33pt;font-weight:400;color:#fff;line-height:1.04;margin:0;
+  /* catches the case the gradient cannot: a small blown-out highlight
+     sitting directly behind a letter */
+  text-shadow:0 1px 12px rgba(19,4,41,.55);
 }
 .divider .dtitle .ds{
   font-size:7.4pt;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-top:3mm;
@@ -644,7 +743,7 @@ table.deckfee tr.tot td{
 
     <div class="panel">
       <div class="liveband"><span class="dot"></span> Live preview — every change updates the deck</div>
-      <button class="primary" onclick="window.print()">Export PDF</button>
+      <button class="primary" onclick="exportPDF()">Export PDF</button>
       <button class="ghost" onclick="downloadHTML()">Download HTML</button>
       <button class="ghost" onclick="resetFees();liveBuild()">Reset fees to price book</button>
     </div>
@@ -657,7 +756,7 @@ table.deckfee tr.tot td{
       <span id="tbLive">● updating</span>
       <button onclick="zoom(-1)">−</button>
       <button onclick="zoom(1)">+</button>
-      <button class="go" onclick="window.print()">Export PDF</button>
+      <button class="go" onclick="exportPDF()">Export PDF</button>
     </div>
     <div id="previewInner">
       <div class="emptyState">
@@ -1345,8 +1444,22 @@ const ENTITY_META = {
   trust:{article:'a',name:'Trust',plural:'Trusts',short:'Trust'},
   ac:{article:'an',name:'Authorised Company',plural:'Authorised Companies',short:'AC'},
   gbc:{article:'a',name:'Global Business Company',plural:'Global Business Companies',short:'GBC'},
-  cis:{article:'a',name:'Collective Investment Scheme (PCC)',plural:'Collective Investment Schemes (PCC)',short:'CIS (PCC)'}
+  cis:{article:'a',name:'Collective Investment Scheme (PCC)',plural:'Collective Investment Schemes (PCC)',short:'CIS (PCC)'},
+  /* Kinds that only ever arrive by being added on the diagram. They carry no
+     explanatory pages of their own (see PAGE_KINDS), but they are still part
+     of what is being set up, so they belong in the cover title, the running
+     footer and the export filename. The blank "other" box is deliberately
+     absent — it is a placeholder with no name to print. */
+  foundation:{article:'a',name:'Foundation',plural:'Foundations',short:'Foundation'},
+  mfo:{article:'a',name:'Multi-Family Office',plural:'Multi-Family Offices',short:'MFO'},
+  partnership:{article:'a',name:'Limited Partnership',plural:'Limited Partnerships',short:'LP'},
+  domestic:{article:'a',name:'Domestic Company',plural:'Domestic Companies',short:'Domestic Co.'}
 };
+
+/* The order entities are named in, matching the page order in
+   structureSections(): the holding layer first, then the operating layer,
+   then the fund, then anything added on the canvas. */
+const ENTITY_TITLE_ORDER=['trust','gbc','ac','cis','foundation','mfo','partnership','domestic'];
 
 /* Number words, for the running footer — the source decks spell the count
    out there ("SETTING UP OF TWO AUTHORISED COMPANIES") while the cover
@@ -1361,13 +1474,42 @@ function companyCount(ent){
   return Math.max(1,Math.min(6,+ent.companyCount||1));
 }
 
-/* returns the selected entity keys in canonical deck order: trust, then
-   the company (if any, once per instance), then cis */
+/* How many of each kind the proposal is actually for.
+
+   The sidebar is authoritative for the entities it seeds — deleting one of
+   those on the canvas routes back through removeCoreEntity() or
+   renumberCompanyBoxes(), which update the sidebar — so those are counted
+   from `ent`. Boxes added on the canvas are the ones the sidebar knows
+   nothing about, and they are exactly the ones carrying `entKey`, so adding
+   them on top counts each entity once and only once.
+
+   This is what makes the cover title and the running footer follow the
+   diagram: add a Foundation under the company and the cover says so; delete
+   one of two Authorised Companies and it goes back to the singular. */
+function entityCounts(ent){
+  const c={};
+  if(ent.trust)c.trust=1;
+  if(ent.company!=='none')c[ent.company]=(c[ent.company]||0)+companyCount(ent);
+  if(ent.cis)c.cis=1;
+
+  const st=(typeof STATE!=='undefined'&&STATE)?STATE.struct:null;
+  if(st&&st.nodes){
+    st.nodes.forEach(n=>{
+      if(n&&n.kind==='box'&&n.entKey&&ENTITY_META[n.entKey]){
+        c[n.entKey]=(c[n.entKey]||0)+1;
+      }
+    });
+  }
+  return c;
+}
+
+/* returns the entity keys in canonical deck order, once per instance */
 function entityOrder(ent){
+  const c=entityCounts(ent);
   const list=[];
-  if(ent.trust)list.push('trust');
-  for(let i=0;i<companyCount(ent);i++)list.push(ent.company);
-  if(ent.cis)list.push('cis');
+  ENTITY_TITLE_ORDER.forEach(k=>{
+    for(let i=0;i<(c[k]||0);i++)list.push(k);
+  });
   return list;
 }
 
@@ -1424,7 +1566,10 @@ function priceKeysFor(ent){
    Only these four have explanatory pages; a Foundation or Limited
    Partnership added on the canvas contributes fees and a box, nothing
    narrative. */
-const PAGE_KINDS=['trust','ac','gbc','cis'];
+/* Listed in house order — Trust, GBC, AC, CIS — to match structureSections().
+   Only membership is read from this today, but keeping the two in the same
+   sequence stops them drifting apart. */
+const PAGE_KINDS=['trust','gbc','ac','cis'];
 
 function structureKinds(ent){
   const extra=(typeof STATE!=='undefined'&&STATE&&STATE.extraKinds)||[];
@@ -1452,9 +1597,15 @@ function glossaryScopeStructure(ent){
 function structureSections(ent){
   const k=structureKinds(ent);
   const s=['contents','glossary','ourgroup','about','whatwedo','structdivider','structure'];
+  /* House order, and it is deliberate: Trust, then Global Business Company,
+     then Authorised Company, then CIS. It reads from the holding structure
+     downwards, which is how the deck is talked through — so GBC precedes AC
+     even though the code used to emit them the other way round. Anything
+     that derives from this list (the contents page, the running order of the
+     section pages, the page numbers) follows automatically. */
   if(k.trust)s.push('trustfacts','trustparties','trustvalidity');
-  if(k.ac)s.push('ackeydivider','ackeyfeatures');
   if(k.gbc)s.push('gbcdivider','gbcoverview');
+  if(k.ac)s.push('ackeydivider','ackeyfeatures');
   if(k.cis)s.push('cisdivider','cisoverview');
   if(k.trust)s.push('docprocess_trust');
   if(k.company)s.push('docprocess_company');
@@ -1705,8 +1856,13 @@ function onModeOrEntityChange(){
     if(cntRow)cntRow.style.display=(STATE.entities.company==='none')?'none':'';
   }
   /* the diagram is about to be reseeded from the new selection, so anything
-     previously hung off it is gone and must not keep contributing pages */
+     previously hung off it is gone and must not keep contributing pages —
+     or, now that the title counts the canvas too, keep contributing to the
+     cover and the running footer. Dropping the diagram here rather than
+     leaving it for renderStructFields() below means the spec built on the
+     next line already reflects the new selection instead of the old one. */
   STATE.extraKinds=[];
+  STATE.struct=null;
   const p=currentSpec();
   $('productBlurb').textContent=p.blurb;
   if(p.currency)$('fCurrency').value=p.currency;
@@ -1802,16 +1958,232 @@ function resetFees(){
 /* One editable row. `path` is the JS expression naming the row's home, so
    the same builder serves the shared list and the per-column lists. `del`
    is the call that removes this row, rendered as a "−" at the end. */
-function feeEditorRow(r,path,del){
+function feeEditorRow(r,path,del,mv){
   const minus=del?'<td style="width:20px;text-align:center">'+
     '<button type="button" class="feeDel" title="Delete this line" onclick="'+del+'">−</button></td>':'<td></td>';
-  if(r.t==='grp')return '<td class="grp" colspan="2">'+r.l+'</td>'+minus;
+  /* Grab handle. Only this cell starts a drag — the rest of the row is text
+     inputs, which have to stay clickable and selectable. */
+  const move=mv?'<td class="feeGripCell" title="'+
+    (r.t==='grp'?'Drag to move this group':'Drag to move this line')+'">'+
+    '<span class="feeGrip">&#8942;&#8942;</span></td>':'<td></td>';
+  if(r.t==='grp')return '<td class="grp" colspan="2">'+r.l+'</td>'+minus+move;
   const priced=r.t==='item';
   return '<td><input type="text" value="'+r.l.replace(/"/g,'&quot;')+'" '+
     'oninput="'+path+'.l=this.value"/></td>'+
     '<td style="width:78px">'+(priced?
       '<input type="number" value="'+(r.v||0)+'" oninput="'+path+'.v=+this.value;feeTotals()"/>':
-      '<span style="color:#C3CCD3;font-size:10px;">incl.</span>')+'</td>'+minus;
+      '<span style="color:#C3CCD3;font-size:10px;">incl.</span>')+'</td>'+minus+move;
+}
+
+/* ── reordering the fee list ──────────────────────────────────────
+   The rows are a flat list, but they are not independent: an unpriced
+   'desc' or 'sub' row belongs to the *following* priced row (see
+   feeBlocks(), where they accumulate in `pend` until an item consumes
+   them), and a 'grp' heading owns every row down to the next heading.
+
+   So reordering works on units, not rows. Moving a priced line takes its
+   description lines with it; moving a heading takes its whole group. Doing
+   it row-by-row would look right in this editor and come out wrong in the
+   deck, with descriptions attached to the wrong figure.               */
+function feeUnitAt(list,idx){
+  const r=list[idx];
+  if(!r)return null;
+
+  /* a heading owns everything down to the next heading */
+  if(r.t==='grp'){
+    let end=idx+1;
+    while(end<list.length&&list[end].t!=='grp')end++;
+    return{kind:'grp',start:idx,end:end};
+  }
+
+  /* An unpriced description line moves on its own. Treating it as part of
+     the priced row below — which is where it prints — meant every one of
+     the six lines under AUTHORISED COMPANY dragged the same seven-row
+     block, so reordering them against each other did nothing at all and
+     moving one carried the rest away with it.
+
+     Which priced row a description belongs to is decided by where it ends
+     up, exactly as it reads on the page: the lines above a figure describe
+     it. That makes dragging one line between figures the natural gesture
+     rather than a special case. */
+  if(r.t==='desc'||r.t==='sub')return{kind:'desc',start:idx,end:idx+1};
+
+  /* A priced row is the anchor of its block, so it takes the description
+     lines above it — dragging a figure away and leaving its wording behind
+     to attach itself to the next figure would be a pricing error. */
+  let start=idx;
+  while(start>0&&(list[start-1].t==='desc'||list[start-1].t==='sub'))start--;
+  return{kind:'item',start:start,end:idx+1};
+}
+
+/* The block to swap with, in the given direction.
+   A heading trades places with the neighbouring heading — whole group for
+   whole group. A priced line moves one slot at a time, so stepping past a
+   heading moves it into the group on the other side; that is how a line is
+   moved between groups, one click at a time, with the effect visible at
+   every step. */
+function feeNeighbourUnit(list,u,dir){
+  if(dir<0){
+    if(u.start===0)return null;
+    if(u.kind==='grp'){
+      let p=u.start-1;
+      while(p>=0&&list[p].t!=='grp')p--;
+      if(p<0)return null;                       /* already the first group */
+      return{start:p,end:u.start};
+    }
+    if(list[u.start-1].t==='grp')return{start:u.start-1,end:u.start};
+    const pu=feeUnitAt(list,u.start-1);
+    return pu?{start:pu.start,end:u.start}:null;
+  }
+  if(u.end>=list.length)return null;
+  if(u.kind==='grp'){
+    const nu=feeUnitAt(list,u.end);             /* the next heading's group */
+    return nu&&nu.kind==='grp'?{start:u.end,end:nu.end}:null;
+  }
+  if(list[u.end].t==='grp')return{start:u.end,end:u.end+1};
+  const nu=feeUnitAt(list,u.end);
+  return nu?{start:u.end,end:nu.end}:null;
+}
+
+function feeListFor(which,ci){
+  return (ci===null||ci===undefined||ci==='')
+    ? STATE.fees[which]
+    : (STATE.feeCols[ci]||{})[which];
+}
+
+function moveFeeRow(which,ci,idx,dir){
+  const list=feeListFor(which,ci);
+  if(!list)return;
+  const u=feeUnitAt(list,idx);
+  if(!u)return;
+  const nb=feeNeighbourUnit(list,u,dir);
+  if(!nb)return;                                /* already at the end */
+
+  const a=dir<0?nb:{start:u.start,end:u.end};
+  const b=dir<0?{start:u.start,end:u.end}:nb;
+  const A=list.slice(a.start,a.end);
+  const B=list.slice(b.start,b.end);
+  list.splice(a.start,b.end-a.start,...B,...A);
+
+  renderFeeEditor();
+  liveBuild(0);
+}
+
+/* Drop the unit at `fromIdx` beside the unit under the cursor.
+
+   A heading snaps to a group boundary — dropping a group into the middle of
+   another group would interleave two priced blocks, which is never what is
+   meant. A priced line drops exactly where it is aimed, including inside a
+   different group, which is how a line is moved between groups. */
+function moveFeeUnit(which,ci,fromIdx,overIdx,after){
+  const list=feeListFor(which,ci);
+  if(!list)return;
+  const u=feeUnitAt(list,fromIdx);
+  const t=feeUnitAt(list,overIdx);
+  if(!u||!t)return;
+
+  let ins;
+  if(u.kind==='grp'){
+    let g=overIdx;
+    while(g>=0&&list[g].t!=='grp')g--;
+    if(g<0){ins=after?t.end:0;}                 /* above the first heading */
+    else{const gu=feeUnitAt(list,g);ins=after?gu.end:gu.start;}
+  }else{
+    ins=after?t.end:t.start;
+  }
+
+  /* dropped back onto itself */
+  if(ins>=u.start&&ins<=u.end)return;
+
+  const seg=list.slice(u.start,u.end);
+  list.splice(u.start,seg.length);
+  if(ins>u.start)ins-=seg.length;
+  list.splice(ins,0,...seg);
+
+  renderFeeEditor();
+  liveBuild(0);
+}
+
+/* ── drag to reorder ──────────────────────────────────────────────
+   Delegated on the tbody, and wired once — see the guard in wireFeeDrag. */
+let FEE_DRAG=null;
+
+/* Plain mouse events rather than the HTML5 drag-and-drop API.
+
+   Native DnD needs draggable=true on the row, which stops you selecting
+   text in the inputs the row is made of; arming it on mousedown works in
+   some browsers and not others, and the drop only fires if every dragover
+   in the chain called preventDefault. Tracking the pointer ourselves is a
+   few more lines and behaves the same everywhere — and it is what lets the
+   list auto-scroll while dragging, which native DnD does not do inside a
+   scrolling panel. */
+function wireFeeDrag(tb){
+  /* The tbody survives a render — only its rows are replaced — so wiring on
+     every render would stack a fresh set of handlers each time. */
+  if(tb._feeDragWired)return;
+  tb._feeDragWired=true;
+
+  tb.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;
+    const cell=e.target.closest('.feeGripCell');
+    if(!cell)return;
+    const tr=cell.closest('tr.feerow');
+    if(!tr)return;
+    e.preventDefault();                 /* no text selection while dragging */
+    FEE_DRAG={tb:tb,which:tr.dataset.which,ci:tr.dataset.ci,
+              idx:+tr.dataset.idx,over:null,after:false};
+    tr.classList.add('feedragging');
+    document.addEventListener('mousemove',feeDragMove);
+    document.addEventListener('mouseup',feeDragDrop);
+  });
+}
+
+/* the nearest ancestor that actually scrolls, so the list can follow the
+   cursor when dragging towards the top or bottom of a long table */
+function feeScrollParent(el){
+  for(let n=el;n&&n!==document.body;n=n.parentElement){
+    const s=getComputedStyle(n);
+    if(/(auto|scroll)/.test(s.overflowY)&&n.scrollHeight>n.clientHeight)return n;
+  }
+  return null;
+}
+
+function feeDragMove(e){
+  if(!FEE_DRAG)return;
+  e.preventDefault();
+
+  FEE_DRAG.tb.querySelectorAll('.feedropabove,.feedropbelow')
+    .forEach(x=>x.classList.remove('feedropabove','feedropbelow'));
+  FEE_DRAG.over=null;
+
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  const tr=el&&el.closest?el.closest('tr.feerow'):null;
+  if(tr&&tr.dataset.which===FEE_DRAG.which&&tr.dataset.ci===FEE_DRAG.ci){
+    const box=tr.getBoundingClientRect();
+    const after=(e.clientY-box.top)>box.height/2;
+    tr.classList.add(after?'feedropbelow':'feedropabove');
+    FEE_DRAG.over=+tr.dataset.idx;
+    FEE_DRAG.after=after;
+  }
+
+  const sc=FEE_DRAG.scroller||(FEE_DRAG.scroller=feeScrollParent(FEE_DRAG.tb));
+  if(sc){
+    const b=sc.getBoundingClientRect(),edge=28;
+    if(e.clientY<b.top+edge)sc.scrollTop-=12;
+    else if(e.clientY>b.bottom-edge)sc.scrollTop+=12;
+  }
+}
+
+function feeDragDrop(){
+  const d=FEE_DRAG;
+  FEE_DRAG=null;
+  document.removeEventListener('mousemove',feeDragMove);
+  document.removeEventListener('mouseup',feeDragDrop);
+  if(!d)return;
+  d.tb.querySelectorAll('tr').forEach(tr=>
+    tr.classList.remove('feedragging','feedropabove','feedropbelow'));
+  if(d.over===null)return;             /* released outside the list */
+  moveFeeUnit(d.which,d.ci===''?null:+d.ci,d.idx,d.over,d.after);
 }
 
 /* Remove a fee line, after confirming. Deleting a gold group heading takes
@@ -1844,20 +2216,36 @@ function renderFeeEditor(){
   ['setup','fixed'].forEach(which=>{
     const tb=$(which==='setup'?'feeSetup':'feeFixed');
     tb.innerHTML='';
-    const add=html=>{const tr=document.createElement('tr');tr.innerHTML=html;tb.appendChild(tr);};
+    /* `drag` carries which list and which row this <tr> stands for, so the
+       drop handler can reorder the underlying array without reading it back
+       out of the DOM. ci is '' for the shared list. */
+    const add=(html,drag)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=html;
+      if(drag){
+        tr.className='feerow';
+        tr.dataset.which=which;
+        tr.dataset.ci=drag.ci;
+        tr.dataset.idx=drag.idx;
+      }
+      tb.appendChild(tr);
+    };
     STATE.fees[which].forEach((r,i)=>add(feeEditorRow(r,
       'STATE.fees.'+which+'['+i+']',
-      'deleteFeeRow(\''+which+'\',null,'+i+')')));
+      'deleteFeeRow(\''+which+'\',null,'+i+')',
+      true),{ci:'',idx:i}));
     /* per-entity columns follow, each under its own heading so it's clear
        which figures belong to which company */
     (STATE.feeCols||[]).forEach((c,ci)=>{
-      add('<td class="grp" colspan="3" style="background:#2B1A44;color:var(--gold)">'+c.label+'</td>');
+      add('<td class="grp" colspan="4" style="background:#2B1A44;color:var(--gold)">'+c.label+'</td>');
       c[which].forEach((r,i)=>add(feeEditorRow(r,
         'STATE.feeCols['+ci+'].'+which+'['+i+']',
-        'deleteFeeRow(\''+which+'\','+ci+','+i+')')));
-      add('<td colspan="3" style="text-align:right;font-size:10px;color:#C3CCD3;padding-right:6px">'+
+        'deleteFeeRow(\''+which+'\','+ci+','+i+')',
+        true),{ci:String(ci),idx:i}));
+      add('<td colspan="4" style="text-align:right;font-size:10px;color:#C3CCD3;padding-right:6px">'+
         'column total '+curSym()+' '+money(rowsTotal(c[which]))+'</td>');
     });
+    wireFeeDrag(tb);
   });
   feeTotals();
 }
@@ -3987,7 +4375,17 @@ function pgKYC(withCorporate){
    separated from the items it introduces. */
 function feeBlocks(rows){
   const blocks=[];let cur=null,pend=[];
-  const flush=()=>{if(cur&&(cur.grp||cur.items.length))blocks.push(cur);};
+  /* Description lines that end up with no figure beneath them — dragged
+     below the last price, or above a heading — still have to print. They
+     used to be dropped on the floor here, silently losing wording from the
+     quote; now they come out as a line with no price against it. */
+  const orphan=()=>{
+    if(!pend.length)return;
+    if(!cur)cur={grp:null,items:[]};
+    cur.items.push({lines:pend,v:null});
+    pend=[];
+  };
+  const flush=()=>{orphan();if(cur&&(cur.grp||cur.items.length))blocks.push(cur);};
   rows.forEach(r=>{
     if(r.t==='grp'){flush();cur={grp:r.l,items:[]};pend=[];}
     /* 'sub' is an indented bullet beneath the preceding line — the Trust
@@ -4013,13 +4411,121 @@ function feeBlockHeight(b){
   return (b.grp?FEE_H.grp:0)+
     b.items.reduce((h,it)=>h+FEE_H.rowPad+it.lines.length*FEE_H.line,0);
 }
+function feeItemHeight(it){return FEE_H.rowPad+it.lines.length*FEE_H.line;}
+
+/* ── fee pagination ───────────────────────────────────────────────
+   A quote long enough to fill both columns used to carry on past the
+   bottom of the page, running underneath the footer and, on the last page,
+   printing the TOTAL on top of it. Rather than shrink the type to make it
+   fit — which stops working at the next entity — the table now flows onto
+   as many pages as it needs.
+
+   Blocks are packed into columns in order, two columns to a page. A group
+   is kept whole wherever it can be, since splitting "DISBURSEMENT TO
+   AUTHORITIES" across a column boundary for the sake of one row reads
+   badly. A group too tall for a column on its own is split at a row
+   boundary and its heading repeated, marked (CONT.), which is what a
+   printed fee schedule does.                                        */
+const FEE_COL_CAP=FEE_H.avail-FEE_H.header;
+
+/* Split any group too tall for a single column into column-sized pieces,
+   repeating its heading marked (CONT.). Everything else is left whole. */
+function splitTallFeeBlocks(blocks,capacity){
+  const parts=[];
+  blocks.forEach(b=>{
+    if(feeBlockHeight(b)<=capacity){parts.push(b);return;}
+    let part={grp:b.grp,items:[]};
+    let ph=b.grp?FEE_H.grp:0;
+    b.items.forEach(it=>{
+      const ih=feeItemHeight(it);
+      if(part.items.length&&ph+ih>capacity){
+        parts.push(part);
+        part={grp:b.grp?b.grp+' (CONT.)':null,items:[]};
+        ph=part.grp?FEE_H.grp:0;
+      }
+      part.items.push(it);ph+=ih;
+    });
+    if(part.items.length)parts.push(part);
+  });
+  return parts;
+}
+
+/* Distribute the blocks over `n` columns of at most `capacity`, aiming for
+   equal heights rather than filling each column before starting the next.
+
+   Filling greedily is what leaves the last page with one short column and an
+   empty half — technically fine, but it reads as though the document was cut
+   off. Spreading the same content evenly over full pairs of columns gives
+   pages that look composed. */
+function balanceFeeColumns(parts,capacity,n){
+  const heights=parts.map(feeBlockHeight);
+  const total=heights.reduce((a,b)=>a+b,0);
+  const target=total/n;
+  const cols=[];
+  let cur=[],h=0;
+  parts.forEach((b,i)=>{
+    const bh=heights[i];
+    const left=parts.length-i;              /* blocks still to place */
+    const colsLeft=n-cols.length;           /* columns still to fill */
+    /* Hard stop: the column is physically full. */
+    const full=cur.length&&h+bh>capacity;
+    /* Soft stop: this block would carry the column further past its share
+       than stopping short of it — the standard way to even out a greedy
+       partition. Waiting for h to reach the target instead never fires when
+       the blocks are large, because capacity forces the break first.
+
+       Guarded so we never start a column we cannot fill from what is left:
+       breaking here closes `cur` and opens a new column with this block, so
+       the blocks remaining need only cover the columns after that one. */
+    const fair=cur.length&&colsLeft>1&&left>=colsLeft-1&&
+      Math.abs(h+bh-target)>Math.abs(h-target);
+    if(full||fair){cols.push(cur);cur=[];h=0;}
+    cur.push(b);h+=bh;
+  });
+  if(cur.length)cols.push(cur);
+  return cols;
+}
+
+/* Where to split a quote across two columns on one page, or 0 if it cannot
+   be done without one side overrunning. Totalling under two columns' worth
+   is not sufficient on its own: a single group bigger than a column has to
+   go to the paginator, which can break it, rather than being balanced into
+   a column it cannot fit. */
+function twoColumnsFit(blocks,heights,stack){
+  let best=0,bestDiff=Infinity,run=0;
+  for(let i=1;i<blocks.length;i++){
+    run+=heights[i-1];
+    const a=run,b=stack-run;
+    if(a>FEE_COL_CAP||b>FEE_COL_CAP)continue;
+    const diff=Math.abs(a-b);
+    if(diff<bestDiff){bestDiff=diff;best=i;}
+  }
+  return best;
+}
+
+function packFeeColumns(blocks,capacity){
+  const parts=splitTallFeeBlocks(blocks,capacity);
+  const total=parts.reduce((a,b)=>a+feeBlockHeight(b),0);
+  /* whole pages of two columns, so no page is left half empty */
+  const pages=Math.max(1,Math.ceil(total/(capacity*2)));
+  let cols=balanceFeeColumns(parts,capacity,pages*2);
+  /* balancing can need one more column than the arithmetic suggests, when a
+     group cannot be broken at the ideal point — never drop content for the
+     sake of the layout */
+  if(cols.some(c=>c.reduce((a,b)=>a+feeBlockHeight(b),0)>capacity)){
+    cols=balanceFeeColumns(parts,capacity,pages*2+1);
+  }
+  return cols;
+}
 
 function feeBlockHTML(b){
   let out=b.grp?'<tr class="grp"><td colspan="2">'+b.grp+'</td></tr>':'';
   b.items.forEach(it=>{
     out+='<tr class="rule"><td>'+it.lines.map(l=>
       l.sub?'<div class="feesub">'+l.l+'</div>':'<div>'+l.l+'</div>').join('')+'</td>'+
-      '<td class="r" style="vertical-align:middle">'+money(it.v)+'</td></tr>';
+      /* v null means these lines have no figure of their own — see the
+         orphan case in feeBlocks — so the price column stays empty */
+      '<td class="r" style="vertical-align:middle">'+(it.v===null?'':money(it.v))+'</td></tr>';
   });
   return out;
 }
@@ -4069,15 +4575,10 @@ function pgFee(which,d){
       blocks.map(feeBlockHTML).join('')+
       '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
       '</tbody></table></div>';
-  }else{
-    /* long quote — split across two columns at the point that leaves the
-       two sides closest in height, so neither runs far past the other */
-    let best=1,bestDiff=Infinity,run=0;
-    for(let i=1;i<blocks.length;i++){
-      run+=heights[i-1];
-      const diff=Math.abs(run-(stack-run));
-      if(diff<bestDiff){bestDiff=diff;best=i;}
-    }
+  }else if(stack<=FEE_COL_CAP*2&&twoColumnsFit(blocks,heights,stack)){
+    /* two columns on one page — split at the point that leaves the two
+       sides closest in height, so neither runs far past the other */
+    const best=twoColumnsFit(blocks,heights,stack);
     const col=(from,to)=>'<table class="deckfee">'+head+'<tbody>'+
       blocks.slice(from,to).map(feeBlockHTML).join('')+'</tbody></table>';
     inner='<div class="feewrap wide">'+
@@ -4085,6 +4586,28 @@ function pgFee(which,d){
       '<table class="deckfee feetotal"><tbody>'+
         '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
       '</tbody></table></div>';
+  }else{
+    /* More than two columns' worth — continue onto further pages rather
+       than running off the bottom of this one. Two columns to a page, and
+       the TOTAL closes the last page only: a running total part-way
+       through a schedule invites it being read as the final figure. */
+    const cols=packFeeColumns(blocks,FEE_COL_CAP);
+    const pages=[];
+    for(let i=0;i<cols.length;i+=2)pages.push(cols.slice(i,i+2));
+    return pages.map((pair,idx)=>{
+      const last=idx===pages.length-1;
+      const colHTML=pair.map(c=>'<table class="deckfee">'+head+'<tbody>'+
+        c.map(feeBlockHTML).join('')+'</tbody></table>').join('');
+      const body='<div class="feewrap wide">'+
+        '<div class="feecols">'+colHTML+'</div>'+
+        (last?'<table class="deckfee feetotal"><tbody>'+
+          '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
+          '</tbody></table>':'')+
+        '</div>';
+      /* the continuation is marked in the italic subtitle, where the source
+         decks put the qualifier, rather than in the heading itself */
+      return feePage(title, idx===0?sub:sub.replace(/\)$/,' — continued)'), body);
+    }).join('');
   }
 
   return feePage(title,sub,inner);
@@ -4278,7 +4801,11 @@ function build(){
      the exported HTML along with the other .noprint chrome. */
   const emit=(s)=>{
     const out=emitPage(s);
-    return out?out.replace('<div class="page ','<div data-sec="'+s+'" class="page '):'';
+    /* split, not replace: a builder may now return several pages (a long fee
+       schedule continues onto as many as it needs) and every one of them
+       needs the marker, not just the first */
+    return out?out.split('<div class="page ')
+      .join('<div data-sec="'+s+'" class="page '):'';
   };
 
   const emitPage=(s)=>{
@@ -4416,6 +4943,114 @@ function downloadHTML(){
   a.click();
 }
 
+/* ── Export PDF ───────────────────────────────────────────────────────
+   The deck is rendered by the server's headless Chrome and comes back as a
+   file, rather than being handed to the browser's print dialog.
+
+   window.print() was never really an export: it opens an OS dialog where
+   the margins, headers, "background graphics" and scale are all the
+   operator's to get wrong, and it offers no control over the filename. The
+   server renders the same HTML with the deck's own page box, backgrounds
+   on and margins at zero, every time.
+
+   Rendering there rather than in the browser is also what makes it HD in
+   the sense that matters: the text stays vector, so it is selectable,
+   searchable and sharp at any zoom, and the file is a fraction of the size
+   of a page-images PDF.                                                */
+/* The render API lives on the Railway server, which is NOT where this page
+   is served from: the portal is a static site on Netlify, and the generator
+   is served alongside it. So the URL has to be absolute.
+
+   An earlier version used a same-origin '/api/render-pdf' whenever the page
+   was on http(s), reasoning that the portal and the API were one host. They
+   are not, and the failure would have been quiet rather than loud: Netlify's
+   catch-all rewrite (/* -> /index.html, 200) answers any unknown path with
+   the portal's own HTML, so the export would have "succeeded" and saved a
+   web page with a .pdf extension. */
+const PDF_HOST='https://aurevya-mcp-production.up.railway.app';
+const PDF_ENDPOINT=(location.host&&PDF_HOST.indexOf('//'+location.host)>=0)
+  ? '/api/render-pdf'                 /* served by the API host itself */
+  : PDF_HOST+'/api/render-pdf';
+
+function pdfDefaultName(){
+  return exportFilename().replace(/\.html$/i,'');
+}
+
+function exportPDF(){
+  const box=document.getElementById('pdfDialog');
+  if(box)box.remove();
+  const d=document.createElement('div');
+  d.id='pdfDialog';
+  d.setAttribute('style','position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:4000;'+
+    'display:flex;align-items:center;justify-content:center;padding:20px');
+  d.innerHTML='<div style="background:#fff;border-radius:10px;padding:20px 22px;width:440px;'+
+      'max-width:100%;box-shadow:0 18px 50px rgba(0,0,0,.3)">'+
+    '<div style="font-weight:700;font-size:14px;color:#130429;margin-bottom:3px">Export PDF</div>'+
+    '<div style="font-size:11px;color:#5A5468;margin-bottom:14px">'+
+      PAGENO+' pages · rendered on the server, so the text stays selectable.</div>'+
+    '<label class="f"><span>File name</span>'+
+      '<input id="pdfName" type="text" value="'+pdfDefaultName().replace(/"/g,'&quot;')+'"></label>'+
+    '<div id="pdfMsg" style="font-size:11px;margin-top:8px;min-height:15px;color:#5A5468"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:14px">'+
+      '<button type="button" class="ghost" style="flex:0 0 auto;margin:0" '+
+        'onclick="closePdfDialog()">Cancel</button>'+
+      '<button type="button" id="pdfGo" style="flex:1;margin:0;padding:9px;border:none;'+
+        'border-radius:7px;background:#B59433;color:#130429;font-weight:700;cursor:pointer" '+
+        'onclick="runPdfExport()">Save PDF</button>'+
+    '</div></div>';
+  d.addEventListener('click',e=>{if(e.target===d)closePdfDialog();});
+  document.body.appendChild(d);
+  const inp=document.getElementById('pdfName');
+  inp.focus();inp.select();
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')runPdfExport();});
+}
+
+function closePdfDialog(){
+  const d=document.getElementById('pdfDialog');
+  if(d)d.remove();
+}
+
+async function runPdfExport(){
+  const nameEl=document.getElementById('pdfName');
+  const msg=document.getElementById('pdfMsg');
+  const go=document.getElementById('pdfGo');
+  /* strip anything a file system would object to, and put .pdf back on */
+  let name=(nameEl.value||pdfDefaultName()).trim().replace(/\.pdf$/i,'')
+    .replace(/[\\/:*?"<>|]+/g,'_');
+  if(!name)name=pdfDefaultName();
+
+  go.disabled=true;go.textContent='Rendering…';
+  msg.style.color='#5A5468';
+  msg.textContent='Building '+PAGENO+' pages…';
+  try{
+    const r=await fetch(PDF_ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({html:buildExportHTML(),landscape:true})
+    });
+    if(!r.ok){
+      let detail='';
+      try{detail=(await r.json()).error||'';}catch(e){detail='HTTP '+r.status;}
+      throw new Error(detail||('HTTP '+r.status));
+    }
+    const blob=await r.blob();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=name+'.pdf';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    closePdfDialog();
+  }catch(e){
+    go.disabled=false;go.textContent='Save PDF';
+    msg.style.color='#8A2E2E';
+    /* Say which half failed: an unreachable server and a render error need
+       different things doing about them. */
+    msg.textContent=/Failed to fetch|NetworkError/i.test(e.message)
+      ? 'Could not reach the PDF service. Check the server is running, then try again.'
+      : 'Could not render the PDF: '+e.message;
+  }
+}
+
 let ZOOM=1;
 function zoom(dir){
   ZOOM=Math.max(.4,Math.min(1.6,ZOOM+dir*.1));
@@ -4493,7 +5128,7 @@ function liveBuild(delay){
   });
   /* keyboard niceties */
   document.addEventListener('keydown',function(e){
-    if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();window.print();}
+    if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();exportPDF();}
     if((e.ctrlKey||e.metaKey)&&(e.key==='='||e.key==='+')){e.preventDefault();zoom(1);}
     if((e.ctrlKey||e.metaKey)&&e.key==='-'){e.preventDefault();zoom(-1);}
   });

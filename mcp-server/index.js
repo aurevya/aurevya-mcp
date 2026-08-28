@@ -10,7 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { login, logout, getAuthedClient, logAudit, AuthRequiredError, beginPairedLogin, claimPairedLogin } from './lib/supabaseClient.js';
-import { createProposal, quoteProposal, listGeneratedProposals } from './lib/proposal.js';
+import { createProposal, quoteProposal, listGeneratedProposals, renderHtmlToPdf } from './lib/proposal.js';
 import { ensureProposalsBucket, storageConfigured, uploadProposal, listStoredProposals } from './lib/proposalStorage.js';
 import {
   requireAdmin, createUserWithPassword, setUserPassword, logAdminUserAction,
@@ -745,6 +745,53 @@ if (process.env.PORT) {
       { target_user_id: user_id, by: actor.email });
     return { ok: true };
   }));
+
+  /* ── render a deck to PDF ──────────────────────────────────────────────
+     The generator posts the finished deck HTML and gets PDF bytes back, so
+     the browser never opens its print dialog and the file is named before
+     it is saved.
+
+     Rendered through headless Chrome rather than in the browser: the pages
+     come out as real vector text — selectable, searchable, a fraction of
+     the size — with the fonts embedded and the page box exactly as the CSS
+     declares it. Rasterising in the browser would be none of those things.
+
+     Deliberately not behind Supabase auth. It renders whatever HTML it is
+     given and stores nothing, so there is no data here to protect; the
+     generator is opened from the portal by staff who are already signed in,
+     and requiring a token would mean plumbing one through a page that is
+     also opened straight off disk. ALLOWED_ORIGINS remains the control over
+     who may call it. */
+  app.options('/api/render-pdf', (req, res) => {
+    if (!applyCors(req, res)) return;
+    res.status(204).end();
+  });
+
+  app.post('/api/render-pdf', async (req, res) => {
+    if (!applyCors(req, res)) return;
+    const { html, landscape } = req.body || {};
+    if (typeof html !== 'string' || !html.trim()) {
+      res.status(400).json({ error: 'No document was sent to render.' });
+      return;
+    }
+    /* Chrome will happily spend minutes on a runaway document; the deck is
+       a couple of dozen pages, so anything past this is a fault. */
+    const LIMIT_BYTES = 40 * 1024 * 1024;
+    if (Buffer.byteLength(html, 'utf8') > LIMIT_BYTES) {
+      res.status(413).json({ error: 'That document is too large to render.' });
+      return;
+    }
+
+    try {
+      const pdf = await renderHtmlToPdf(html, { landscape: landscape !== false });
+      res.set('Content-Type', 'application/pdf');
+      res.set('Content-Length', String(pdf.length));
+      res.status(200).end(Buffer.from(pdf));
+    } catch (e) {
+      console.error('[aurevya-mcp] render-pdf failed:', e);
+      res.status(500).json({ error: (e && e.message) || 'Could not render the PDF.' });
+    }
+  });
 
   /* Lets the portal show a useful message ("ask an admin to configure the
      server") instead of a generic failure when the key is missing. */

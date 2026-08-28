@@ -131,7 +131,12 @@ ROUTE_ORIGINAL = 'path:"proposals",element:n.jsx(RS,{})'
 
 # Files from this folder that get copied into the deploy.
 # (skip the deploy scripts themselves and the raw/ extraction scratch space)
-INCLUDE_EXTS = {".html", ".png", ".json", ".md"}
+# .svg matters as much as .png here: the white-on-dark lockup
+# (assets/logo-white.svg) is vector, and leaving it out of the deploy is
+# invisible rather than obvious — the generator falls back to the full-colour
+# PNG on a white chip, which looks like a design choice rather than a missing
+# file. That is what shipped until this was fixed.
+INCLUDE_EXTS = {".html", ".png", ".svg", ".json", ".md", ".woff2"}
 SKIP_DIRS = {"raw"}
 
 # ── 3. Favicon ───────────────────────────────────────────────────────────

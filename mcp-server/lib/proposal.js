@@ -429,6 +429,83 @@ export async function createProposal(opts) {
   });
 }
 
+/* ── render a finished deck to PDF ────────────────────────────────────────
+ *  Takes the HTML the generator produces in the browser and returns PDF
+ *  bytes, so staff get a named file without going through Chrome's print
+ *  dialog, and the pages come out as vector text rather than pictures of
+ *  text.
+ *
+ *  Two things here are deliberate and worth not undoing.
+ *
+ *  The HTML is written into the generator's own folder and opened as a
+ *  file:// URL rather than pushed in with setContent(). The deck refers to
+ *  its photography with relative paths (assets/cover-photograph.png and so
+ *  on); setContent leaves those unresolvable, and the alternative — the
+ *  browser inlining forty-odd images as data URIs before posting — would
+ *  mean sending megabytes over the wire to say something the server already
+ *  has on disk.
+ *
+ *  Every http(s) request the page tries to make is blocked, bar the two
+ *  Google Fonts hosts. This browser runs with --no-sandbox (it has to, as
+ *  root in the container), and it is now being handed HTML from outside
+ *  rather than only our own file. Without this an image tag pointing at an
+ *  internal address would make the server fetch it and hand the result to
+ *  Chrome — the ordinary server-side request forgery shape. Local files and
+ *  data: URIs are all the deck legitimately needs.
+ */
+const PDF_ALLOWED_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+
+/** Whether the render browser may fetch this URL. Exported so the rule can
+ *  be tested directly — it is the thing standing between "render the HTML I
+ *  sent you" and "fetch this internal address and tell me what it said". */
+export function pdfRequestAllowed(url) {
+  if (typeof url !== 'string') return false;
+  if (url.startsWith('file:') || url.startsWith('data:') || url.startsWith('about:')) return true;
+  try {
+    return PDF_ALLOWED_HOSTS.includes(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+export async function renderHtmlToPdf(html, { landscape = true } = {}) {
+  const dir = path.dirname(GENERATOR_PATH);
+  const tmp = path.join(dir, `.render-${Date.now()}-${Math.random().toString(36).slice(2)}.html`);
+  fs.writeFileSync(tmp, html, 'utf8');
+
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+  try {
+    const page = await browser.newPage();
+
+    await page.setRequestInterception(true);
+    page.on('request', (r) => {
+      if (pdfRequestAllowed(r.url())) r.continue();
+      else r.abort();
+    });
+
+    await page.goto(pathToFileURL(tmp).href, { waitUntil: 'networkidle0', timeout: 60000 });
+    await page.emulateMediaType('print');
+    /* let the webfonts finish, so the PDF embeds the real faces instead of
+       whatever the renderer happened to substitute mid-load */
+    await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
+
+    return await page.pdf({
+      printBackground: true,
+      /* honour the @page size the deck's own stylesheet declares — the deck
+         is 297 x 186mm, not A4, and forcing A4 would scale every page */
+      preferCSSPageSize: true,
+      landscape,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    });
+  } finally {
+    await browser.close();
+    try { fs.unlinkSync(tmp); } catch { /* already gone */ }
+  }
+}
+
 export function listGeneratedProposals(limit = 20) {
   if (!fs.existsSync(OUTPUT_ROOT)) return [];
   const files = [];
