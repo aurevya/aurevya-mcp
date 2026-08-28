@@ -1444,7 +1444,7 @@ const PRODUCTS = {
     coverT1:'Proposal for the setup of a',coverT2:'Multiple Family Office',
     running:'PROPOSAL FOR THE SETUP OF A MULTIPLE FAMILY OFFICE',
     priceKeys:['mfo'],glossary:['base'],
-    sections:['contents','glossary','ourgroup','about','whatwedo','structdivider','structure','gbcdivider','gbcoverview',
+    sections:['disclaimer','contents','glossary','ourgroup','about','whatwedo','structdivider','structure','gbcdivider','gbcoverview',
               'docprocess','kyc','feesetup','feefixed','leaf','svc_board','svc_accounting','svc_legal',
               'svc_compliance','svc_it','svc_media','back'],
     structure:{title:'Tailored Solution',sub:'PROPOSED STRUCTURE',canvasW:175,canvasH:150,
@@ -1459,7 +1459,7 @@ const PRODUCTS = {
     coverT3:'– Pre-Fund GP/LP set-up &amp; Sub-Threshold AIF',
     running:'REQUEST FOR LEGAL STRUCTURING &amp; SET-UP — LUXEMBOURG INVESTMENT PLATFORM',
     priceKeys:['fundlux'],glossary:['fund'],currency:'EUR',
-    sections:['contents','glossary','ourgroup','about','whatwedo','structdivider','structure','kyc','feesetup','feefixed',
+    sections:['disclaimer','contents','glossary','ourgroup','about','whatwedo','structdivider','structure','kyc','feesetup','feefixed',
               'leaf','svc_board','svc_accounting','svc_legal','svc_compliance','svc_it','svc_concierge','back'],
     structure:{title:'Bespoke Solution',sub:'PROPOSED STRUCTURE',canvasW:175,canvasH:150,
       nodes:[{id:'sp',kind:'shareholder',label:'SPONSORS',x:73.5,y:10,primary:false,cap:''},
@@ -1474,7 +1474,7 @@ const PRODUCTS = {
     coverT1:'Proposal for',coverT2:'Accounting &amp; Finance Services',
     running:'PROPOSAL FOR ACCOUNTING &amp; FINANCE SERVICES',
     priceKeys:['accounting'],glossary:['base'],
-    sections:['contents','glossary','ourgroup','about','whatwedo','svc_accounting','kyc','feesetup','feefixed','back'],
+    sections:['disclaimer','contents','glossary','ourgroup','about','whatwedo','svc_accounting','kyc','feesetup','feefixed','back'],
     structure:null,docprocess:null}
 };
 
@@ -1653,7 +1653,10 @@ function glossaryScopeStructure(ent){
    changes are needed when new combinations are picked */
 function structureSections(ent){
   const k=structureKinds(ent);
-  const s=['contents','glossary','ourgroup','about','whatwedo','structdivider','structure'];
+  /* 'disclaimer' leads: the approved deck carries it as page 2, right
+     after the cover. It remains a step-1 toggle for the rare deck that
+     goes out without it. */
+  const s=['disclaimer','contents','glossary','ourgroup','about','whatwedo','structdivider','structure'];
   /* House order, and it is deliberate: Trust, then Global Business Company,
      then Authorised Company, then CIS. It reads from the holding structure
      downwards, which is how the deck is talked through — so GBC precedes AC
@@ -2323,7 +2326,7 @@ function feeTotals(){
 }
 
 const SECTION_LABELS={
-  disclaimer:['Disclaimer','Legal disclaimer page — absent from most current decks'],
+  disclaimer:['Disclaimer','Page 2 of the approved deck, straight after the cover. On by default; untick only for a deck that goes out without it'],
   contents:['Contents','Table of contents'],
   glossary:['Glossary of Terms','Auto-scoped to the product'],
   ourgroup:['Our Group','Kundomal & Co group companies'],
