@@ -5145,8 +5145,12 @@ async function downloadHTML(){
    the portal's own HTML, so the export would have "succeeded" and saved a
    web page with a .pdf extension. */
 const PDF_HOST='https://aurevya-mcp-production.up.railway.app';
-const PDF_ENDPOINT=(location.host&&PDF_HOST.indexOf('//'+location.host)>=0)
-  ? '/api/render-pdf'                 /* served by the API host itself */
+/* Served from /generator on the render server, this is same-origin — no
+   CORS, no preflight, and the page can never be a different version from
+   the renderer. The absolute address is the fallback for a copy opened
+   from anywhere else, which still works but has to clear CORS. */
+const PDF_ENDPOINT=(location.protocol!=='file:'&&/\/generator\//.test(location.pathname))
+  ? '/api/render-pdf'
   : PDF_HOST+'/api/render-pdf';
 
 function pdfDefaultName(){
@@ -5220,11 +5224,22 @@ async function runPdfExport(){
   }catch(e){
     go.disabled=false;go.textContent='Save PDF';
     msg.style.color='#8A2E2E';
-    /* Say which half failed: an unreachable server and a render error need
-       different things doing about them. */
-    msg.textContent=/Failed to fetch|NetworkError/i.test(e.message)
-      ? 'Could not reach the PDF service. Check the server is running, then try again.'
-      : 'Could not render the PDF: '+e.message;
+    /* Report what actually happened, including where it was sent.
+       This used to translate every failure into "could not reach the PDF
+       service", which sent us chasing the server on at least three
+       occasions when the fault was in this page — an opaque browser error
+       and a genuine outage look identical from here, so the honest thing is
+       to show the message and the address and let it be read. */
+    const where=(location.protocol==='file:'?'local file':location.host)+' → '+PDF_ENDPOINT;
+    msg.innerHTML='<b>Export failed.</b><br>'+
+      String(e&&e.message||e).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))+
+      '<br><span style="opacity:.75">'+where+'</span>'+
+      (/Failed to fetch|NetworkError|Load failed/i.test(String(e&&e.message))
+        ? '<br><span style="opacity:.75">The browser blocked or could not complete the request. '+
+          'Opening this page from a file:// path is a common cause — serve it from the portal instead.</span>'
+        : '');
+    /* full detail in the console for anything the box cannot hold */
+    console.error('[export] failed sending to',PDF_ENDPOINT,e);
   }
 }
 

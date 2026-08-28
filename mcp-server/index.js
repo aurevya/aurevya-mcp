@@ -623,6 +623,39 @@ if (process.env.PORT) {
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
+  /* ── serve the generator from here ────────────────────────────────────
+     The proposal generator is now served by the same process that renders
+     its PDFs, at /generator/proposal-generator.html.
+
+     It was previously deployed separately onto the portal's static host,
+     which meant two copies that had to be updated in step and never were.
+     Every export failure of the last few rounds came back to that: the
+     page in the browser was older than the renderer, or older than the
+     fonts it asked for, and from the outside all of it looked identical to
+     "the server is down".
+
+     Serving it here fixes that by construction. One deploy moves the page
+     and the renderer together, so they cannot disagree. It is also
+     same-origin with /api/render-pdf, so the export needs no CORS at all —
+     no preflight, no ALLOWED_ORIGINS, nothing to misconfigure.
+
+     Read-only: express.static serves files, it does not accept uploads. */
+  {
+    const nodePath = (await import('path')).default;
+    const { fileURLToPath: f2u } = await import('url');
+    const here = nodePath.dirname(f2u(import.meta.url));
+    const generatorDir = nodePath.join(here, '..', 'proposal-generator');
+    app.use('/generator', express.static(generatorDir, {
+      index: 'proposal-generator.html',
+      /* the deck changes with every edit; the fonts and photographs do not */
+      setHeaders: (res, filePath) => {
+        res.set('Cache-Control', /\.(woff2|png|svg|ico)$/i.test(filePath)
+          ? 'public, max-age=604800'
+          : 'no-cache');
+      },
+    }));
+  }
+
   const LOGIN_PAGE = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Aurevya — Sign in for Claude</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">

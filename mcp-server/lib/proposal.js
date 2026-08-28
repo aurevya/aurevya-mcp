@@ -420,7 +420,24 @@ export async function createProposal(opts) {
     const pdfFilename = filename.replace(/\.html$/i, '.pdf');
     const pdfPath = path.join(clientDir, pdfFilename);
     await page.emulateMediaType('print');
-    await page.pdf({ path: pdfPath, format: 'A4', printBackground: true, preferCSSPageSize: true });
+    await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
+    /* Explicit size from the page itself. format:'A4' with
+       preferCSSPageSize was producing Letter-shaped pages that the deck
+       then reflowed against, splitting every page across two sheets. */
+    const box = await page.evaluate(() => {
+      const cs = getComputedStyle(document.documentElement);
+      return {
+        w: (cs.getPropertyValue('--pw') || '').trim() || '300mm',
+        h: (cs.getPropertyValue('--ph') || '').trim() || '190mm',
+        pages: document.querySelectorAll('.page').length,
+      };
+    });
+    await page.pdf({
+      path: pdfPath, printBackground: true,
+      width: box.w, height: box.h, preferCSSPageSize: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      pageRanges: box.pages ? `1-${box.pages}` : undefined,
+    });
 
     const pdfBase64 = fs.readFileSync(pdfPath).toString('base64');
 

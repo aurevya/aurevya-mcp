@@ -76,15 +76,18 @@ ok('it does not ship a rebuilt document any more',
   global.fetch=async()=>{throw new Error('Failed to fetch');};
   await runPdfExport();
   const msg=document.getElementById('pdfMsg');
-  ok('an unreachable server is reported plainly',
-     msg&&/Could not reach the PDF service/.test(msg.textContent), msg&&msg.textContent);
+  ok('a failure now reports the real error, not a guess',
+     msg&&/Export failed/.test(msg.textContent)&&/Failed to fetch/.test(msg.textContent),
+     msg&&msg.textContent.slice(0,72));
+  ok('  ...and says where it was sent',
+     msg&&msg.textContent.includes('render-pdf'));
   ok('the dialog stays open so it can be retried', !!document.getElementById('pdfDialog'));
   ok('the button is usable again', document.getElementById('pdfGo').disabled===false);
 
   /* a render failure reports the server's reason */
   global.fetch=async()=>({ok:false,status:500,json:async()=>({error:'Protocol error: Page crashed'})});
   await runPdfExport();
-  ok('a render failure shows the reason',
+  ok('a render failure shows the server\'s reason',
      /Page crashed/.test(document.getElementById('pdfMsg').textContent),
      document.getElementById('pdfMsg').textContent);
 
