@@ -4930,9 +4930,59 @@ function proposalSlug(){
    driven headlessly (see mcp-server/lib/proposal.js, which calls
    window.buildExportHTML() from a headless Chromium tab) as well as from
    the in-app "Download HTML" button, with zero duplicated logic. */
-function buildExportHTML(){
-  const p=currentSpec();
+/* ── fonts, carried inside the document ───────────────────────────
+   The @font-face rules point at assets/fonts/*.woff2, which is right for
+   the page in a browser and unreliable everywhere the document travels to.
+   Two rendered PDFs came back with nothing but LiberationSerif — the
+   renderer's last-resort serif — because those files did not resolve where
+   the render happened.
+
+   Reading them here and inlining them as data: URIs ends the question. The
+   browser already has them (it is displaying the deck with them), the
+   document becomes self-contained, and an HTML copy emailed to a client
+   keeps its typography on a machine that has neither the fonts nor the
+   internet. About 315KB of base64 for nine faces.
+
+   Cached after the first read: an export is not a page load, and staff
+   commonly export several times in a row.                              */
+let FONT_DATA_CACHE=null;
+
+async function inlinedFonts(){
+  if(FONT_DATA_CACHE)return FONT_DATA_CACHE;
   const css=document.querySelector('style').innerHTML;
+  const urls=[...new Set([...css.matchAll(/url\('(assets\/fonts\/[^']+)'\)/g)].map(m=>m[1]))];
+  const map={};
+  await Promise.all(urls.map(async(u)=>{
+    const r=await fetch(u);
+    if(!r.ok)throw new Error('Could not read '+u+' (HTTP '+r.status+')');
+    const bytes=new Uint8Array(await r.arrayBuffer());
+    /* chunked, because String.fromCharCode with 25,000 arguments blows the
+       call stack on some engines */
+    let bin='';const CH=0x8000;
+    for(let i=0;i<bytes.length;i+=CH){
+      bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));
+    }
+    map[u]='data:font/woff2;base64,'+btoa(bin);
+  }));
+  FONT_DATA_CACHE=map;
+  return map;
+}
+
+/** The deck as a standalone file, with the fonts embedded. Async because
+ *  reading them is; buildExportHTML() stays synchronous for the MCP server,
+ *  which writes its HTML next to the assets folder and so can rely on the
+ *  relative paths. */
+async function buildSelfContainedHTML(){
+  return buildExportHTML(await inlinedFonts());
+}
+
+function buildExportHTML(fontMap){
+  const p=currentSpec();
+  let css=document.querySelector('style').innerHTML;
+  if(fontMap){
+    css=css.replace(/url\('(assets\/fonts\/[^']+)'\)/g,
+      (m,u)=>fontMap[u]?"url('"+fontMap[u]+"')":m);
+  }
   /* strip editing-only UI (the on-canvas "+" toolbar, etc.) so a
      downloaded/emailed file never shows controls that don't do anything
      without the app's JS behind them */
@@ -4963,8 +5013,10 @@ function exportFilename(){
   return 'AUREVYA_'+proposalSlug()+'_'+
     ($('fClient').value||'PROPOSAL').replace(/[^a-zA-Z0-9]/g,'_')+'_'+stamp+'.html';
 }
-function downloadHTML(){
-  const doc=buildExportHTML();
+async function downloadHTML(){
+  /* self-contained as well: a deck emailed to a client has no assets
+     folder beside it, so relative font paths would leave it in Times */
+  const doc=await buildSelfContainedHTML();
   const blob=new Blob([doc],{type:'text/html'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -5055,7 +5107,7 @@ async function runPdfExport(){
     const r=await fetch(PDF_ENDPOINT,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({html:buildExportHTML(),landscape:true})
+      body:JSON.stringify({html:await buildSelfContainedHTML()})
     });
     if(!r.ok){
       let detail='';

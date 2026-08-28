@@ -40,7 +40,7 @@ ok('both families are declared',
 ok('the deck no longer depends on Google Fonts',
    !/href="https:\/\/fonts\.googleapis\.com/.test(html));
 ok('nor does the exported deck', (()=>{
-   const m=html.match(/function buildExportHTML\(\)\{[\s\S]*?\n\}/)[0];
+   const m=html.match(/function buildExportHTML\(fontMap\)\{[\s\S]*?\n\}/)[0];
    return !/fonts\.googleapis\.com/.test(m);})());
 
 /* the trap that bit logo-white.svg: will the deploy actually carry them? */

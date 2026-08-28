@@ -19,6 +19,8 @@ let PAGENO=21;global.PAGENO=PAGENO;
 global.$=id=>document.getElementById(id);
 global.exportFilename=()=>'AUREVYA_AC_Acme_Holdings_20260826_101500.html';
 global.buildExportHTML=()=>'<html><body>deck</body></html>';
+/* the export now embeds its fonts before sending */
+global.buildSelfContainedHTML=async()=>'<html><body>deck @font-face data:font/woff2</body></html>';
 
 let fails=0;const ok=(l,c,x)=>{console.log((c?'PASS  ':'FAIL  ')+l+(x!==undefined?'   '+x:''));if(!c)fails++;};
 
@@ -44,7 +46,12 @@ document.getElementById('pdfName').value='Acme Holdings — Proposal v2';
   await runPdfExport();
   ok('it posts to the render endpoint', posted&&posted.u===PDF_ENDPOINT, posted&&posted.u);
   ok('it sends the deck HTML', JSON.parse(posted.o.body).html.includes('deck'));
-  ok('it asks for landscape', JSON.parse(posted.o.body).landscape===true);
+  /* landscape is deliberately NOT sent: the page size read from the deck's
+   own @page is already 297 wide by 186 tall, and asking for landscape on
+   top of that swaps the two and crops every page */
+ok('it does not ask for landscape', JSON.parse(posted.o.body).landscape===undefined);
+ok('it sends a self-contained document',
+   /data:font\/woff2/.test(JSON.parse(posted.o.body).html));
   ok('the file is saved under the typed name, as .pdf',
      downloaded==='Acme Holdings — Proposal v2.pdf', downloaded);
   ok('the dialog closes on success', !document.getElementById('pdfDialog'));
