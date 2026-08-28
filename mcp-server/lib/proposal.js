@@ -487,6 +487,68 @@ export function pdfPageSize(html) {
   return { width: m[1] + m[2], height: m[3] + m[4], fromCss: true };
 }
 
+/* ── render a deck from a snapshot ────────────────────────────────────────
+ *  The export path that works.
+ *
+ *  The previous one had the browser rebuild the deck as a standalone HTML
+ *  document and post it here to be rendered. Four attempts came back with
+ *  the stylesheet not applied — text in Times, pages running together, no
+ *  page height, no colours — for reasons not observable from outside the
+ *  container. Rather than keep guessing at why a reconstructed document
+ *  loses its CSS, this drives the generator page itself, exactly as
+ *  createProposal() has always done: the stylesheet, the photography and
+ *  the fonts are part of that file on this disk, so there is nothing to
+ *  survive a round trip.
+ *
+ *  What travels is the snapshot — the sidebar fields plus STATE, which
+ *  carries every hand edit — at tens of KB rather than several hundred.
+ */
+export async function renderSnapshotToPdf(snapshot) {
+  return withPage(async (page) => {
+    const applied = await page.evaluate((s) => {
+      if (typeof applySnapshot !== 'function') return 'no-apply';
+      return applySnapshot(s) ? 'ok' : 'rejected';
+    }, snapshot);
+
+    if (applied === 'no-apply') {
+      throw new Error(
+        'The generator on the server is older than the one that made this deck '
+        + '(it has no applySnapshot). Deploy the current proposal-generator.html.');
+    }
+    if (applied !== 'ok') throw new Error('The deck settings could not be applied.');
+
+    await page.emulateMediaType('print');
+    /* webfonts are loaded from this same folder; wait for them or the first
+       page can be laid out in a fallback and captured mid-swap */
+    await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
+
+    /* Ask the page how big it actually is, rather than parsing the CSS or
+       assuming: whatever --pw/--ph say, that is the paper. */
+    const box = await page.evaluate(() => {
+      const cs = getComputedStyle(document.documentElement);
+      const el = document.querySelector('.page');
+      const r = el && el.getBoundingClientRect();
+      return {
+        w: (cs.getPropertyValue('--pw') || '').trim(),
+        h: (cs.getPropertyValue('--ph') || '').trim(),
+        px: r ? { w: Math.round(r.width), h: Math.round(r.height) } : null,
+        pages: document.querySelectorAll('.page').length,
+      };
+    });
+
+    if (!box.pages) throw new Error('The deck rendered no pages.');
+
+    return await page.pdf({
+      printBackground: true,
+      width: box.w || '300mm',
+      height: box.h || '190mm',
+      preferCSSPageSize: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      pageRanges: `1-${box.pages}`,
+    });
+  });
+}
+
 export async function renderHtmlToPdf(html) {
   const dir = path.dirname(GENERATOR_PATH);
   const tmp = path.join(dir, `.render-${Date.now()}-${Math.random().toString(36).slice(2)}.html`);

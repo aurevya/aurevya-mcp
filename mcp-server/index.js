@@ -10,7 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { login, logout, getAuthedClient, logAudit, AuthRequiredError, beginPairedLogin, claimPairedLogin } from './lib/supabaseClient.js';
-import { createProposal, quoteProposal, listGeneratedProposals, renderHtmlToPdf } from './lib/proposal.js';
+import { createProposal, quoteProposal, listGeneratedProposals, renderHtmlToPdf, renderSnapshotToPdf } from './lib/proposal.js';
 import { ensureProposalsBucket, storageConfigured, uploadProposal, listStoredProposals } from './lib/proposalStorage.js';
 import {
   requireAdmin, createUserWithPassword, setUserPassword, logAdminUserAction,
@@ -769,9 +769,9 @@ if (process.env.PORT) {
 
   app.post('/api/render-pdf', async (req, res) => {
     if (!applyCors(req, res)) return;
-    const { html } = req.body || {};
-    if (typeof html !== 'string' || !html.trim()) {
-      res.status(400).json({ error: 'No document was sent to render.' });
+    const { snapshot, html } = req.body || {};
+    if (!snapshot && (typeof html !== 'string' || !html.trim())) {
+      res.status(400).json({ error: 'No deck was sent to render.' });
       return;
     }
     /* Chrome will happily spend minutes on a runaway document; the deck is
@@ -783,7 +783,12 @@ if (process.env.PORT) {
     }
 
     try {
-      const pdf = await renderHtmlToPdf(html);
+      /* Preferred path: drive the server's own copy of the generator from
+         the deck's settings. The html branch is the older one, kept so a
+         browser running a previous version of the page still works. */
+      const pdf = snapshot
+        ? await renderSnapshotToPdf(snapshot)
+        : await renderHtmlToPdf(html);
       res.set('Content-Type', 'application/pdf');
       res.set('Content-Length', String(pdf.length));
       res.status(200).end(Buffer.from(pdf));

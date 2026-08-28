@@ -1871,6 +1871,70 @@ let STATE={mode:'structure',entities:{company:'ac',companyCount:1,trust:false,ci
   /* entity kinds added by clicking a box on the canvas — see structureKinds() */
   extraKinds:[]};
 
+/* ── deck snapshot ────────────────────────────────────────────────
+   Everything needed to reproduce this deck somewhere else: the sidebar
+   fields, and STATE, which holds every edit made after them — reordered
+   fee lines, per-entity columns, the structure diagram, which sections are
+   ticked.
+
+   This exists because exporting a rebuilt HTML document to the renderer
+   did not survive the trip: the stylesheet arrived but was not applied, so
+   PDFs came back in Times with the pages running together. Sending the
+   settings instead lets the server drive its own copy of this page, where
+   the stylesheet, the photography and the fonts are simply part of the
+   document and there is nothing to lose in transit.
+
+   Small — tens of KB — where the rebuilt document was several hundred. */
+function exportSnapshot(){
+  const val=(id,d)=>{const e=$(id);return e?e.value:d;};
+  const chk=(id)=>{const e=$(id);return e?!!e.checked:false;};
+  return {
+    v:1,
+    fields:{
+      mode:val('fMode','structure'),
+      company:val('fCompany','ac'),
+      companyCount:val('fCompanyCount','1'),
+      trust:chk('fTrust'), cis:chk('fCis'),
+      nominee:chk('fNominee'), feeCombined:chk('fFeeCombined'),
+      client:val('fClient',''), month:val('fMonth','0'),
+      year:val('fYear',String(new Date().getFullYear())),
+      currency:val('fCurrency','USD'),
+    },
+    /* deep-copied so a later edit cannot mutate a snapshot in flight */
+    state:JSON.parse(JSON.stringify({
+      mode:STATE.mode, entities:STATE.entities, fees:STATE.fees,
+      feeCols:STATE.feeCols, sections:STATE.sections,
+      struct:STATE.struct, extraKinds:STATE.extraKinds,
+    })),
+  };
+}
+
+/* Restore a snapshot into this page and redraw. Called by the render
+   server inside its own headless copy of this file. */
+function applySnapshot(s){
+  if(!s||!s.fields)return false;
+  const f=s.fields;
+  const set=(id,v)=>{const e=$(id);if(e)e.value=v;};
+  const tick=(id,v)=>{const e=$(id);if(e)e.checked=!!v;};
+  set('fMode',f.mode); set('fCompany',f.company); set('fCompanyCount',f.companyCount);
+  tick('fTrust',f.trust); tick('fCis',f.cis);
+  tick('fNominee',f.nominee); tick('fFeeCombined',f.feeCombined);
+  set('fClient',f.client); set('fMonth',f.month); set('fYear',f.year);
+  set('fCurrency',f.currency);
+
+  /* Establish a consistent base from the fields — this reseeds fees,
+     sections and the diagram — and only then overwrite with the captured
+     state, so hand edits win over the defaults. */
+  if(typeof onModeOrEntityChange==='function')onModeOrEntityChange();
+  if(s.state)Object.keys(s.state).forEach(k=>{STATE[k]=s.state[k];});
+
+  if(typeof renderSectionToggles==='function')renderSectionToggles(true);
+  if(typeof renderFeeEditor==='function')renderFeeEditor();
+  if(typeof renderStructEditorUI==='function')renderStructEditorUI();
+  build();
+  return true;
+}
+
 function $(id){return document.getElementById(id);}
 function money(n,cur){
   if(n===''||n===null||n===undefined||isNaN(n))return '';
@@ -5139,7 +5203,7 @@ async function runPdfExport(){
     const r=await fetch(PDF_ENDPOINT,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({html:await buildSelfContainedHTML()})
+      body:JSON.stringify({snapshot:exportSnapshot()})
     });
     if(!r.ok){
       let detail='';
