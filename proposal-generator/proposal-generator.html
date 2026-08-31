@@ -5204,17 +5204,42 @@ async function runPdfExport(){
   msg.style.color='#5A5468';
   msg.textContent='Building '+PAGENO+' pages…';
   try{
-    const r=await fetch(PDF_ENDPOINT,{
+    /* Two steps, because a render takes long enough that a single request
+       sits idle and gets closed somewhere in between — which the browser
+       reports as a network failure. Starting the job and collecting it
+       separately keeps every request short. */
+    const start=await fetch(PDF_ENDPOINT,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({snapshot:exportSnapshot()})
     });
-    if(!r.ok){
+    if(!start.ok&&start.status!==202){
       let detail='';
-      try{detail=(await r.json()).error||'';}catch(e){detail='HTTP '+r.status;}
-      throw new Error(detail||('HTTP '+r.status));
+      try{detail=(await start.json()).error||'';}catch(e){detail='HTTP '+start.status;}
+      throw new Error(detail||('HTTP '+start.status));
     }
-    const blob=await r.blob();
+    const {jobId}=await start.json();
+    if(!jobId)throw new Error('The server did not start the render.');
+
+    const wait=ms=>new Promise(r=>setTimeout(r,ms));
+    let blob=null;
+    for(let i=0;i<150;i++){            /* five minutes at two polls a second */
+      await wait(2000);
+      const p=await fetch(PDF_ENDPOINT+'/'+jobId);
+      if(p.status===202){
+        let s=0;try{s=(await p.json()).seconds||0;}catch(e){}
+        msg.textContent='Rendering '+PAGENO+' pages… '+(s||Math.round(i*2))+'s';
+        continue;
+      }
+      if(!p.ok){
+        let detail='';
+        try{detail=(await p.json()).error||'';}catch(e){detail='HTTP '+p.status;}
+        throw new Error(detail||('HTTP '+p.status));
+      }
+      blob=await p.blob();
+      break;
+    }
+    if(!blob)throw new Error('The render did not finish in time.');
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
     a.download=name+'.pdf';

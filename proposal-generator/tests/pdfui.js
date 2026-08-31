@@ -39,10 +39,29 @@ ok('the name is pre-filled and editable',
 ok('it says how many pages', document.getElementById('pdfDialog').textContent.includes('21 pages'));
 ok('no browser print dialog is involved', !/window\.print/.test(exportPDF.toString()));
 
-/* a successful render downloads under the typed name */
-let downloaded=null,posted=null;
+/* a successful render downloads under the typed name.
+
+   The export is now two requests: the POST starts a job and answers at once,
+   and the page collects the file from a second URL. It has to be, because a
+   render takes long enough that a single held-open request gets closed in
+   between and the browser reports that as a network failure. So the stub
+   below is a little server, not a canned reply. */
+let downloaded=null,posted=null,polls=0;
 dom.window.HTMLAnchorElement.prototype.click=function(){downloaded=this.download;};
-global.fetch=async(u,o)=>{posted={u,o};return{ok:true,blob:async()=>new dom.window.Blob(['%PDF-1.4'],{type:'application/pdf'})};};
+let stubJob={runningFor:0,fail:null};   /* how many polls answer "still working" */
+const fakeServer=async(u,o)=>{
+  if(o&&o.method==='POST'){
+    posted={u,o};polls=0;
+    return{ok:true,status:202,json:async()=>({jobId:'job-1'})};
+  }
+  polls++;
+  if(polls<=stubJob.runningFor)
+    return{ok:false,status:202,json:async()=>({status:'running',seconds:polls*2})};
+  if(stubJob.fail)
+    return{ok:false,status:500,json:async()=>({error:stubJob.fail})};
+  return{ok:true,status:200,blob:async()=>new dom.window.Blob(['%PDF-1.4'],{type:'application/pdf'})};
+};
+global.fetch=fakeServer;
 document.getElementById('pdfName').value='Acme Holdings — Proposal v2';
 ;(async()=>{
   await runPdfExport();
@@ -71,6 +90,22 @@ ok('it does not ship a rebuilt document any more',
   await runPdfExport();
   ok('an empty name falls back to the default', downloaded===pdfDefaultName()+'.pdf', downloaded);
 
+  /* a render that outlives several polls still arrives — the whole point of
+     splitting the request in two */
+  exportPDF();
+  stubJob={runningFor:3,fail:null};
+  document.getElementById('pdfName').value='Slow render';
+  const seen=[];
+  const watch=setInterval(()=>{const m=document.getElementById('pdfMsg');
+    if(m&&m.textContent)seen.push(m.textContent);},50);
+  await runPdfExport();
+  clearInterval(watch);
+  ok('a render that takes several polls still downloads',
+     downloaded==='Slow render.pdf', downloaded);
+  ok('  ...and it counts up while waiting',
+     seen.some(t=>/Rendering .* \d+s/.test(t)), seen[seen.length-1]);
+  stubJob={runningFor:0,fail:null};
+
   /* the server being down says so, and leaves the dialog open to retry */
   exportPDF();
   global.fetch=async()=>{throw new Error('Failed to fetch');};
@@ -85,10 +120,21 @@ ok('it does not ship a rebuilt document any more',
   ok('the button is usable again', document.getElementById('pdfGo').disabled===false);
 
   /* a render failure reports the server's reason */
-  global.fetch=async()=>({ok:false,status:500,json:async()=>({error:'Protocol error: Page crashed'})});
+  global.fetch=fakeServer;
+  stubJob={runningFor:0,fail:'Protocol error: Page crashed'};
   await runPdfExport();
   ok('a render failure shows the server\'s reason',
      /Page crashed/.test(document.getElementById('pdfMsg').textContent),
+     document.getElementById('pdfMsg').textContent);
+
+  /* the POST answering with something unusable is caught rather than
+     leaving the dialog spinning for ever */
+  stubJob={runningFor:0,fail:null};
+  global.fetch=async(u,o)=>o&&o.method==='POST'
+    ? {ok:true,status:202,json:async()=>({})} : fakeServer(u,o);
+  await runPdfExport();
+  ok('a POST that starts no job is reported, not waited on',
+     /did not start/.test(document.getElementById('pdfMsg').textContent),
      document.getElementById('pdfMsg').textContent);
 
   console.log(fails?`\n${fails} FAILURES`:'\nthe export dialog behaves');

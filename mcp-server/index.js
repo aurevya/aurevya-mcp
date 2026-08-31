@@ -739,7 +739,7 @@ if (process.env.PORT) {
     res.set('Access-Control-Allow-Origin', origin);
     res.set('Vary', 'Origin');
     res.set('Access-Control-Allow-Headers', 'authorization, content-type');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     return true;
   }
 
@@ -823,7 +823,61 @@ if (process.env.PORT) {
     });
   });
 
-  app.post('/api/render-pdf', async (req, res) => {
+  /* ── render jobs ──────────────────────────────────────────────────────
+     Rendering a deck takes Chrome ten to thirty seconds, during which an
+     ordinary POST is a connection with nothing flowing on it. Something
+     between the browser and this process — the platform's edge, most
+     likely — closes those, and the browser reports the closure as "failed
+     to fetch": indistinguishable, from the page, from the server being
+     down. The same render requested through the MCP transport has always
+     worked, which is what pointed at the connection rather than the render.
+
+     So the request no longer waits. The POST starts the work and returns a
+     job id straight away; the page polls for it. Every request is now
+     short, and there is no idle connection left for anything to close. */
+  const renderJobs = new Map();          // id -> { status, pdf, error, at }
+  const RENDER_TTL_MS = 10 * 60 * 1000;
+
+  app.options('/api/render-pdf/:id', (req, res) => {
+    if (!applyCors(req, res)) return;
+    res.status(204).end();
+  });
+
+  app.get('/api/render-pdf/:id', (req, res) => {
+    if (!applyCors(req, res)) return;
+    const job = renderJobs.get(req.params.id);
+    if (!job) {
+      res.status(404).json({ error: 'That render is no longer available — please try again.' });
+      return;
+    }
+    if (job.status === 'running') {
+      res.status(202).json({ status: 'running', seconds: Math.round((Date.now() - job.at) / 1000) });
+      return;
+    }
+    renderJobs.delete(req.params.id);
+    if (job.status === 'error') {
+      res.status(500).json({ error: job.error || 'Could not render the PDF.' });
+      return;
+    }
+    res.set('Content-Type', 'application/pdf');
+    res.set('Content-Length', String(job.pdf.length));
+    res.status(200).end(job.pdf);
+  });
+
+  /* Express 4 does not catch a throw inside an async handler: the rejection
+     goes unhandled and Node then takes the whole process down, so one bad
+     request kills the server for everybody and the browser only ever sees a
+     dropped connection. Every async route goes through here so that a fault
+     costs one request, not the service. */
+  const safely = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch((e) => {
+      console.error('[aurevya-mcp] request failed:', e);
+      if (res.headersSent) return;
+      res.status(500).json({ error: (e && e.message) || 'Something went wrong.' });
+    });
+  };
+
+  app.post('/api/render-pdf', safely(async (req, res) => {
     if (!applyCors(req, res)) return;
     const { snapshot, html } = req.body || {};
     if (!snapshot && (typeof html !== 'string' || !html.trim())) {
@@ -833,26 +887,37 @@ if (process.env.PORT) {
     /* Chrome will happily spend minutes on a runaway document; the deck is
        a couple of dozen pages, so anything past this is a fault. */
     const LIMIT_BYTES = 40 * 1024 * 1024;
-    if (Buffer.byteLength(html, 'utf8') > LIMIT_BYTES) {
+    if (typeof html === 'string' && Buffer.byteLength(html, 'utf8') > LIMIT_BYTES) {
       res.status(413).json({ error: 'That document is too large to render.' });
       return;
     }
 
-    try {
-      /* Preferred path: drive the server's own copy of the generator from
-         the deck's settings. The html branch is the older one, kept so a
-         browser running a previous version of the page still works. */
-      const pdf = snapshot
-        ? await renderSnapshotToPdf(snapshot)
-        : await renderHtmlToPdf(html);
-      res.set('Content-Type', 'application/pdf');
-      res.set('Content-Length', String(pdf.length));
-      res.status(200).end(Buffer.from(pdf));
-    } catch (e) {
-      console.error('[aurevya-mcp] render-pdf failed:', e);
-      res.status(500).json({ error: (e && e.message) || 'Could not render the PDF.' });
-    }
-  });
+    const jobId = randomUUID();
+    renderJobs.set(jobId, { status: 'running', at: Date.now() });
+    setTimeout(() => renderJobs.delete(jobId), RENDER_TTL_MS).unref?.();
+
+    /* Deliberately not awaited: the answer goes back now, the work carries
+       on, and the page collects it from GET /api/render-pdf/:id. */
+    (async () => {
+      try {
+        /* Preferred path: drive the server's own copy of the generator from
+           the deck's settings. The html branch is the older one, kept so a
+           browser running a previous version of the page still works. */
+        const pdf = snapshot
+          ? await renderSnapshotToPdf(snapshot)
+          : await renderHtmlToPdf(html);
+        renderJobs.set(jobId, { status: 'done', pdf: Buffer.from(pdf), at: Date.now() });
+      } catch (e) {
+        console.error('[aurevya-mcp] render-pdf failed:', e);
+        renderJobs.set(jobId, {
+          status: 'error', at: Date.now(),
+          error: (e && e.message) || 'Could not render the PDF.',
+        });
+      }
+    })();
+
+    res.status(202).json({ jobId });
+  }));
 
   /* Lets the portal show a useful message ("ask an admin to configure the
      server") instead of a generic failure when the key is missing. */

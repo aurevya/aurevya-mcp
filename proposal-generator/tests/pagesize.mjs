@@ -2,8 +2,10 @@ import { pdfPageSize } from '/sessions/clever-brave-hamilton/mnt/Aurevya Portal/
 import fs from 'fs';
 let fails=0;const ok=(l,c,x)=>{console.log((c?'PASS  ':'FAIL  ')+l+(x!==undefined?'   '+x:''));if(!c)fails++;};
 
-/* the real exported deck */
-const real=fs.readFileSync('/tmp/export-sample.html','utf8');
+/* The generator itself, rather than a scratch copy of an export: the @page
+   rule is the same one, and this way the test cannot pass against a stale
+   fixture — or fail merely because the scratch file was cleared. */
+const real=fs.readFileSync('/sessions/clever-brave-hamilton/mnt/Aurevya Portal/AWL AI Automation/proposal-generator/proposal-generator.html','utf8');
 const s=pdfPageSize(real);
 ok('reads the deck\'s own page box', s.width==='300mm'&&s.height==='190mm'&&s.fromCss,
    `${s.width} x ${s.height}`);
