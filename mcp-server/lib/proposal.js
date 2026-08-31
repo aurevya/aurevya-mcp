@@ -420,7 +420,10 @@ export async function createProposal(opts) {
     const pdfFilename = filename.replace(/\.html$/i, '.pdf');
     const pdfPath = path.join(clientDir, pdfFilename);
     await page.emulateMediaType('print');
-    await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
+    /* Resolve to a boolean, not the FontFaceSet: returning a live object
+       from evaluate() makes Puppeteer try to serialise it, which can throw
+       and take the whole request down with it. */
+    await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true));
     /* Explicit size from the page itself. format:'A4' with
        preferCSSPageSize was producing Letter-shaped pages that the deck
        then reflowed against, splitting every page across two sheets. */
@@ -537,7 +540,10 @@ export async function renderSnapshotToPdf(snapshot) {
     await page.emulateMediaType('print');
     /* webfonts are loaded from this same folder; wait for them or the first
        page can be laid out in a fallback and captured mid-swap */
-    await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
+    /* Resolve to a boolean, not the FontFaceSet: returning a live object
+       from evaluate() makes Puppeteer try to serialise it, which can throw
+       and take the whole request down with it. */
+    await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true));
 
     /* Ask the page how big it actually is, rather than parsing the CSS or
        assuming: whatever --pw/--ph say, that is the paper. */
@@ -588,7 +594,10 @@ export async function renderHtmlToPdf(html) {
     await page.emulateMediaType('print');
     /* let the webfonts finish, so the PDF embeds the real faces instead of
        whatever the renderer happened to substitute mid-load */
-    await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
+    /* Resolve to a boolean, not the FontFaceSet: returning a live object
+       from evaluate() makes Puppeteer try to serialise it, which can throw
+       and take the whole request down with it. */
+    await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true));
 
     const size = pdfPageSize(html);
     return await page.pdf({
