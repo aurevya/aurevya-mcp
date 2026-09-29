@@ -232,6 +232,13 @@ button.feeDel{
 button.feeDel:hover{border-color:#B23B3B;background:#B23B3B;color:#fff;}
 table.fees input[type=number]{padding:4px 6px;font-size:11.5px;text-align:right;}
 table.fees input[type=text]{padding:4px 6px;font-size:11.5px;}
+/* the group-heading input needs to look like the heading it replaces, not
+   like an ordinary line-item field, and it needs to fill the colspan=2
+   cell rather than sit at the input's default width */
+table.fees td.grp input[type=text]{
+  width:100%;box-sizing:border-box;font-weight:600;color:var(--gold);
+  font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+}
 .feetot{
   display:flex;justify-content:space-between;font-size:12px;font-weight:700;
   color:var(--navy);border-top:2px solid var(--gold);margin-top:8px;padding-top:6px;
@@ -466,6 +473,9 @@ h1.ptitle em{font-style:italic;}
   font-weight:400;text-transform:none;letter-spacing:0;color:var(--slate);margin-top:1.5mm;
 }
 .node.cell{padding:1.6mm 2mm;font-size:6.2pt;min-width:0;}
+/* VCC sub-fund: a ring-fenced compartment of the VCC, not a separate
+   company — drawn with a dotted gold outline, as in the source deck */
+.node.cell.subfund{border:.9px dotted var(--gold);color:var(--gold);font-size:7.4pt;background:#fff;}
 .dragnode{user-select:none;}
 .dragnode:active{cursor:grabbing !important;}
 
@@ -562,6 +572,30 @@ h1.ptitle em{font-style:italic;}
 }
 .step ul{margin:0;padding:0;list-style:none;}
 .step li{font-size:6.6pt;line-height:1.38;color:var(--slate);margin-bottom:1.8mm;}
+/* a bold sub-heading inside a step (the VCC deck groups each step's
+   bullets under headings such as "ACCEPTANCE OF QUOTE", "ONBOARDING") */
+.step li.dsub{font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.03em;margin-top:2.6mm;}
+.step li.dsub:first-child{margin-top:0;}
+
+/* ── flowing multi-column text pages (CIS / VCC overviews) ─────
+   Text runs down one column and on into the next, the way the source
+   pages are set, so a block that doesn't fit its column continues at the
+   top of the next rather than being cut off. */
+.flowcols{column-gap:6mm;margin-top:5mm;column-fill:balance;}
+.flowcols.c4{column-count:4;}
+.flowcols.c2{column-count:2;}
+.flowcols h4{font-size:7.8pt;font-weight:600;letter-spacing:.055em;text-transform:uppercase;
+  color:var(--gold);margin:0 0 1.6mm;line-height:1.25;break-after:avoid;}
+.flowcols p{font-size:7.9pt;line-height:1.5;color:var(--slate);margin:0 0 2.6mm;}
+.flowcols ul,.flowcols ol{margin:0 0 2.4mm;padding-left:3.6mm;}
+.flowcols li{font-size:7.9pt;line-height:1.48;color:var(--slate);margin-bottom:1.1mm;break-inside:avoid;}
+.flowcols b{color:var(--navy);font-weight:600;}
+.flowcols .blk{break-inside:avoid-column;}
+table.infotab{width:100%;border-collapse:collapse;font-size:7.6pt;margin:1.5mm 0 3mm;break-inside:avoid;}
+table.infotab th{background:var(--gold-bar);color:#fff;text-align:left;padding:1.6mm 2mm;font-weight:600;}
+table.infotab td{padding:1.4mm 2mm;border-bottom:.5px solid var(--hair);color:var(--slate);vertical-align:top;}
+table.infotab td b{color:var(--navy);}
+table.infotab .c{text-align:center;}
 
 /* ── FEE TABLE ─────────────────────────────────────────── */
 .feewrap{margin-top:6mm;width:64%;}
@@ -597,7 +631,20 @@ table.deckfee tr.tot td{
   border-top:.9px solid var(--gold);border-bottom:.9px solid var(--gold);
   font-weight:700;font-size:8.4pt;padding-top:2.2mm;padding-bottom:2.2mm;
 }
+/* entity subtotal inside a schedule ("TOTAL GLOBAL BUSINESS COMPANY (GBC)"),
+   printed before the regulatory disbursements, which then carry the grand
+   TOTAL beneath them */
+table.deckfee tr.subtot td{
+  color:var(--gold);font-weight:700;font-size:7.6pt;text-transform:uppercase;letter-spacing:.04em;
+  border-bottom:.9px solid var(--gold);padding-top:2.2mm;padding-bottom:2.2mm;
+}
 .feenote{font-size:6.2pt;color:var(--slate);font-style:italic;line-height:1.45;margin-top:3.5mm;width:64%;}
+/* superscript footnote marker on a fee line or price, and the legend that
+   spells out its text beneath the table(s) it belongs to */
+table.deckfee .footmark{color:var(--gold);font-weight:700;margin-left:.3mm;}
+.feefootlegend{margin-top:2mm;}
+.feefootlegend .feefootline{font-size:6.4pt;color:var(--slate);line-height:1.5;}
+.feefootlegend .feefootline sup{color:var(--gold);font-weight:700;margin-right:.6mm;}
 
 /* ── SERVICE PAGES (leaf wheel) ────────────────────────── */
 /* The wheel is now absolutely positioned against .page (see leafCol()), so
@@ -709,6 +756,7 @@ table.deckfee tr.tot td{
         <span>Proposal type</span>
         <select id="fMode">
           <option value="structure">Mauritius Structure — build your own</option>
+          <option value="gbcvcc">GBC with Self-Managed CIS (Variable Capital Company)</option>
           <option value="mfo">Multiple Family Office (MFO)</option>
           <option value="fundlux">Luxembourg Fund Platform</option>
           <option value="accounting">Accounting Services</option>
@@ -756,6 +804,10 @@ table.deckfee tr.tot td{
       <label class="f">
         <span>Prepared for <span class="hint">— appears on cover</span></span>
         <input type="text" id="fClient" placeholder="Mr. Peter" />
+      </label>
+      <label class="f">
+        <span>Cover title <span class="hint">— leave blank to auto-generate from the structure below</span></span>
+        <textarea id="fCoverTitle" rows="2" placeholder="Proposal for setting up&#10;an Authorised Company" style="resize:vertical;font-family:inherit"></textarea>
       </label>
       <div class="row2">
         <label class="f">
@@ -1205,6 +1257,238 @@ const CIS_CONTENT = {
       'Appointment of a CIS Manager, Custodian and Administrator','Preparation of a compliant offering document per cell',
       'Annual audited financial statements per cell and for the company','Ongoing reporting to the FSC and to investors']}]
 };
+
+/* ═══════════════════════════════════════════════════════════════
+   GBC WITH A SELF-MANAGED CIS (VARIABLE CAPITAL COMPANY)
+   Transcribed from 20260923_AUREVYA_WEALTH_GBCCISVCC_NA.pdf. A single
+   GBC authorised by the FSC as a Variable Capital Company, running its
+   strategies as ring-fenced sub-funds with no external CIS Manager.
+
+   Wording that depends on how many sub-funds are being launched carries
+   tokens, filled in by vccText() from the sub-fund boxes on the diagram:
+     {N}             "three"
+     {EACH_INITIAL}  "each of the three initial sub-funds" / "its initial sub-fund"
+     {LAUNCH}        "three at launch" / "one at launch"
+   ═══════════════════════════════════════════════════════════════ */
+const NUM_WORD=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
+function numWord(n){return NUM_WORD[n]||String(n);}
+function ordinal(n){const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+/* "2nd sub-fund", "2nd and 3rd sub-funds", "2nd to 5th sub-funds" */
+function subFundRange(a,b){
+  if(a===b)return ordinal(a)+' sub-fund';
+  return ordinal(a)+(b===a+1?' and ':' to ')+ordinal(b)+' sub-funds';
+}
+function vccSubFunds(st){return ((st&&st.nodes)||[]).filter(n=>n&&n.subfund);}
+/* how many sub-funds the proposal is for — read off the diagram, the same
+   way the other proposal types count their entities */
+function vccCount(){
+  const st=(typeof STATE!=='undefined'&&STATE)?STATE.struct:null;
+  return st&&st.nodes?Math.max(1,vccSubFunds(st).length):3;
+}
+function vccText(s){
+  const n=vccCount();
+  return String(s)
+    .replace(/\{EACH_INITIAL\}/g,n>1?'each of the '+numWord(n)+' initial sub-funds':'its initial sub-fund')
+    .replace(/\{LAUNCH\}/g,numWord(n)+' at launch')
+    .replace(/\{N\}/g,numWord(n));
+}
+
+/* Two glossary pages, in the order and wording of the source deck (not
+   re-sorted — the source groups the fund terms together on purpose). */
+const VCC_GLOSSARY=[
+  [['AML/CFT','Anti Money-Laundering/Combating the Financing of Terrorism.'],
+   ['CDD','Customer Due Diligence.'],
+   ['CRS','Means Common Reporting Standard as established by the OECD.'],
+   ['CTC','A Certified True Copy done in accordance with Section 4.3, appropriate certification under the FSC Code on the Prevention of Money Laundering and Terrorist Financing.'],
+   ['FATCA','Foreign Account Tax Compliance Act.'],
+   ['FIAMLA','Financial Intelligence and Anti-money Laundering Act of the Republic of Mauritius.'],
+   ['FSC','Financial Services Commission of the Republic of Mauritius.'],
+   ['FX','Foreign Exchange.'],
+   ['GBC','Global Business Company of the Financial Services of the Republic of Mauritius.'],
+   ['HNWIs','High Net Worth Individual.'],
+   ['IFRS','International Financial Reporting Standard.'],
+   ['PEP','Politically Exposed Person as defined under the guidance of FIAMLA.'],
+   ['SBLC','Stand By Letter of Credit.'],
+   ['UBO','Ultimate Beneficial Owner which comprises of any person who directly or indirectly, for his own account and not as nominee for a third party, owns an effective interest in the shareholding or voting rights of the corporate body.'],
+   ['Special Purpose Vehicle (SPV)','An ancillary vehicle created under a VCC to hold or structure an investment on behalf of a sub-fund. An SPV does not itself operate as a fund and is subject to FSC approval.'],
+   ['Sub-Fund','A segregated compartment of a VCC, each with its own investors, investment objective and pool of assets. A sub-fund is authorised by the FSC as either a Collective Investment Scheme (open-ended) or a Closed-End Fund, and may elect to have a legal personality separate from the VCC.'],
+   ['Collective Investment Scheme (CIS)','A regulated investment fund that pools money from multiple investors to invest in a diversified portfolio of assets. Defined under the Securities Act 2005 and guided by FSC’s CIS Rules and Guidelines.'],
+   ['Investment Company','A company whose principal business is investing in securities to manage risk and generate shareholder returns. Recognized under the Securities Act 2005.'],
+   ['Companies Act 2001','The legal framework governing the incorporation, governance, and operations of companies in Mauritius.'],
+   ['Self-Managed CIS','A CIS that does not appoint an external fund manager, with all management functions carried out by its Board of Directors. Allowed under FSC Guidelines for CIS Licensing.'],
+   ['Open-Ended Fund','A fund structure allowing investors to redeem their units at prevailing Net Asset Value (NAV). Regulated under Securities Act 2005.'],
+   ['Closed-Ended Fund','A fund where shares are non-redeemable and capital remains fixed, typically used for private equity. Regulated under Securities Act 2005.'],
+   ['Net Asset Value (NAV)','The per-share value of the fund calculated as total assets minus liabilities divided by outstanding shares. Valuation principles governed by IFRS.'],
+   ['Promoter','The individual or institution proposing the CIS, subject to FSC evaluation for credibility and regulatory standing.'],
+   ['Custodian','An FSC-approved institution responsible for safeguarding the fund’s assets and ensuring compliance with regulatory custody standards. Requirement under CIS Regulations 2008.'],
+   ['Custody Agreement','A binding legal contract between the CIS and its custodian outlining the responsibilities and asset protection mechanisms.'],
+   ['Variable Capital Companies Act 2022','The Mauritian legislation governing the formation, authorisation, operation and winding up of Variable Capital Companies, their sub-funds and SPVs. It operates alongside the Companies Act 2001, the Financial Services Act 2007 and the Securities Act 2005.']],
+  [['Sub-Custodian','A secondary institution appointed by the custodian to hold assets in specific jurisdictions, under FSC approval.'],
+   ['Fund Administrator','A licensed service provider responsible for fund operations including NAV computation, compliance reporting, and investor servicing. Must comply with FSC licensing requirements.'],
+   ['Local Substance Requirements','Operational benchmarks proving the CIS has effective control, presence, and management in Mauritius. Outlined in FSC Circular CL 271214 and Income Tax Act provisions.'],
+   ['Core Income Generating Activities (CIGA)','Essential fund functions performed in Mauritius, such as asset management and share redemption. Mandated under Economic Substance Regulations.'],
+   ['Qualified Personnel','Appropriately skilled staff employed directly or indirectly by the CIS in Mauritius to fulfill substance obligations.'],
+   ['Minimum Expenditure','Annual spending in Mauritius that must be proportionate to the fund’s activity level to meet substance tests. Evaluated by FSC based on operational scale.'],
+   ['Structure Paper','The initial licensing submission to the FSC describing the CIS’s governance, investment strategy, promoters, and draft legal documents.'],
+   ['Private Placement Memorandum (PPM)','A disclosure document providing potential investors with the fund’s objectives, risks, and terms. Prepared in accordance with FSC’s disclosure guidelines.'],
+   ['Constitution of the CIS','The legal charter defining the CIS’s scope, governance rules, rights of shareholders, and investment objectives. Required under the Companies Act 2001.'],
+   ['Administration Agreement','Contract outlining the administrator’s duties, reporting standards, and engagement terms with the CIS.'],
+   ['Tax Residence Certificate (TRC)','Official document issued by the MRA and FSC confirming the CIS’s tax residency in Mauritius. Grants access to benefits under Double Taxation Avoidance Agreements (DTAAs).'],
+   ['Double Taxation Avoidance Agreements (DTAAs)','Bilateral treaties that prevent income from being taxed in both Mauritius and another jurisdiction.'],
+   ['Partial Exemption Regime (PER)','A preferential tax regime allowing reduced effective tax rates on qualifying CIS income. Outlined under Section 50B of the Income Tax Act.'],
+   ['Interest Income (CIS)','Income earned from fixed-income investments, eligible for 95% exemption under PER, reducing effective tax to 0.75%.'],
+   ['Management/Service Income','Revenue from advisory, administrative, or management services, eligible for 80% exemption under PER, resulting in a 3% tax rate. Eligibility contingent on meeting substance requirements.'],
+   ['Foreign Tax Credit','Tax credit granted for foreign taxes paid if the CIS fails to meet domestic substance standards. Permitted under Income Tax Act with proper substantiation.'],
+   ['Interim Financial Statements','Periodic financial reports due within 45 days after the end of a reporting period. Required by Securities Act 2005.'],
+   ['Audited Annual Financials','Full-year financial statements audited by FSC-approved firms and submitted within 90 days of year-end. Must comply with IFRS.'],
+   ['IFRS (International Financial Reporting Standards)','International accounting standards required for the preparation of all financial statements under the CIS framework.'],
+   ['Variable Capital Company (VCC)','A company incorporated under the Companies Act 2001 and authorised by the FSC under the Variable Capital Companies Act 2022, which carries out its business through one or more sub-funds and special purpose vehicles whose assets and liabilities are segregated from one another.']]
+];
+
+/* Content blocks for the flowing-column pages: {h} heading, {p} paragraph,
+   {ul}/{ol} list (an item may itself be {t, ul} for a nested list),
+   {table} a small gold-headed table. */
+const CIS_VCC_CONTENT={
+  divider:{h:'COLLECTIVE<br>INVESTMENT<br>SCHEME',s:'A COMPREHENSIVE OVERVIEW'},
+  page1:[
+    {h:'LEGAL STRUCTURE AND LICENSING'},
+    {p:'A <b>Collective Investment Scheme (CIS)</b> in Mauritius is typically structured as <b>a company incorporated under the Companies Act 2001</b>. To operate as a global fund, the company must:'},
+    {ul:['Be licensed as a <b>Global Business Company (GBC)</b> under the Financial Services Act 2007;','Obtain authorisation as a CIS under the Securities Act 2005.']},
+    {p:'This structure is referred to as an <b>Investment Company</b>, where the company’s principal business is to invest its funds primarily in securities, with the aim of spreading investment risk and delivering returns to its shareholders.'},
+    {p:'In a <b>self-managed CIS</b>, the company does not appoint an external CIS Manager. Instead, the <b>Board of Directors</b> assumes full responsibility for investment management, governance, and compliance.'},
+    {p:'This model is particularly suited to experienced promoters or institutional investors seeking greater control and cost efficiency.'},
+    {h:'FUND CLASSIFICATION'},
+    {p:'Mauritian law recognises two main categories of global funds:'},
+    {ul:['<b>Open-Ended Funds</b> – <b>also known as Collective Investment Schemes (CIS)</b> where investors can redeem their shares at Net Asset Value (NAV);',
+         '<b>Closed-Ended Funds</b> – commonly referred to as <b>Private Equity Funds</b> where shares are not redeemable at NAV.']},
+    {p:'This proposal focuses on a self-managed CIS established as a Variable Capital Company (VCC), under which each investment strategy is housed in its own segregated sub-fund. Sub-funds may be open-ended (CIS) or closed-ended (Private Equity), and both may sit under the same VCC.'},
+    {h:'REGULATORY APPROVAL PROCESS'},
+    {p:'Before commencing operations, the company must be authorised by the Financial Services Commission (FSC) as a Variable Capital Company, and each sub-fund must be approved by the FSC as a CIS or Closed-End Fund. The FSC evaluates the application based on:'},
+    {ul:['The track record and credentials of the promoters;','The governance and structure of the VCC and of each sub-fund;',
+         'The fund’s investment objectives and strategy;','The target investor base and markets;','The types of assets to be invested in;',
+         'The experience and regulatory standing of the custodian, administrator, and other service providers.']},
+    {h:'CUSTODY OF ASSETS'},
+    {p:'All CIS must appoint an FSC-approved custodian to safeguard the fund’s assets. A VCC may appoint a single custodian for all of its sub-funds. In this case, AfrAsia Bank will act as the custodian. AfrAsia is a well-established financial institution in Mauritius and the broader African region.'},
+    {p:'The custodian is responsible for:'},
+    {ul:['Holding the fund’s assets in accordance with the CIS Regulations and the fund’s constitutive documents;','Executing a formal <b>Custody Agreement</b>;',
+         'Delegating custody functions to sub-custodians (if necessary), subject to FSC approval, while retaining overall responsibility.']},
+    {h:'LOCAL SUBSTANCE REQUIREMENTS'},
+    {p:'The FSC expects the central administration of the CIS to be based in Mauritius. This includes:'},
+    {ul:['A local fund administrator;','A local cash custodian;','A local auditor approved by the FSC;',
+         'Board meetings held in Mauritius and qualified local directors to demonstrate effective management and control.',
+         'To benefit from tax incentives, the CIS must also meet economic substance requirements, including:',
+         'Conducting core income-generating activities (CIGA) in Mauritius;','Employing an adequate number of qualified personnel;',
+         'Incurring minimum annual expenditure proportionate to the level of activity.']}],
+  page2:[
+    {h:'TAXATION AND PARTIAL EXEMPTION REGIME'},
+    {p:'Mauritius offers a competitive tax regime for Global Business Companies (GBCs), including Collective Investment Schemes (CIS). The standard corporate income tax rate is 15%, but qualifying funds may benefit from the Partial Exemption Regime (PER), which significantly reduces the effective tax burden. A VCC that elects to prepare separate financial statements for each sub-fund is assessed to tax on a sub-fund by sub-fund basis.'},
+    {h:'PARTIAL EXEMPTION RATES FOR CIS'},
+    {table:{head:['Income Type','Partial Exemption','Effective Tax Rate'],centre:[1,2],
+      rows:[['<b>Interest income</b> earned by a CIS or Closed-End Fund','<b>95%</b>','<b>0.75%</b>'],
+            ['<b>Other qualifying income</b> (e.g. advisory, management, or administrative services)','<b>80%</b>','<b>3%</b>']]}},
+    {p:'Conditions to Qualify for Partial Exemption<br>To benefit from the 80% or 95% exemption, the CIS must satisfy the economic substance requirements, which include:'},
+    {ol:[{t:'<b>Core Income Generating Activities (CIGA)</b> must be carried out in Mauritius. For a CIS, this includes:',
+          ul:['Investment of funds in portfolios of securities or other financial/non-financial assets;','Risk diversification;','Redemption of shares at the request of investors.']},
+         '<b>Qualified Personnel:</b> The CIS must employ, directly or indirectly, an adequate number of suitably qualified persons in Mauritius.',
+         '<b>Minimum Expenditure:</b> The CIS must incur a level of expenditure in Mauritius that is proportionate to its level of activity.']},
+    {p:'If a CIS does not meet the substance requirements, it may still claim a foreign tax credit for actual tax paid abroad, subject to substantiation.'},
+    {h:'FINANCIAL REPORTING OBLIGATIONS'},
+    {p:'Under the Securities Act 2005, a CIS must comply with the following reporting requirements:'},
+    {table:{head:['Report Type','Deadline'],
+      rows:[['<b>Interim Financial Statements</b>','Within 45 days of period-end'],['<b>Audited Annual Financials</b>','Within 90 days of year-end']]}},
+    {p:'All financials must be prepared in accordance with <b>IFRS</b> and audited by an FSC-approved firm.'}]
+};
+
+const VCC_KEYFEATURES={
+  divider:{h:'VARIABLE<br>CAPITAL<br>COMPANY<br>(VCC)',s:'KEY FEATURES'},
+  blocks:[
+    {h:'WHAT IS A VCC?'},
+    {p:'A <b>Variable Capital Company (VCC)</b> is a company incorporated under the Companies Act 2001 and authorised by the Financial Services Commission under the Variable Capital Companies Act 2022. It is an umbrella fund vehicle: the VCC itself holds the Global Business Licence and the fund authorisation, while its investment activity is carried out through one or more sub-funds and, where required, special purpose vehicles (SPVs).'},
+    {p:'The VCC replaces the older Protected Cell Company model for fund structuring in Mauritius. It offers the same ring-fencing of assets between compartments, with the added flexibility of sub-funds that can have their own legal personality, their own fund classification and their own financial statements.'},
+    {h:'UMBRELLA STRUCTURE AND SUB-FUNDS'},
+    {ul:['A single VCC may establish any number of sub-funds, subject to FSC approval of each one.',
+         'Each sub-fund has its own investors, investment objective, share class(es) and pool of assets. A sub-fund may be dedicated to one investor, one project or one sector, or may be open to several investors.',
+         'Each sub-fund is authorised as either a Collective Investment Scheme (open-ended, with redemption at NAV) or a Closed-End Fund (private-equity style, no redemption). Both types may co-exist under the same VCC.',
+         'SPVs may be created beneath a sub-fund to hold a specific investment; they do not themselves operate as funds.',
+         'New sub-funds are added to the existing VCC rather than by incorporating a new company, which keeps set-up time and running costs to a minimum.']},
+    {h:'SEGREGATION OF ASSETS AND LIABILITIES'},
+    {ul:['The assets of a sub-fund or SPV may only be used to meet the liabilities of that sub-fund or SPV. They cannot be used to discharge the liabilities of the VCC or of any other sub-fund, including on winding up, administration or receivership.',
+         'Dividends and distributions on the shares of a sub-fund are paid by reference only to the assets and liabilities attributable to that sub-fund.',
+         'A sub-fund or SPV may elect to have a legal personality separate from the VCC, allowing it to contract, hold assets and open bank accounts in its own name.']},
+    {h:'VARIABLE CAPITAL'},
+    {ul:['The share capital of the VCC is always equal to its net assets. Shares may be issued and redeemed without the formalities that apply to a conventional company, which allows investors to enter and exit a sub-fund at the prevailing Net Asset Value.',
+         'Different sub-funds may be denominated in different currencies and may issue multiple share classes with different rights, fees or distribution policies.']},
+    {h:'LICENSING AND GOVERNANCE'},
+    {ul:['One Global Business Licence covers the VCC and all of its sub-funds and SPVs, whether or not they have separate legal personality.',
+         'The VCC is administered by a single board of directors, a single company secretary and a single licensed Management Company for all sub-funds, in line with FSC expectations. A single custodian, administrator and auditor may likewise be appointed for the whole structure.',
+         'In a self-managed VCC, the Board of Directors retains responsibility for investment management, governance and compliance across all sub-funds; no external CIS Manager is appointed.',
+         'As a financial institution under FIAMLA, the VCC must appoint a Compliance Officer, a Money Laundering Reporting Officer and a Deputy MLRO, and is subject to independent audit.']},
+    {h:'TAXATION'},
+    {ul:['The VCC is tax resident in Mauritius and benefits from the same regime as a GBC, including the 15% headline rate, the Partial Exemption Regime and access to Mauritius’ network of Double Taxation Avoidance Agreements.',
+         'Where the VCC elects to prepare separate financial statements for each sub-fund, each sub-fund is assessed to income tax on its own income, so the results of one sub-fund do not affect another.']},
+    /* the source names the client's three strategies here; kept general so
+       it reads correctly for any client, with the count taken from the
+       sub-funds on the diagram */
+    {h:'WHY A VCC FOR THIS STRUCTURE'},
+    {p:'The VCC allows each of the proposed investment strategies to be run as its own ring-fenced sub-fund ({LAUNCH}) under one licensed company, with one board, one registered office, one bank relationship and one set of service providers. Additional strategies or single-investor mandates can be added later as new sub-funds without creating a new entity, and each sub-fund’s investors are exposed only to the assets and liabilities of the sub-fund they have chosen.'}]
+};
+
+/* Fund-specific wording for the service pages, from the same deck. Merged
+   over BP.services by pgService() for this proposal type only; any page not
+   listed here prints the standard text. */
+const VCC_SERVICES={
+  board:{pair:'',colC:null,
+    colB:['Statutory filings and compliance (Certificates of Good Standing and Incumbency)','Maintenance of statutory registers and annual bank reviews',
+      'Maintaining and updating the Register of Shareholders of the VCC and of each sub-fund','Director and shareholder changes with relevant authorities',
+      'Preparation of board packs, agendas, and meeting minutes','Organizing board meetings and Annual General Meetings',
+      'Convening board meetings to approve NAVs, investment decisions, and compliance certifications','Drafting and vetting board resolutions',
+      'Preparing resolutions for subscriptions, redemptions, the creation of new sub-funds and changes in fund structure',
+      'Drafting resolutions tied to custodian agreements, administration contracts, and offering documents',
+      'Circulation of decisions to stakeholders and authorities','Preparing board minutes aligned with Securities Act reporting formats',
+      'Setup and support of board committees (e.g., Audit, Risk, Remuneration)','Preparation of board charters and code of ethics',
+      'Stakeholder communication framework development','Director training and board evaluations','Legislative updates and governance training',
+      'Coordinating filings with the Financial Services Commission (FSC) specific to CIS licensing conditions',
+      'Ensuring compliance with the VCC’s constitutive documents, sub-fund supplements and FSC licensing obligations']},
+  directorship:{
+    colB:['Provision of two local directors','Appointment of FSC-approved directors with relevant fund oversight experience',
+      'Acting as CIS directors to meet local substance requirements under applicable tax legislation',
+      'Assuming personal liability related to the Company’s income tax obligations, as prescribed by law',
+      'Reviewing and approving investment transactions on behalf of the CIS','Evaluating and authorizing third-party contracts related to fund operations']},
+  accounting:{
+    colB:['Perform NAV calculations for each sub-fund daily, weekly, and monthly using portfolio pricing and income accruals',
+      'Maintain fund accounting in compliance with IFRS and CIS regulatory cycles',
+      'Bookkeeping by asset class, including equities, fixed income, and derivatives for CIS portfolios',
+      'Prepare financial statements for the VCC and for each sub-fund, aligned with the Securities Act 2005 and the Variable Capital Companies Act 2022',
+      'Process payments for fund-related transactions','Assist in budget preparation and yearly financial forecasting',
+      'Compile quarterly and management accounts for operational review','Manage audit processes, including delivering transaction data to external auditors',
+      'Liaise with tax authorities, from document preparation to settlement negotiation','Apply for tax rulings and support on regulatory tax discussions',
+      'Engage with regulators regarding ad hoc transactions and compliance matters',
+      'Submit Coordinated Portfolio Investment Survey (CPIS) reports semi-annually','Complete External Sector Statistics &amp; National Accounts (ESSNAC) survey annually',
+      'File Coordinated Portfolio Direct Investment Survey (CPDIS) reports semi-annually','Report data to IMF’s Monetary and Financial Statistics (MFS) survey quarterly'],
+    colC:['Managing relationships with banks and financial institutions','Foreign exchange (FX) rate negotiation',
+      'Trade finance support, including issuance of Standby Letters of Credit (SBLC) and bank guarantees',
+      'Treasury management: optimizing cash flow and maintaining liquidity','Cash flow and liquidity modeling to meet investor redemption obligations',
+      'Preparation of fund budgets and tracking minimum expenditure for economic substance compliance',
+      'Calculation of management and performance fees based on CIS offering documents','Generating financial data for periodic investor reporting',
+      'Preparing submissions for regulators and authorities']},
+  legal:{pair:'',colBh:'',colBsub:'',colB:[],
+    colA:['Preparation, analysis, and negotiation of commercial, operational, and fund-related agreements to ensure legal clarity and risk mitigation',
+      'Strategic legal advisory on corporate governance, ensuring full compliance with Mauritian laws and international regulatory frameworks',
+      'Delivery of legal opinions under Mauritian jurisdiction to support informed business decisions and manage legal exposure',
+      'Drafting and maintaining VCC-specific legal documents, including the Constitution, Private Placement Memorandum (PPM) and sub-fund supplements, and Custody Agreements',
+      'Guidance on entity formation, cross-border structuring, mergers, acquisitions, and fund restructuring to optimize tax and operational efficiency',
+      'Conducting legal due diligence for prospective investments, acquisitions, or strategic partnerships to identify liabilities and regulatory risks',
+      'Advisory on intellectual property (IP) registration, licensing, and enforcement strategies relevant to fund branding and proprietary technologies',
+      'Designing internal legal policies and procedures to enhance governance, operational integrity, and compliance with the Securities Act and FSC standards']},
+  governance:{splitB:true,
+    colB:['<b>Director Induction &amp; Training</b><br>Orientation sessions for directors on Mauritian laws, the Code of Corporate Governance, and CIS-specific fiduciary duties',
+      '<b>Board Evaluation &amp; Performance Optimization</b><br>Annual assessments to enhance board effectiveness, strategic oversight, and decision-making capacity',
+      '<b>Director Search &amp; Appointment</b><br>Identification and recruitment of qualified directors aligned with CIS mandates, diversity goals, and regulatory expectations',
+      '<b>Implementation of CIS Governance Codes</b><br>Custom rollout of FSC-compliant governance frameworks tailored to fund structures and investor protections',
+      '<b>Governance Audits</b><br>Regular reviews of governance practices with a focus on substance requirements, accountability, and board conduct',
+      '<b>Oversight Documentation &amp; Risk Disclosure</b><br>Detailed recording of board activities concerning investment strategies, conflict of interest resolution, and investor disclosures',
+      '<b>ESG Integration &amp; Sustainability Reporting</b><br>ESG strategy alignment with CIS objectives, including frameworks for sustainability tracking and investor reporting']}
+};
 </script>
 
 <script>
@@ -1216,13 +1500,26 @@ const CIS_CONTENT = {
 const PRICEBOOK = {
 
   ac:{ setup:[
-      {t:'grp',l:'AUTHORISED COMPANY (AC)'},
-      {t:'item',l:'Onboarding',v:1500},
-      {t:'desc',l:'Compliance Review'},{t:'desc',l:'Company Formation'},
-      {t:'desc',l:'Application of license'},{t:'desc',l:'Registered address'},
-      {t:'desc',l:'Registered agent'},{t:'desc',l:'Data Protection Officer'},
+      /* Restructured to match the "SET UP OF AUTHORISED COMPANY (AC)" layout
+         requested — desc lines grouped under one banner rather than split
+         into separate ACCOUNTING/DISBURSEMENT grp headers for the setup
+         (one-off) page, mirroring how gbc.setup below is already laid out.
+         Two lines here are footnote candidates (see foot/vfoot below) —
+         left unattached pending the exact wording. */
+      {t:'grp',l:'SET UP OF AUTHORISED COMPANY (AC)'},
+      {t:'desc',l:'Due diligence and on-boarding'},
+      {t:'desc',l:'Compliance Review'},
+      {t:'desc',l:'Company Formation'},
+      {t:'item',l:'Licensing engagement process with authorities',v:3000},
+      {t:'desc',l:'Legal & Compliance annual review'},
+      {t:'desc',l:'Registered address'},
+      {t:'desc',l:'Registered agent'},
+      {t:'desc',l:'Data Protection Officer'},
+      {t:'desc',l:'Ongoing daily administration (as required)'/*, foot:'…'*/},
       {t:'item',l:'Bank account opening',v:7250},
-      {t:'grp',l:'ACCOUNTING'},{t:'item',l:'Accounting',v:3000},
+      {t:'desc',l:'Accounting'},
+      {t:'desc',l:'Preparation and Filing of Audited Financial Statements'},
+      {t:'item',l:'Filing of Tax Returns',v:3000/*, vfoot:'…'*/},
       {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
       {t:'item',l:'FSC Processing Fee',v:600},{t:'item',l:'FSC Annual License Fee',v:1400},
       {t:'item',l:'Government Levy',v:100},{t:'item',l:'Data Protection fee',v:100}],
@@ -1253,10 +1550,10 @@ const PRICEBOOK = {
       {t:'desc',l:'Provision of registered office'},{t:'desc',l:'Registration for Data protection officer'},
       {t:'desc',l:'Tax Residency Certificate application'},{t:'desc',l:'Provision of Authorized officer with Regulators'},
       {t:'desc',l:'Legal and Compliance for annual review (annual)'},{t:'desc',l:'Archiving and Maintenance of Bank records'},
-      {t:'item',l:'Ongoing daily administration (as required)',v:16000},
+      {t:'item',l:'Ongoing daily administration (as required)',v:16000/*, foot:'…'*/},
       {t:'item',l:'Bank Account Opening (per Account)',v:4000},
       {t:'desc',l:'Accounting'},{t:'desc',l:'Preparation and Filing of Audited Financial Statements'},
-      {t:'item',l:'Filing of Tax Returns',v:3000},
+      {t:'item',l:'Filing of Tax Returns',v:3000/*, vfoot:'…'*/},
       {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
       {t:'item',l:'FSC Processing Fee (GBC)',v:600},{t:'item',l:'FSC Annual License Fee (GBC)',v:2600},
       {t:'item',l:'Government Levy',v:350},{t:'item',l:'Data protection fee',v:100},
@@ -1267,9 +1564,9 @@ const PRICEBOOK = {
       {t:'desc',l:'Provision of registered office'},{t:'desc',l:'Provision of Authorized officer with Regulators'},
       {t:'desc',l:'Legal and Compliance for annual review (annual)'},{t:'desc',l:'Archiving and Maintenance of Bank records'},
       {t:'desc',l:'Data Protection'},
-      {t:'item',l:'Ongoing daily administration (as required)',v:16000},
+      {t:'item',l:'Ongoing daily administration (as required)',v:16000/*, foot:'…'*/},
       {t:'desc',l:'Accounting'},{t:'desc',l:'Preparation and Filing of Audited Financial Statements'},
-      {t:'item',l:'Filing of Tax Returns',v:3000},
+      {t:'item',l:'Filing of Tax Returns',v:3000/*, vfoot:'…'*/},
       {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
       {t:'item',l:'FSC Annual License Fee',v:2600},{t:'item',l:'Government Levy',v:350},
       {t:'item',l:'Data protection fee',v:100},{t:'item',l:'Tax residence Certificate',v:200}]},
@@ -1299,7 +1596,7 @@ const PRICEBOOK = {
       {t:'desc',l:'Ongoing Administration fees (as required)'},
       {t:'item',l:'Annual Trustee Fee (Year 1)',v:8500},
       {t:'sub',l:'Preparation & Filing of Accounts'},
-      {t:'sub',l:'Filing of Tax Returns'},
+      {t:'sub',l:'Filing of Tax Returns'/*, foot:'…'*/},
       {t:'item',l:'Accounting',v:3000}],
     fixed:[
       {t:'grp',l:'TRUST'},
@@ -1307,7 +1604,7 @@ const PRICEBOOK = {
       {t:'desc',l:'Ongoing Administration fees (as required)'},
       {t:'item',l:'Annual Trustee Fee (Year 2)',v:8500},
       {t:'sub',l:'Preparation & Filing of Accounts'},
-      {t:'sub',l:'Filing of Tax Returns'},
+      {t:'sub',l:'Filing of Tax Returns'/*, foot:'…'*/},
       {t:'item',l:'Accounting',v:3000}]},
 
   cis:{ setup:[
@@ -1376,7 +1673,55 @@ const PRICEBOOK = {
       {t:'grp',l:'ACCOUNTING SERVICES — ANNUAL'},
       {t:'desc',l:'Maintenance of accounting books and records'},{t:'desc',l:'Preparation of management accounts'},
       {t:'desc',l:'Preparation and filing of Audited Financial Statements'},{t:'desc',l:'Filing of Tax Returns'},
-      {t:'item',l:'Annual accounting services',v:3000}]}
+      {t:'item',l:'Annual accounting services',v:3000}]},
+
+  /* GBC authorised as a Variable Capital Company (self-managed CIS), from
+     20260923_AUREVYA_WEALTH_GBCCISVCC_NA.pdf — FSC fee schedule in force
+     from 1 July 2026, priced for three sub-funds. Rows tagged _vcc are kept
+     in step with the number of sub-funds on the diagram by syncVccFees():
+     every sub-fund after the first adds an FSC processing fee of 400 and an
+     annual fee of 900 (2nd to 5th) or 1,800 (6th onwards). */
+  gbcvcc:{ setup:[
+      {t:'grp',l:'GLOBAL BUSINESS COMPANY (GBC) authorised as a VARIABLE CAPITAL COMPANY (Self Managed CIS)'},
+      {t:'desc',l:'Due diligence and on-boarding'},
+      {t:'desc',l:'Setting up of GBL Company with VCC authorisation and three sub-funds',_vcc:'setupdesc'},
+      {t:'desc',l:'Licensing engagement process with authorities (VCC and Sub Funds approvals)'},
+      {t:'item',l:'Compliance Review',v:3000},
+      {t:'desc',l:'Provision of company secretary'},{t:'desc',l:'Provision of 2 resident directors'},
+      {t:'desc',l:'Provision of registered office'},{t:'desc',l:'Registration for Data protection officer'},
+      {t:'desc',l:'Tax Residency Certificate application'},{t:'desc',l:'Provision of Authorized officer with Regulators'},
+      {t:'desc',l:'Legal fees'},{t:'desc',l:'Provision of Compliance Officer'},
+      {t:'desc',l:'Provision of Money Laundering Reporting officer'},
+      {t:'item',l:'Provision of Deputy Money Laundering Reporting Officer',v:49500},
+      {t:'item',l:'Bank Account Opening',v:4500},
+      {t:'desc',l:'Accounting'},{t:'desc',l:'Preparation and Filing of Audited Financial Statements'},
+      {t:'item',l:'Filing of Tax Returns',v:3000,vfoot:'A minimum annual accounting fee of USD 3,000 shall apply. This fee will be reviewed following a detailed assessment of the company’s operations and transaction volumes during its first year of activity, to ensure that it appropriately reflects the level of services required.'},
+      {t:'subtot',l:'TOTAL GLOBAL BUSINESS COMPANY (GBC)'},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES'},
+      {t:'item',l:'FSC Processing fee GBC',v:600},
+      {t:'item',l:'FSC Annual License Fee GBC',v:2600},
+      {t:'item',l:'FSC Processing fee VCC – inclusive of 1st sub-fund',v:900},
+      {t:'item',l:'FSC Processing fee – 2nd and 3rd sub-funds (2 × 400)',v:800,_vcc:'proc',_vccPrefix:'FSC Processing fee'},
+      {t:'item',l:'FSC Annual Fee VCC – inclusive of 1st sub-fund',v:2700},
+      {t:'item',l:'FSC Annual Fee – 2nd and 3rd sub-funds (2 × 900)',v:1800,_vcc:'annual',_vccPrefix:'FSC Annual Fee'},
+      {t:'item',l:'Government Levy',v:100},
+      {t:'item',l:'Data protection fee',v:100},
+      {t:'item',l:'Tax residency Certificate Fee',v:1000}],
+    fixed:[
+      {t:'grp',l:'MAINTENANCE OF GLOBAL BUSINESS COMPANY (GBC)'},
+      {t:'desc',l:'2 Resident directors'},{t:'desc',l:'Registered office'},{t:'desc',l:'Company secretary'},
+      {t:'desc',l:'Legal and Compliance for annual review'},{t:'desc',l:'Archiving and Maintenance of Bank records'},
+      {t:'desc',l:'Data Protection'},{t:'desc',l:'Ongoing daily administration (as required)'},
+      {t:'desc',l:'Compliance Officer and Money Laundering Reporting Officer (MLRO)'},
+      {t:'item',l:'Deputy Money Laundering Reporting Officer (DMLRO)',v:49500},
+      {t:'desc',l:'Accounting'},{t:'desc',l:'Preparation and Filing of Audited Financial Statements'},
+      {t:'item',l:'Filing of Tax Returns',v:3000,vfoot:'A minimum annual accounting fee of USD 3,000 shall apply. This fee will be reviewed following a detailed assessment of the company’s operations and transaction volumes during its first year of activity, to ensure that it appropriately reflects the level of services required.'},
+      {t:'grp',l:'DISBURSEMENT TO AUTHORITIES: REGULATORY FEES (ANNUAL)'},
+      {t:'item',l:'Annual License Fee – GBC',v:2600},
+      {t:'item',l:'Annual Fee – VCC inclusive of 1st sub-fund',v:2700},
+      {t:'item',l:'Annual Fee – 2nd and 3rd sub-funds (2 × 900)',v:1800,_vcc:'annual',_vccPrefix:'Annual Fee'},
+      {t:'item',l:'Government Levy',v:350},
+      {t:'item',l:'Data protection fee',v:100}]}
 };
 
 /* Composite products stitch several price-book blocks together. `tagFor`
@@ -1438,6 +1783,56 @@ function regroupDisbursements(rows){
    PRODUCT DEFINITIONS
    ═══════════════════════════════════════════════════════════════ */
 const PRODUCTS = {
+
+  /* One entity, not a composition of the Mauritius building blocks: the GBC
+     IS the fund, authorised as a Variable Capital Company, so it has its own
+     overview pages, fee schedule and documentation process. Sub-funds are
+     added or removed on the diagram (+ Sub-Fund); the FSC fees, the fee-page
+     note and the wording that mentions the count all follow. */
+  gbcvcc:{ label:'GBC with Self-Managed CIS (VCC)',
+    blurb:'Global Business Company authorised as a Variable Capital Company — a self-managed CIS with ring-fenced sub-funds. Add or remove sub-funds on the diagram; the FSC fees and the wording follow the count.',
+    coverT1:'Proposal for the setting up of a',
+    /* &#8209; keeps "Self-Managed" from splitting across two lines */
+    coverT2:'Global Business Company with a Self&#8209;Managed Collective Investment Scheme (Variable Capital Company)',
+    running:'PROPOSAL FOR THE SETTING UP OF A GLOBAL BUSINESS COMPANY, WITH A SELF-MANAGED COLLECTIVE INVESTMENT SCHEME (VARIABLE CAPITAL COMPANY)',
+    priceKeys:['gbcvcc'],glossary:[],glossaryPages:VCC_GLOSSARY,
+    sections:['disclaimer','contents','glossary','ourgroup','about','whatwedo','structure',
+              'gbcdivider','gbcoverview','cisvccdivider','cisvccoverview','vccdivider','vcckeyfeatures',
+              'docprocess','kyc','feesetup','feefixed','leaf','svc_board','svc_directorship','svc_accounting',
+              'svc_legal','svc_compliance','svc_governance','svc_it','svc_media','back'],
+    /* the source deck has no divider in front of the diagram, so the diagram
+       page itself carries the contents entry */
+    structureToc:'Tailored Solution',
+    kycNoCorporate:true,
+    services:VCC_SERVICES,
+    feeNote:function(title){
+      const n=vccCount();
+      const base='Note: Disbursement fees have been calculated on the assumption that the VCC will comprise '+
+        numWord(n)+' sub-fund'+(n>1?'s':'')+', at the FSC fee schedule in force from 1 July 2026.';
+      return /setup/i.test(title)
+        ? base+' Each additional sub-fund attracts an FSC processing fee of US$ 400 and an annual fee of US$ 900 (2nd to 5th sub-fund) or US$ 1,800 (6th sub-fund onwards).'
+        : base;
+    },
+    /* coordinates as laid out by layoutVcc() for two shareholders and three
+       sub-funds — kept literal so the seeded diagram needs no layout pass */
+    structure:{title:'Bespoke Solution',sub:'PROPOSED STRUCTURE',canvasW:175,canvasH:150,
+      nodes:[
+        {id:'shA',kind:'shareholder',label:'SHAREHOLDER A',x:38.5,y:10,primary:false,cap:''},
+        {id:'shB',kind:'shareholder',label:'SHAREHOLDER B',x:90.5,y:10,primary:false,cap:''},
+        {id:'vcc',kind:'box',label:'GLOBAL BUSINESS<br>COMPANY',x:63.5,y:44,primary:true,cap:'(Variable Capital Company – self-managed CIS)'},
+        {id:'selfm',kind:'box',label:'SELF MANAGED',x:121.5,y:44,primary:false,cap:''},
+        {id:'sf1',kind:'ciscell',subfund:true,w:48,h:11,label:'SUB-FUND 1',x:7.5,y:84,primary:false,cap:''},
+        {id:'sf2',kind:'ciscell',subfund:true,w:48,h:11,label:'SUB-FUND 2',x:63.5,y:84,primary:false,cap:''},
+        {id:'sf3',kind:'ciscell',subfund:true,w:48,h:11,label:'SUB-FUND 3',x:119.5,y:84,primary:false,cap:''},
+        {id:'pj1',kind:'box',label:'PROJECT / INVESTMENT 1',x:7.5,y:105,primary:false,cap:''},
+        {id:'pj2',kind:'box',label:'PROJECT / INVESTMENT 2',x:63.5,y:105,primary:false,cap:''},
+        {id:'pj3',kind:'box',label:'PROJECT / INVESTMENT 3',x:119.5,y:105,primary:false,cap:''}],
+      edges:[
+        {id:'e1',from:'shA',to:'vcc',label:''},{id:'e2',from:'shB',to:'vcc',label:''},
+        {id:'e3',from:'vcc',to:'selfm',label:'',style:'dotted'},
+        {id:'e4',from:'vcc',to:'sf1',label:''},{id:'e5',from:'vcc',to:'sf2',label:''},{id:'e6',from:'vcc',to:'sf3',label:''},
+        {id:'e7',from:'sf1',to:'pj1',label:''},{id:'e8',from:'sf2',to:'pj2',label:''},{id:'e9',from:'sf3',to:'pj3',label:''}]},
+    docprocess:'gbcvcc'},
 
   mfo:{ label:'Multiple Family Office (MFO)',
     blurb:'FSC-licensed Multiple Family Office. Large deck (66pp) with a 13-chapter family-office guide.',
@@ -1533,12 +1928,23 @@ function companyCount(ent){
 
 /* How many of each kind the proposal is actually for.
 
-   The sidebar is authoritative for the entities it seeds — deleting one of
-   those on the canvas routes back through removeCoreEntity() or
-   renumberCompanyBoxes(), which update the sidebar — so those are counted
-   from `ent`. Boxes added on the canvas are the ones the sidebar knows
-   nothing about, and they are exactly the ones carrying `entKey`, so adding
-   them on top counts each entity once and only once.
+   The seeded company boxes (Holding + Operational, etc.) are counted off
+   the diagram itself — the same id pattern renumberCompanyBoxes() numbers
+   them with (ac, ac1, ac2, ...) — rather than trusting ent.companyCount.
+   That field only ever meant to be a hint for reseeding the diagram from
+   scratch; used as the count directly, it can drift from what's actually
+   on the canvas and overcount (a Floton-structure proposal once showed 6
+   Authorised Companies in the footer against 5 boxes actually on the
+   canvas — confirmed the diagram, not the count, was the one telling the
+   truth). It's still used as a fallback for the brief moment before the
+   diagram has been built at all, when there's nothing on the canvas yet
+   to count.
+
+   Boxes added directly on the canvas are the ones the sidebar knows
+   nothing about, and they are exactly the ones carrying `entKey`, so
+   adding them on top counts each entity once and only once — they don't
+   match the seeded id pattern, so there's no overlap between the two
+   counts here.
 
    This is what makes the cover title and the running footer follow the
    diagram: add a Foundation under the company and the cover says so; delete
@@ -1546,10 +1952,18 @@ function companyCount(ent){
 function entityCounts(ent){
   const c={};
   if(ent.trust)c.trust=1;
-  if(ent.company!=='none')c[ent.company]=(c[ent.company]||0)+companyCount(ent);
   if(ent.cis)c.cis=1;
 
   const st=(typeof STATE!=='undefined'&&STATE)?STATE.struct:null;
+
+  if(ent.company!=='none'){
+    const esc=String(ent.company).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const seededRe=new RegExp('^'+esc+'\\d*$');
+    const seeded=(st&&st.nodes)
+      ?st.nodes.filter(n=>n.kind==='box'&&seededRe.test(n.id||'')).length:0;
+    c[ent.company]=(c[ent.company]||0)+(seeded||companyCount(ent));
+  }
+
   if(st&&st.nodes){
     st.nodes.forEach(n=>{
       if(n&&n.kind==='box'&&n.entKey&&ENTITY_META[n.entKey]){
@@ -1728,6 +2142,9 @@ const NODE_DIM={shareholder:{w:46,h:26},box:{w:48,h:16},ciscell:{w:26,h:11}};
    counted rather than assumed to be one line. */
 function nodeDim(n){
   const base=NODE_DIM[n&&n.kind]||NODE_DIM.box;
+  /* a node may carry its own size — the VCC sub-funds are drawn as wide as
+     the project boxes beneath them, not as small PCC cell chips */
+  if(n&&n.kind!=='shareholder'&&n.w)return{w:n.w,h:n.h||base.h};
   if(!n||n.kind!=='shareholder')return base;
   const nameLines=Math.max(1,Math.ceil(String(n.label||'').replace(/<br\s*\/?>/gi,' ').length/22));
   let h=14.6+nameLines*3.4;
@@ -1844,6 +2261,15 @@ function currentSpec(){
   if(STATE.mode!=='structure')return PRODUCTS[STATE.mode];
   const ent=STATE.entities;
   const list=entityOrder(ent);
+  /* The cover headline is auto-derived from the structure by default (below),
+     but the wording can read awkwardly for unusual combinations, or the
+     client may simply want different phrasing — "Cover title" in the sidebar
+     (fCoverTitle) lets it be typed in free-hand instead. A first line typed
+     before a line break becomes the thin line above the rule, everything
+     else becomes the bold line below it; with no line break the whole thing
+     prints as the single bold line. Blank means "keep the auto text". */
+  const coverOverride=$('fCoverTitle')?$('fCoverTitle').value:'';
+  const coverLines=coverOverride.trim()?coverOverride.replace(/\r\n/g,'\n').split('\n'):null;
   return{
     label:structureLabel(list),
     blurb:list.length
@@ -1851,8 +2277,9 @@ function currentSpec(){
       : 'Choose a company type, and optionally add a Trust and/or a CIS (PCC), to build this proposal.',
     /* "setting up a Trust" reads fine, but a count needs "of":
        "setting up of 2 Authorised Companies", as the source deck has it */
-    coverT1:'Proposal for setting up'+(companyCount(ent)>1?' of':''),
-    coverT2:joinPhrase(list,false),
+    coverT1:coverLines?(coverLines.length>1?coverLines[0]:''):
+      'Proposal for setting up'+(companyCount(ent)>1?' of':''),
+    coverT2:coverLines?coverLines.slice(coverLines.length>1?1:0).join(' '):joinPhrase(list,false),
     running:'PROPOSAL FOR SETTING UP '+(companyCount(ent)>1?'OF ':'')+joinPhrase(list,true),
     priceKeys:priceKeysFor(ent),
     glossary:glossaryScopeStructure(ent),
@@ -1899,6 +2326,7 @@ function exportSnapshot(){
       client:val('fClient',''), month:val('fMonth','0'),
       year:val('fYear',String(new Date().getFullYear())),
       currency:val('fCurrency','USD'),
+      coverTitle:val('fCoverTitle',''),
     },
     /* deep-copied so a later edit cannot mutate a snapshot in flight */
     state:JSON.parse(JSON.stringify({
@@ -1920,7 +2348,7 @@ function applySnapshot(s){
   tick('fTrust',f.trust); tick('fCis',f.cis);
   tick('fNominee',f.nominee); tick('fFeeCombined',f.feeCombined);
   set('fClient',f.client); set('fMonth',f.month); set('fYear',f.year);
-  set('fCurrency',f.currency);
+  set('fCurrency',f.currency); set('fCoverTitle',f.coverTitle||'');
 
   /* Establish a consistent base from the fields — this reseeds fees,
      sections and the diagram — and only then overwrite with the captured
@@ -1994,6 +2422,7 @@ function onModeOrEntityChange(){
   renderSectionToggles();
   renderStructFields();
   syncCellFees();
+  syncVccFees();
 }
 
 /* ── repeated company tier ────────────────────────────────────────
@@ -2090,13 +2519,23 @@ function feeEditorRow(r,path,del,mv){
   const move=mv?'<td class="feeGripCell" title="'+
     (r.t==='grp'?'Drag to move this group':'Drag to move this line')+'">'+
     '<span class="feeGrip">&#8942;&#8942;</span></td>':'<td></td>';
-  if(r.t==='grp')return '<td class="grp" colspan="2">'+r.l+'</td>'+minus+move;
+  /* Section headings ("ACCOUNTING", "AUTHORISED COMPANY 2", "DISBURSEMENT TO
+     AUTHORITIES...") used to be plain text here — the only line in a fee
+     block that couldn't be corrected without editing the price book. They
+     are stored the same way as every other label (r.l), so making them an
+     input is enough: the deck and the PDF already read straight off this
+     same STATE object, nothing else has to change for the edit to appear
+     there too. */
+  if(r.t==='grp')return '<td class="grp" colspan="2"><input type="text" value="'+
+    String(r.l).replace(/"/g,'&quot;')+'" oninput="'+path+'.l=this.value"/></td>'+minus+move;
   const priced=r.t==='item';
   return '<td><input type="text" value="'+r.l.replace(/"/g,'&quot;')+'" '+
     'oninput="'+path+'.l=this.value"/></td>'+
     '<td style="width:78px">'+(priced?
       '<input type="number" value="'+(r.v||0)+'" oninput="'+path+'.v=+this.value;feeTotals()"/>':
-      '<span style="color:#C3CCD3;font-size:10px;">incl.</span>')+'</td>'+minus+move;
+      (r.t==='subtot'
+        ? '<span style="color:var(--gold);font-size:10px;" title="Adds up every priced line above it, back to the previous subtotal">subtotal</span>'
+        : '<span style="color:#C3CCD3;font-size:10px;">incl.</span>'))+'</td>'+minus+move;
 }
 
 /* ── reordering the fee list ──────────────────────────────────────
@@ -2130,7 +2569,7 @@ function feeUnitAt(list,idx){
      up, exactly as it reads on the page: the lines above a figure describe
      it. That makes dragging one line between figures the natural gesture
      rather than a special case. */
-  if(r.t==='desc'||r.t==='sub')return{kind:'desc',start:idx,end:idx+1};
+  if(r.t==='desc'||r.t==='sub'||r.t==='subtot')return{kind:'desc',start:idx,end:idx+1};
 
   /* A priced row is the anchor of its block, so it takes the description
      lines above it — dragging a figure away and leaving its wording behind
@@ -2404,6 +2843,10 @@ const SECTION_LABELS={
   gbcoverview:['GBC Comprehensive Overview','3 pages'],
   cisdivider:['CIS divider',''],
   cisoverview:['CIS / PCC Overview','Newly authored — absent from source deck'],
+  cisvccdivider:['CIS divider',''],
+  cisvccoverview:['CIS Comprehensive Overview','2 pages — self-managed CIS as a VCC'],
+  vccdivider:['VCC Key Features divider',''],
+  vcckeyfeatures:['Variable Capital Company — Key Features','Sub-fund count in the closing paragraph follows the diagram'],
   trustfacts:['Key Facts about the Trust',''],
   trustparties:['Key Parties to a Trust',''],
   trustvalidity:['Trust Validity',''],
@@ -2527,6 +2970,7 @@ function renderStructEditorUI(){
     (STATE.mode==='structure'&&!ent.trust?'<button type="button" class="ghost" style="margin:0" onclick="addCoreEntity(\'trust\')">+ Trust</button>':'')+
     (STATE.mode==='structure'&&!ent.cis?'<button type="button" class="ghost" style="margin:0" onclick="addCoreEntity(\'cis\')">+ CIS</button>':'')+
     (STATE.mode==='structure'&&ent.cis?'<button type="button" class="ghost" style="margin:0" onclick="addStructNode(\'ciscell\')">+ CIS Cell</button>':'')+
+    (STATE.mode==='gbcvcc'?'<button type="button" class="ghost" style="margin:0" onclick="addVccSubFund()">+ Sub-Fund</button>':'')+
     '<button type="button" class="ghost" style="margin:0" onclick="addStructEdge()">+ Connection</button>'+
     '</div>'+
     '<button type="button" class="ghost" onclick="resetStructure()">Reset diagram to default</button>'+
@@ -2858,7 +3302,16 @@ function companyBoxes(){
 function removeStructNode(id){
   const st=STATE.struct;if(!st||st.nodes.length<=1)return;
   if(CORE_NODE_IDS.includes(id))return; /* use the Section 1 toggles instead */
+  /* the VCC itself is the proposal — switch proposal type instead */
+  if(STATE.mode==='gbcvcc'&&id==='vcc')return;
   const removed=st.nodes.find(n=>n.id===id);
+  /* a VCC sub-fund takes its project box (and anything under it) with it,
+     rather than the project being re-hung directly off the VCC */
+  if(STATE.mode==='gbcvcc'&&removed&&removed.subfund){
+    const gone=new Set(descendants(st,id).map(n=>n.id));
+    st.nodes=st.nodes.filter(n=>!gone.has(n.id));
+    st.edges=st.edges.filter(e=>!gone.has(e.from)&&!gone.has(e.to));
+  }
   st.nodes=st.nodes.filter(n=>n.id!==id);
 
   /* Bridge the gap rather than just dropping every edge that touched the
@@ -2896,7 +3349,8 @@ function removeStructNode(id){
     syncExtraKinds();
     renderSectionToggles(true);
   }
-  if(removed&&removed.kind==='ciscell')syncCellFees();
+  if(STATE.mode==='gbcvcc'&&removed&&removed.subfund){renumberVccSubFunds(st);syncVccFees();}
+  else if(removed&&removed.kind==='ciscell')syncCellFees();
   else if(hadFeeLine)renderFeeEditor();
 
   renderStructEditorUI();
@@ -3167,8 +3621,122 @@ function layoutChildren(st,parentId){
    Only called when the shape of the structure changes (a delete, or a
    shareholder added), never on a plain redraw: a box dragged somewhere
    deliberate has to survive the next build. */
-const RELAYOUT_GAP_Y=20, RELAYOUT_GAP_X=8, RELAYOUT_TOP=10;
+/* ── VCC diagram (GBC with Self-Managed CIS) ─────────────────────
+   Fixed shape: shareholders over the VCC, a dotted "Self Managed" box to
+   its right, one row of sub-funds beneath it and each sub-fund's project
+   box under that. The generic tree layout would treat the Self Managed box
+   as a child and drop it into the sub-fund row, so this mode lays itself
+   out. The canvas widens past four sub-funds and the page scales it down. */
+function layoutVcc(st){
+  st=st||STATE.struct;if(!st||!st.nodes)return;
+  const byId={};st.nodes.forEach(n=>byId[n.id]=n);
+  const vcc=byId.vcc||st.nodes.find(n=>n.primary&&n.kind==='box');
+  if(!vcc){realignGeneric(st);return;}
+  const subs=vccSubFunds(st).sort((a,b)=>a.x-b.x);
+  const colW=48,gap=8;
+  const rowW=subs.length?subs.length*colW+(subs.length-1)*gap:0;
+  const W=Math.max(175,rowW+8);
+  st.canvasW=W;
+  const cx=W/2;
+  const sh=st.nodes.filter(n=>n.kind==='shareholder');
+  const shH=sh.length?Math.max.apply(null,sh.map(n=>nodeDim(n).h)):0;
+  const vd=nodeDim(vcc);
+  vcc.x=cx-vd.w/2;
+  vcc.y=sh.length?10+shH+16:10;
+  const selfm=st.edges.filter(e=>e.from===vcc.id&&e.style==='dotted').map(e=>byId[e.to]).filter(Boolean);
+  selfm.forEach((n,i)=>{n.x=Math.min(W-nodeDim(n).w,vcc.x+vd.w+10);n.y=vcc.y+i*(nodeDim(n).h+4);});
+  const subY=vcc.y+vd.h+(vcc.cap?24:20);
+  let x=cx-rowW/2;
+  subs.forEach(s=>{
+    const sd=nodeDim(s);
+    s.x=x+(colW-sd.w)/2;s.y=subY;
+    /* whatever hangs under the sub-fund (its project, an SPV) travels with it */
+    const kids=st.edges.filter(e=>e.from===s.id).map(e=>byId[e.to]).filter(n=>n&&!n.subfund);
+    kids.forEach((k,i)=>{
+      const kd=nodeDim(k);
+      const dx=(x+(colW-kd.w)/2)-k.x,dy=(subY+sd.h+10+i*(kd.h+6))-k.y;
+      descendants(st,k.id).forEach(d=>{d.x+=dx;d.y+=dy;});
+      k.x+=dx;k.y+=dy;
+    });
+    x+=colW+gap;
+  });
+  layoutShareholderRow(st);
+  const lowest=st.nodes.reduce((m,n)=>Math.max(m,n.y+nodeDim(n).h),0);
+  st.canvasH=Math.max(150,Math.round(lowest+16));
+}
+
+/* auto-numbered labels only — anything retyped by hand is left alone */
+function renumberVccSubFunds(st){
+  const byId={};st.nodes.forEach(n=>byId[n.id]=n);
+  vccSubFunds(st).sort((a,b)=>a.x-b.x).forEach((s,i)=>{
+    if(/^SUB-FUND \d+$/.test(s.label))s.label='SUB-FUND '+(i+1);
+    st.edges.filter(e=>e.from===s.id).map(e=>byId[e.to]).forEach(k=>{
+      if(k&&/^PROJECT \/ INVESTMENT \d+$/.test(k.label))k.label='PROJECT / INVESTMENT '+(i+1);
+    });
+  });
+}
+
+function addVccSubFund(){
+  const st=STATE.struct;if(!st||STATE.mode!=='gbcvcc')return;
+  const parent=st.nodes.find(n=>n.id==='vcc')||st.nodes.find(n=>n.primary&&n.kind==='box');
+  const k=vccSubFunds(st).length+1;
+  const sid=newStructId(),pid=newStructId();
+  /* x past everything else, so it lands at the right-hand end of the row */
+  const maxX=st.nodes.reduce((m,n)=>Math.max(m,n.x),0)+1000;
+  st.nodes.push({id:sid,kind:'ciscell',subfund:true,w:48,h:11,label:'SUB-FUND '+k,x:maxX,y:0,primary:false,cap:''});
+  st.nodes.push({id:pid,kind:'box',label:'PROJECT / INVESTMENT '+k,x:maxX,y:0,primary:false,cap:''});
+  if(parent)st.edges.push({id:newStructId(),from:parent.id,to:sid,label:''});
+  st.edges.push({id:newStructId(),from:sid,to:pid,label:''});
+  layoutVcc(st);
+  syncVccFees();
+  renderStructEditorUI();
+  redrawStructure();
+}
+
+/* Keep the sub-fund-dependent fee lines in step with the diagram: the FSC
+   processing fee (400 per sub-fund after the first), the annual fee (900
+   for the 2nd to 5th, 1,800 from the 6th) and the set-up description that
+   names the count. Lines are found by their _vcc tag, so a line the user
+   deleted stays deleted. */
+function syncVccFees(){
+  if(STATE.mode!=='gbcvcc')return;
+  const n=vccCount(),extra=n-1;
+  const low=Math.max(0,Math.min(n,5)-1),high=Math.max(0,n-5);
+  ['setup','fixed'].forEach(which=>{
+    (STATE.fees[which]||[]).forEach(r=>{
+      if(!r._vcc)return;
+      const prefix=r._vccPrefix||'';
+      /* with a single sub-fund there is nothing "additional" to charge — the
+         line stays in the editor at 0 (so it comes back if a sub-fund is
+         added) but is left off the printed schedule */
+      r._hide=(r._vcc!=='setupdesc'&&extra===0);
+      if(r._vcc==='setupdesc'){
+        r.l='Setting up of GBL Company with VCC authorisation and '+numWord(n)+' sub-fund'+(n>1?'s':'');
+      }else if(r._vcc==='proc'){
+        r.l=extra?prefix+' – '+subFundRange(2,n)+' ('+extra+' × 400)':prefix+' – additional sub-funds (none)';
+        r.v=extra*400;
+      }else if(r._vcc==='annual'){
+        const parts=[];
+        if(low)parts.push(low+' × 900');
+        if(high)parts.push(high+' × 1,800');
+        r.l=extra?prefix+' – '+subFundRange(2,n)+' ('+parts.join(' + ')+')':prefix+' – additional sub-funds (none)';
+        r.v=low*900+high*1800;
+      }
+    });
+  });
+  renderFeeEditor();
+}
+
+/* the generic re-layout, split out so the VCC mode can hand over to its
+   own fixed shape instead */
 function realignStructure(st){
+  st=st||STATE.struct;
+  if(STATE.mode==='gbcvcc'){layoutVcc(st);return;}
+  realignGeneric(st);
+}
+
+const RELAYOUT_GAP_Y=20, RELAYOUT_GAP_X=8, RELAYOUT_TOP=10;
+function realignGeneric(st){
   st=st||STATE.struct;
   if(!st||!st.nodes||!st.nodes.length)return;
 
@@ -3660,6 +4228,7 @@ function resetStructure(){
     STATE.fees[which]=STATE.fees[which].filter(r=>!r._nodeId);
   });
   syncCellFees();
+  syncVccFees();
   renderSectionToggles(true);
   renderStructEditorUI();
   renderFeeEditor();
@@ -4087,7 +4656,7 @@ function renderNodesHTML(st){
         (n.pct?'<div class="shrule"></div><div class="shpct">'+n.pct+'</div>':'')+
         '</div>';
     }else{
-      const cls='dragnode node'+(n.kind==='ciscell'?' cell':'')+(n.primary?' filled':'');
+      const cls='dragnode node'+(n.kind==='ciscell'?' cell':'')+(n.subfund?' subfund':'')+(n.primary?' filled':'');
       out='<div class="'+cls+'" data-nid="'+n.id+'" style="'+base+'" '+
         'title="Click to add services or edit this entity — drag to move">'+n.label+'</div>';
     }
@@ -4190,7 +4759,7 @@ function renderEdgesSVG(st){
      share one trunk rather than overlapping into what looks like a chain. */
   const fanGroups={};
   st.edges.forEach(e=>{
-    if(busEdgeIds[e.id])return;
+    if(busEdgeIds[e.id]||e.style==='dotted')return;
     const a=byId[e.from],b=byId[e.to];
     if(a&&b&&b.y>a.y&&a.kind!=='shareholder')(fanGroups[e.from]=fanGroups[e.from]||[]).push(e);
   });
@@ -4200,9 +4769,17 @@ function renderEdgesSVG(st){
     const kids=fanGroups[pid].map(e=>({e:e,n:byId[e.to]}));
     const acx=a.x+da.w/2,aBottom=a.y+da.h;
     const topKid=Math.min.apply(null,kids.map(k=>k.n.y));
+    /* A caption (e.g. "Holding Company") prints just under the box, from
+       1.5mm to roughly 5mm below it — sharing that band with the spanning
+       line here left the two overlapping, exactly like a trunk drawn
+       straight through a centred caption is avoided above. Clearing 6mm
+       instead of 1mm keeps the line under the caption's text instead of
+       through it, when there's room; the cap below still wins over a
+       parent/child gap too tight to fit both. */
+    const minGap=a.cap?6:1;
     let fanY=aBottom+(topKid-aBottom)/2;
-    if(!(fanY>aBottom+1))fanY=aBottom+1;
-    if(fanY>topKid-2)fanY=Math.max(aBottom+1,topKid-2);
+    if(!(fanY>aBottom+minGap))fanY=aBottom+minGap;
+    if(fanY>topKid-2)fanY=Math.max(aBottom+minGap,topKid-2);
     const xs=kids.map(k=>k.n.x+nodeDim(k.n).w/2);
     /* trunk */
     svg+='<line x1="'+acx+'" y1="'+aBottom+'" x2="'+acx+'" y2="'+fanY+'" stroke="#130429" stroke-width=".35"/>';
@@ -4234,6 +4811,13 @@ function renderEdgesSVG(st){
     const acx=a.x+da.w/2,acy=a.y+da.h/2,bcx=b.x+db.w/2,bcy=b.y+db.h/2;
     const p1=edgeAnchor(acx,acy,da.w,da.h,bcx,bcy);
     const p2=edgeAnchor(bcx,bcy,db.w,db.h,acx,acy);
+    /* a dotted association rather than ownership (the VCC's "Self Managed"
+       box): gold dots, no arrowhead */
+    if(e.style==='dotted'){
+      svg+='<line x1="'+p1.x+'" y1="'+p1.y+'" x2="'+p2.x+'" y2="'+p2.y+
+        '" stroke="#B59433" stroke-width=".45" stroke-dasharray=".5 1.1" stroke-linecap="round"/>';
+      return;
+    }
     const angle=Math.atan2(p2.y-p1.y,p2.x-p1.x);
     const arrowLen=2.6,arrowW=1.3;
     const tipX=p2.x,tipY=p2.y;
@@ -4292,6 +4876,10 @@ function pgStructure(st){
     toolbar+='<button type="button" class="structAddBtn" title="Add a CIS cell" onclick="addStructNode(\'ciscell\')">'+
       '<span class="plus">+</span>Cell</button>';
   }
+  if(STATE.mode==='gbcvcc'){
+    toolbar+='<button type="button" class="structAddBtn" title="Add a sub-fund (with its project box) — the FSC sub-fund fees and the wording follow" onclick="addVccSubFund()">'+
+      '<span class="plus">+</span>Sub-Fund</button>';
+  }
   toolbar+='</div>';
 
   /* Shrink the diagram to fit the page when it outgrows the panel. A deep
@@ -4304,8 +4892,12 @@ function pgStructure(st){
   /* the logical mm dimensions travel with the element, so the drag handler
      can convert pixels to mm without having to know the scale factor */
   const canvas='<div class="freecanvas" data-cw="'+st.canvasW+'" data-ch="'+fit.h+'" '+
+    /* centred by its midpoint rather than margin:auto, which only centres a
+       canvas narrower than the panel — a wider one (many VCC sub-funds) was
+       pinned to the left edge and then scaled about its own centre, which
+       pushed most of it off the page */
     'style="position:relative;width:'+st.canvasW+'mm;height:'+
-    fit.h+'mm;margin:0 auto'+
+    fit.h+'mm;left:50%;margin-left:-'+(st.canvasW/2)+'mm'+
     (fit.k<1?';transform:scale('+fit.k.toFixed(4)+');transform-origin:top center':'')+'">'+
     renderEdgesSVG(st)+renderNodesHTML(st)+'</div>';
   /* the toolbar sits outside the scaled element so the buttons stay a
@@ -4406,6 +4998,40 @@ function pgCIS(){
     '</div>'+foot()+'</div>');
 }
 
+/* Content blocks → HTML for the flowing-column pages (see .flowcols). */
+function flowHTML(blocks){
+  const list=(tag,items)=>'<'+tag+'>'+items.map(it=>typeof it==='string'
+    ? '<li>'+vccText(it)+'</li>'
+    : '<li>'+vccText(it.t)+(it.ul?list('ul',it.ul):'')+'</li>').join('')+'</'+tag+'>';
+  return blocks.map(b=>{
+    if(b.h)return '<h4>'+b.h+'</h4>';
+    if(b.p)return '<p>'+vccText(b.p)+'</p>';
+    if(b.ul)return list('ul',b.ul);
+    if(b.ol)return list('ol',b.ol);
+    if(b.table){
+      const t=b.table,ctr=t.centre||[];
+      return '<table class="infotab"><tr>'+t.head.map((h,i)=>'<th'+(ctr.indexOf(i)>=0?' class="c"':'')+'>'+h+'</th>').join('')+'</tr>'+
+        t.rows.map(r=>'<tr>'+r.map((c,i)=>'<td'+(ctr.indexOf(i)>=0?' class="c"':'')+'>'+c+'</td>').join('')+'</tr>').join('')+'</table>';
+    }
+    return '';
+  }).join('');
+}
+
+/* Collective Investment Scheme — the self-managed VCC version, two pages */
+function pgCISVCC(part){
+  const c=CIS_VCC_CONTENT;
+  const blocks=part===1?c.page1:c.page2;
+  return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:20pt">Collective Investment Scheme –</h1>'+
+    '<div class="psub">A Comprehensive Overview</div>'+
+    '<div class="flowcols '+(part===1?'c4':'c2')+'">'+flowHTML(blocks)+'</div>'+foot()+'</div>');
+}
+
+function pgVCCKeyFeatures(){
+  return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:20pt">Variable Capital Company (VCC)</h1>'+
+    '<div class="psub">Key Features</div>'+
+    '<div class="flowcols c4">'+flowHTML(VCC_KEYFEATURES.blocks)+'</div>'+foot()+'</div>');
+}
+
 function pgTrustFacts(){
   const k=TRUST_CONTENT.keyFacts;
   return page(crest()+'<div class="pbody"><h1 class="ptitle" style="font-size:20pt">'+k.title+'</h1>'+
@@ -4461,16 +5087,42 @@ const DOCPROC={
     ['ONBOARDING',['Incorporation Questionnaire','Declaration of Source of fund &amp; wealth','PEP declaration form','UBO Declaration form','FATCA &amp; CRS form','AML/CFT Consent form','CTC passport','CTC Proof of address','CTC Bank Reference','Signed CV','Investment strategy and offering document drafting','AML/CFT Confirmation letter']],
     ['CIS LICENSING &amp; CELL ESTABLISHMENT',['Preparation and filing of the offering document per cell','Application for CIS licence with the Financial Services Commission','Appointment of CIS Manager, Custodian and Administrator','Incorporation of the Protected Cell Company and first cell','Declaration of UBO']],
     ['BANK ACCOUNT OPENING',['Completion of bank questionnaire per cell','Board resolution to approve Bank account Opening','Application for the selected bank','Request for bank cards']],
-    ['COMPLETION',['Once the bank account is opened and the CIS licence is issued, we shall provide you with a client welcome pack including all statutory, licensing and banking documents for your scheme.']]]}
+    ['COMPLETION',['Once the bank account is opened and the CIS licence is issued, we shall provide you with a client welcome pack including all statutory, licensing and banking documents for your scheme.']]]},
+  /* GBC authorised as a VCC (self-managed CIS). A line starting with § is a
+     bold sub-heading within the step, as the source deck sets them. */
+  gbcvcc:{sub:'For The Setup Of your Global Business Company with a Self-Managed CIS (VCC)',steps:[
+    ['INITIAL ENGAGEMENT &amp; DOCUMENTATION',['§ACCEPTANCE OF QUOTE','Client receives confirmation email and proforma invoice.',
+      'Client submits Data and Screening Consent Form.','§ONBOARDING','Client completes and submits for all parties to the CIS:',
+      'Pre-Onboarding Questionnaire','Declaration of Source of Funds &amp; Wealth','PEP Declaration Form','FATCA &amp; CRS Form',
+      'AML/CFT Consent Form','Certified True Copies (CTC) of Passport, Proof of Address, Bank Reference','Signed CV',
+      'AML/CFT Confirmation Letter','Declaration of UBO','Indemnity Letter']],
+    ['STRUCTURING &amp; REGULATORY SUBMISSION',['§PREPARATION OF STRUCTURE PAPER AND VCC APPLICATION','Prepare and submit to FSC:',
+      'Details of promoters, directors, officers and service providers',
+      'Investment strategy and governance model for the VCC and for {EACH_INITIAL}','Drafts of:',
+      'Private Placement Memorandum for the VCC, with a supplement for each sub-fund',
+      'Constitution of the VCC (including sub-fund and segregation provisions)','Custodian Agreement',
+      'Application for authorisation as a Variable Capital Company and for approval of each sub-fund',
+      '(Note: No Investment Management Agreement needed for a self-managed VCC)']],
+    ['OPERATIONAL SETUP',['§FIRST BOARD MEETING &amp; EXECUTION OF AGREEMENTS','Convene board meeting after in-principle approval.',
+      'Approve and execute all agreements.','Appoint officers and service providers.','Finalise operational readiness.',
+      'File executed agreements with FSC and confirm launch of each sub-fund.']],
+    ['TAX &amp; BANKING SETUP',['§TAX RESIDENCE CERTIFICATE (TRC)','Apply for TRC with FSC.','Processed by Mauritius Revenue Authority (MRA).',
+      'Enables access to Double Taxation Avoidance Agreements (DTAAs).','§BANK ACCOUNT OPENING','Complete bank questionnaire.',
+      'Board resolution to approve account opening.','Submit application to selected bank.','Request bank cards, as required.']],
+    ['COMPLETION',['§CLIENT WELCOME PACK','Once bank account is opened, provide:','Statutory documents','Banking documents',
+      'Final welcome pack for the company']]]}
 };
 
 function pgDocProcess(key){
   const d=DOCPROC[key];if(!d)return '';
+  const li=b=>b.charAt(0)==='§'
+    ? '<li class="dsub">'+vccText(b.slice(1))+'</li>'
+    : '<li>'+vccText(b)+'</li>';
   return page(crest()+'<div class="pbody"><h1 class="ptitle">Documentation Process</h1>'+
     '<div class="psub">'+d.sub+'</div>'+
     '<div class="steps">'+d.steps.map((s,i)=>
       '<div class="step"><div class="sn">Step '+(i+1)+'</div><div class="sh">'+s[0]+'</div>'+
-      '<ul>'+s[1].map(b=>'<li>'+b+'</li>').join('')+'</ul></div>').join('')+'</div>'+
+      '<ul>'+s[1].map(li).join('')+'</ul></div>').join('')+'</div>'+
     foot()+'</div>');
 }
 
@@ -4512,21 +5164,81 @@ function feeBlocks(rows){
     pend=[];
   };
   const flush=()=>{orphan();if(cur&&(cur.grp||cur.items.length))blocks.push(cur);};
+  /* running total of priced lines since the last subtotal row */
+  let running=0;
   rows.forEach(r=>{
+    if(r._hide)return;
     if(r.t==='grp'){flush();cur={grp:r.l,items:[]};pend=[];}
+    /* a subtotal closes the open block and is carried on it, printed as that
+       block's last row — so it can never be separated from the lines it adds
+       up by landing at the top of the next column */
+    else if(r.t==='subtot'){
+      flush();cur=null;pend=[];
+      const last=blocks[blocks.length-1];
+      if(last&&!last.subtotal)last.subtotal={l:r.l,v:running};
+      else blocks.push({grp:null,items:[],subtotal:{l:r.l,v:running}});
+      running=0;
+    }
     /* 'sub' is an indented bullet beneath the preceding line — the Trust
        decks break a priced item down into numbered sub-headings each with
        their own bullets, which a flat desc list can't express. Carried
-       through as {sub:true} so feeBlockHTML can indent it. */
-    else if(r.t==='sub'){pend.push({sub:true,l:r.l});}
-    else if(r.t==='desc'){pend.push({sub:false,l:r.l});}
+       through as {sub:true} so feeBlockHTML can indent it.
+       r.foot (on any row) rides along on that line for a superscript marker
+       against its own text; r.vfoot (item rows only) rides on the item so
+       the marker lands on the price instead. Both are optional and undefined
+       everywhere except the rows that opt in. */
+    else if(r.t==='sub'){pend.push({sub:true,l:r.l,foot:r.foot});}
+    else if(r.t==='desc'){pend.push({sub:false,l:r.l,foot:r.foot});}
     else{
       if(!cur)cur={grp:null,items:[]};
-      cur.items.push({lines:pend.concat([{sub:false,l:r.l}]),v:r.v});pend=[];
+      cur.items.push({lines:pend.concat([{sub:false,l:r.l,foot:r.foot}]),v:r.v,vfoot:r.vfoot});pend=[];
+      running+=(+r.v||0);
     }
   });
   flush();
   return blocks;
+}
+
+/* Footnote numbering — first-appearance order down the flat row list (which
+   is also the visual top-to-bottom order once laid out), independent of how
+   feeBlocks later buckets rows into blocks/columns/pages. Built once per fee
+   schedule and threaded into feeBlockHTML/feeBlockLegendHTML so every column
+   or page sharing that schedule numbers the same footnote the same way. */
+function footnoteIndex(rows){
+  const idx=new Map();
+  rows.forEach(r=>{
+    if(r.foot&&!idx.has(r.foot))idx.set(r.foot,idx.size+1);
+    if(r.vfoot&&!idx.has(r.vfoot))idx.set(r.vfoot,idx.size+1);
+  });
+  return idx;
+}
+function footMark(text,footIdx){
+  if(!text||!footIdx)return'';
+  const n=footIdx.get(text);
+  return n?'<sup class="footmark">'+n+'</sup>':'';
+}
+/* Legend printed once per page, beneath the fee table(s), listing the actual
+   footnote text against its marker number. Empty when nothing on that page
+   used a footnote. */
+function footnoteLegendHTML(footIdx){
+  if(!footIdx||!footIdx.size)return'';
+  const entries=[...footIdx.entries()].sort((a,b)=>a[1]-b[1]);
+  return '<div class="feefootlegend">'+entries.map(([text,n])=>
+    '<div class="feefootline"><sup>'+n+'</sup> '+text+'</div>').join('')+'</div>';
+}
+/* When a schedule spans several pages, each page should only list the
+   footnotes it actually used, not the whole schedule's — otherwise a page
+   with no marked line would still print an orphaned legend entry. Filters
+   the full-schedule index down to what's present in the blocks given,
+   keeping the original numbering so it stays consistent across pages. */
+function blocksFootnotes(blocks,footIdx){
+  const out=new Map();
+  if(!footIdx||!footIdx.size)return out;
+  blocks.forEach(b=>b.items.forEach(it=>{
+    it.lines.forEach(l=>{if(l.foot&&footIdx.has(l.foot))out.set(l.foot,footIdx.get(l.foot));});
+    if(it.vfoot&&footIdx.has(it.vfoot))out.set(it.vfoot,footIdx.get(it.vfoot));
+  }));
+  return out;
 }
 
 /* Rough height in mm, from the padding/line-height in the .deckfee rules
@@ -4534,7 +5246,7 @@ function feeBlocks(rows){
    balance them — nothing depends on it being exact. */
 const FEE_H={grp:7.1,rowPad:2.2,line:2.7,header:7.8,total:7.4,avail:112};
 function feeBlockHeight(b){
-  return (b.grp?FEE_H.grp:0)+
+  return (b.grp?FEE_H.grp:0)+(b.subtotal?FEE_H.total:0)+
     b.items.reduce((h,it)=>h+FEE_H.rowPad+it.lines.length*FEE_H.line,0);
 }
 function feeItemHeight(it){return FEE_H.rowPad+it.lines.length*FEE_H.line;}
@@ -4572,6 +5284,8 @@ function splitTallFeeBlocks(blocks,capacity){
       part.items.push(it);ph+=ih;
     });
     if(part.items.length)parts.push(part);
+    /* a block's subtotal goes with the last piece of it */
+    if(b.subtotal&&parts.length)parts[parts.length-1].subtotal=b.subtotal;
   });
   return parts;
 }
@@ -4644,16 +5358,19 @@ function packFeeColumns(blocks,capacity){
   return cols;
 }
 
-function feeBlockHTML(b){
+function feeBlockHTML(b,footIdx){
   let out=b.grp?'<tr class="grp"><td colspan="2">'+b.grp+'</td></tr>':'';
+  const subtotal=b.subtotal
+    ?'<tr class="subtot"><td>'+b.subtotal.l+'</td><td class="r">'+money(b.subtotal.v)+'</td></tr>':'';
   b.items.forEach(it=>{
     out+='<tr class="rule"><td>'+it.lines.map(l=>
-      l.sub?'<div class="feesub">'+l.l+'</div>':'<div>'+l.l+'</div>').join('')+'</td>'+
+      (l.sub?'<div class="feesub">':'<div>')+l.l+footMark(l.foot,footIdx)+'</div>').join('')+'</td>'+
       /* v null means these lines have no figure of their own — see the
          orphan case in feeBlocks — so the price column stays empty */
-      '<td class="r" style="vertical-align:middle">'+(it.v===null?'':money(it.v))+'</td></tr>';
+      '<td class="r" style="vertical-align:middle">'+
+      (it.v===null?'':money(it.v)+footMark(it.vfoot,footIdx))+'</td></tr>';
   });
-  return out;
+  return out+subtotal;
 }
 
 function pgFee(which,d){
@@ -4669,27 +5386,75 @@ function pgFee(which,d){
      This is a different thing from the overflow balancing below — here the
      split is semantic, so it applies however short the columns are. */
   if(usesFeeCols()){
+    /* Footnote numbering spans the whole schedule — shared rows plus every
+       company column — so a marker means the same thing wherever it prints,
+       even split across pages below. */
+    const footIdx=footnoteIndex(rows.concat(
+      (STATE.feeCols||[]).reduce((a,c)=>a.concat(c[which]),[])));
     const colHead=lbl=>'<thead><tr><th>DESCRIPTIONS ('+lbl+')</th>'+
       '<th class="r">'+cur+'</th></tr></thead>';
     const sharedBlocks=feeBlocks(rows);
-    const perCol=STATE.feeCols.map(c=>{
-      const b=feeBlocks(c[which]);
-      return '<table class="deckfee">'+colHead(c.label)+'<tbody>'+
-        b.map(feeBlockHTML).join('')+
+    const colBlocks=STATE.feeCols.map(c=>feeBlocks(c[which]));
+    const colTable=(c,b)=>'<table class="deckfee">'+colHead(c.label)+'<tbody>'+
+        b.map(bl=>feeBlockHTML(bl,footIdx)).join('')+
         '<tr class="tot"><td>TOTAL '+c.label+'</td>'+
         '<td class="r">'+money(rowsTotal(c[which]))+'</td></tr>'+
         '</tbody></table>';
-    }).join('');
-    const inner='<div class="feewrap wide">'+
-      (sharedBlocks.length?'<table class="deckfee">'+head+'<tbody>'+
-        sharedBlocks.map(feeBlockHTML).join('')+'</tbody></table>':'')+
-      '<div class="feecols cols'+STATE.feeCols.length+'">'+perCol+'</div>'+
-      '<table class="deckfee feetotal"><tbody>'+
-        '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
-      '</tbody></table></div>';
-    return feePage(title,sub,inner);
+    const colsGrid='<div class="feecols cols'+STATE.feeCols.length+'">'+
+      STATE.feeCols.map((c,i)=>colTable(c,colBlocks[i])).join('')+'</div>';
+    const totalTable='<table class="deckfee feetotal"><tbody>'+
+      '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
+      '</tbody></table>';
+
+    /* Entities added straight on the canvas land in `rows` (the shared
+       list) rather than in a feeCols column — see addEntityUnder() — so a
+       structure with several of those pushes sharedBlocks well past one
+       page, and unlike every other branch here it was never measured
+       against FEE_H.avail: it just printed in full, straight over the
+       footer of whatever page it landed on. Columns are laid out side by
+       side, so their height is whichever column runs tallest, not their
+       sum; TOTAL only needs counting once more on top of that. */
+    const sharedHeight=sharedBlocks.reduce((h,b)=>h+feeBlockHeight(b),0);
+    const colsHeight=colBlocks.length
+      ?Math.max.apply(null,colBlocks.map(b=>
+          b.reduce((h,bl)=>h+feeBlockHeight(bl),0)+FEE_H.total))
+      :0;
+
+    if(sharedHeight+colsHeight+FEE_H.header+FEE_H.total<=FEE_H.avail){
+      /* fits together as before — unchanged from the original layout, plus
+         the legend for whatever footnotes appear anywhere on this one page */
+      const inner='<div class="feewrap wide">'+
+        (sharedBlocks.length?'<table class="deckfee">'+head+'<tbody>'+
+          sharedBlocks.map(b=>feeBlockHTML(b,footIdx)).join('')+'</tbody></table>':'')+
+        colsGrid+totalTable+footnoteLegendHTML(footIdx)+'</div>';
+      return feePage(title,sub,inner);
+    }
+
+    /* Doesn't fit on one page. The shared rows (if any) are the part with
+       no fixed shape — like the plain quote below, they can be split
+       across as many two-column pages as they need. The per-entity columns
+       stay together as a block on their own final page: splitting one
+       company's figures across a page break, rather than the boundary
+       between companies, is the one thing this layout exists to avoid. */
+    const pages=[];
+    if(sharedBlocks.length){
+      const cols=packFeeColumns(sharedBlocks,FEE_COL_CAP);
+      for(let i=0;i<cols.length;i+=2){
+        const pair=cols.slice(i,i+2);
+        const colHTML=pair.map(c=>'<table class="deckfee">'+head+'<tbody>'+
+          c.map(bl=>feeBlockHTML(bl,footIdx)).join('')+'</tbody></table>').join('');
+        pages.push('<div class="feewrap wide"><div class="feecols">'+colHTML+'</div>'+
+          footnoteLegendHTML(blocksFootnotes(pair.flat(),footIdx))+'</div>');
+      }
+    }
+    pages.push('<div class="feewrap wide">'+colsGrid+totalTable+
+      footnoteLegendHTML(blocksFootnotes([].concat.apply([],colBlocks),footIdx))+'</div>');
+    return pages.map((body,idx)=>
+      feePage(title, idx===0?sub:sub.replace(/\)$/,' — continued)'), body)
+    ).join('');
   }
 
+  const footIdx=footnoteIndex(rows);
   const blocks=feeBlocks(rows);
   const heights=blocks.map(feeBlockHeight);
   const stack=heights.reduce((a,b)=>a+b,0);
@@ -4698,20 +5463,20 @@ function pgFee(which,d){
   if(stack+FEE_H.header+FEE_H.total<=FEE_H.avail){
     /* short quote — keep the original single narrow column */
     inner='<div class="feewrap"><table class="deckfee">'+head+'<tbody>'+
-      blocks.map(feeBlockHTML).join('')+
+      blocks.map(b=>feeBlockHTML(b,footIdx)).join('')+
       '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
-      '</tbody></table></div>';
+      '</tbody></table>'+footnoteLegendHTML(footIdx)+'</div>';
   }else if(stack<=FEE_COL_CAP*2&&twoColumnsFit(blocks,heights,stack)){
     /* two columns on one page — split at the point that leaves the two
        sides closest in height, so neither runs far past the other */
     const best=twoColumnsFit(blocks,heights,stack);
     const col=(from,to)=>'<table class="deckfee">'+head+'<tbody>'+
-      blocks.slice(from,to).map(feeBlockHTML).join('')+'</tbody></table>';
+      blocks.slice(from,to).map(b=>feeBlockHTML(b,footIdx)).join('')+'</tbody></table>';
     inner='<div class="feewrap wide">'+
       '<div class="feecols">'+col(0,best)+col(best,blocks.length)+'</div>'+
       '<table class="deckfee feetotal"><tbody>'+
         '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
-      '</tbody></table></div>';
+      '</tbody></table>'+footnoteLegendHTML(footIdx)+'</div>';
   }else{
     /* More than two columns' worth — continue onto further pages rather
        than running off the bottom of this one. Two columns to a page, and
@@ -4723,12 +5488,13 @@ function pgFee(which,d){
     return pages.map((pair,idx)=>{
       const last=idx===pages.length-1;
       const colHTML=pair.map(c=>'<table class="deckfee">'+head+'<tbody>'+
-        c.map(feeBlockHTML).join('')+'</tbody></table>').join('');
+        c.map(bl=>feeBlockHTML(bl,footIdx)).join('')+'</tbody></table>').join('');
       const body='<div class="feewrap wide">'+
         '<div class="feecols">'+colHTML+'</div>'+
         (last?'<table class="deckfee feetotal"><tbody>'+
           '<tr class="tot"><td>TOTAL</td><td class="r">'+money(tot)+'</td></tr>'+
           '</tbody></table>':'')+
+        footnoteLegendHTML(blocksFootnotes(pair.flat(),footIdx))+
         '</div>';
       /* the continuation is marked in the italic subtitle, where the source
          decks put the qualifier, rather than in the heading itself */
@@ -4750,12 +5516,13 @@ function pgFeeCombined(d){
   const side=(which,caption)=>{
     const rows=STATE.fees[which].concat(
       (STATE.feeCols||[]).reduce((a,c)=>a.concat(c[which]),[]));
+    const footIdx=footnoteIndex(rows);
     return '<table class="deckfee">'+
       '<thead><tr><th>DESCRIPTIONS</th>'+
         '<th class="r">'+cur+'<div class="feecap">('+caption+')</div></th></tr></thead>'+
-      '<tbody>'+feeBlocks(rows).map(feeBlockHTML).join('')+
+      '<tbody>'+feeBlocks(rows).map(b=>feeBlockHTML(b,footIdx)).join('')+
         '<tr class="tot"><td>Total</td><td class="r">'+money(rowsTotal(rows))+'</td></tr>'+
-      '</tbody></table>';
+      '</tbody></table>'+footnoteLegendHTML(footIdx);
   };
   const inner='<div class="feewrap wide"><div class="feecols">'+
     side('setup','Setup + Year 1')+side('fixed','Year 2')+
@@ -4766,12 +5533,17 @@ function pgFeeCombined(d){
 /* shared chrome for every fee page variant (single column, balanced two
    column, or per-entity columns) */
 function feePage(title,sub,inner){
+  /* a proposal type may add its own qualifier beneath the standard note —
+     the VCC deck states the sub-fund count its FSC fees were priced on */
+  const p=currentSpec();
+  const extra=(p&&typeof p.feeNote==='function')?p.feeNote(title):'';
   return page(crest()+'<div class="pbody">'+
     '<h1 class="ptitle">'+title+' <em style="color:var(--gold);opacity:.85">'+sub+'</em></h1>'+
     inner+
     '<div class="feenote">Please note that our fees cover all statutory obligations on a yearly basis towards the authorities. '+
     'Any work outside this scope, we will provide a quote for your approval beforehand.<br>'+
-    'NB: There shall be cost escalation in our Annual Fixed Fee of 10% every 3 years.</div>'+
+    'NB: There shall be cost escalation in our Annual Fixed Fee of 10% every 3 years.'+
+    (extra?'<br>'+extra:'')+'</div>'+
     foot()+'</div>');
 }
 
@@ -4836,13 +5608,37 @@ function leafCol(key){
 }
 
 function pgService(key){
-  const s=BP.services[key];if(!s)return '';
+  if(!BP.services[key])return '';
+  /* a proposal type may reword a service page for its own context (the VCC
+     deck's are fund-specific); anything it doesn't set falls through to the
+     standard text */
+  const spec=currentSpec();
+  const s=Object.assign({},BP.services[key],(spec&&spec.services&&spec.services[key])||{});
+  /* a list too long for one column, continued in the next, the second
+     column's heading left blank so the two read as one list */
+  const halves=list=>{const m=Math.ceil(list.length/2);return[list.slice(0,m),list.slice(m)];};
+  const ul=list=>'<ul>'+list.map(b=>'<li>'+b+'</li>').join('')+'</ul>';
   let mid='';
-  if(key==='board'){
+  if(key==='board'&&!s.colC){
+    const h=halves(s.colB);
+    mid='<div class="col"><h4>'+s.colAh+'</h4>'+s.colA.map(a=>'<h4>'+a[0]+'</h4>'+(a[1]?'<p>'+a[1]+'</p>':'')).join('')+'</div>'+
+      '<div class="col"><h4>'+s.colBh+'</h4>'+ul(h[0])+'</div>'+
+      '<div class="col"><h4>&nbsp;</h4>'+ul(h[1])+'</div>';
+  }else if(key==='board'){
     mid='<div class="col"><h4>'+s.colAh+'</h4>'+s.colA.map(a=>'<h4>'+a[0]+'</h4>'+(a[1]?'<p>'+a[1]+'</p>':'')).join('')+'</div>'+
       '<div class="col"><h4>'+s.colBh+'</h4><ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>'+
       '<div class="col"><h4>'+s.colCh+'</h4>'+s.colC.map(c=>'<h4>'+c[0]+'</h4><p>'+c[1]+'</p>').join('')+
       '<ul>'+s.colCbul.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>';
+  }else if(key==='legal'&&!s.colBh){
+    const h=halves(s.colA);
+    mid='<div class="col"><h4>'+s.colAh+'</h4>'+ul(h[0])+'</div>'+
+      '<div class="col"><h4>&nbsp;</h4>'+ul(h[1])+'</div><div></div>';
+  }else if(s.shape==='legalref'&&s.splitB){
+    const h=halves(s.colB);
+    mid='<div class="col"><h4>'+s.colAh+'</h4>'+
+      s.colA.map(a=>'<p style="font-weight:600;color:var(--navy)">'+a+'</p>').join('')+'</div>'+
+      '<div class="col"><h4>'+s.colBh+'</h4>'+ul(h[0])+'</div>'+
+      '<div class="col"><h4>&nbsp;</h4>'+ul(h[1])+'</div>';
   }else if(key==='accounting'){
     mid='<div class="col"><h4>'+s.colAh+'</h4>'+s.colA.map(a=>'<h4>'+a[0]+'</h4><p>'+a[1]+'</p>').join('')+'</div>'+
       '<div class="col"><h4>'+s.colBh+'</h4><ul>'+s.colB.map(b=>'<li>'+b+'</li>').join('')+'</ul></div>'+
@@ -4940,13 +5736,17 @@ function build(){
     switch(s){
       case 'disclaimer': return pgDisclaimer();
       case 'contents':   return '<!--TOC-->';
-      case 'glossary':   toc.push(['Glossary Of Terms',n]);return pgGlossary(terms);
+      case 'glossary':   toc.push(['Glossary Of Terms',n]);
+                         /* a product with its own fixed glossary prints it in the
+                            source's order, a page per list */
+                         return p.glossaryPages?p.glossaryPages.map(pgGlossary).join(''):pgGlossary(terms);
       case 'ourgroup':   toc.push(['Our Group',n]);return pgOurGroup();
       case 'about':      return pgAbout();
       case 'whatwedo':   toc.push(['What We Do',n]);return pgWhatWeDo();
       case 'structdivider': toc.push([p.structure?p.structure.title.replace(/<br>/g,' '):'Tailored Solution',n]);
                          return pgDivider('Your<br>Tailored<br>Solution','');
-      case 'structure':  return p.structure?pgStructure(STATE.struct):'';
+      case 'structure':  if(p.structure&&p.structureToc&&!on('structdivider'))toc.push([p.structureToc,n]);
+                         return p.structure?pgStructure(STATE.struct):'';
       case 'ackeydivider': return pgDivider(AC_KEYFEATURES.divider.h,'');
       case 'ackeyfeatures':toc.push(['Key Features of an Authorised Company',n]);return pgACKeyFeatures();
       case 'gbcdivider': toc.push(['Global Business Company (GBC) in Mauritius',n]);
@@ -4955,6 +5755,14 @@ function build(){
       case 'cisdivider': toc.push(['Collective Investment Scheme',n]);
                          return pgDivider(CIS_CONTENT.divider.h,CIS_CONTENT.divider.s,'cis-divider-photograph');
       case 'cisoverview':return pgCIS();
+      case 'cisvccdivider': toc.push(['Collective Investment Scheme – A Comprehensive Overview',n]);
+                         return pgDivider(CIS_VCC_CONTENT.divider.h,CIS_VCC_CONTENT.divider.s,'cis-divider-photograph');
+      case 'cisvccoverview': if(!on('cisvccdivider'))toc.push(['Collective Investment Scheme – A Comprehensive Overview',n]);
+                         return pgCISVCC(1)+pgCISVCC(2);
+      case 'vccdivider': toc.push(['Variable Capital Company (VCC) – Key Features',n]);
+                         return pgDivider(VCC_KEYFEATURES.divider.h,VCC_KEYFEATURES.divider.s,'divider-photograph');
+      case 'vcckeyfeatures': if(!on('vccdivider'))toc.push(['Variable Capital Company (VCC) – Key Features',n]);
+                         return pgVCCKeyFeatures();
       case 'trustfacts': toc.push(['Key Facts About The Mauritius Trust',n]);return pgTrustFacts();
       case 'trustparties':toc.push(['Key Parties To A Trust',n]);return pgTrustParties();
       case 'trustvalidity':toc.push(['Trust Validity',n]);return pgTrustValidity();
@@ -4966,7 +5774,7 @@ function build(){
                          return pgDocProcess('cis');
       case 'docprocess': if(!toc.some(t=>t[0]==='Documentation Process'))toc.push(['Documentation Process',n]);
                          return pgDocProcess(p.docprocess);
-      case 'kyc':        toc.push(['KYC Documents',n]);return pgKYC(STATE.mode!=='accounting');
+      case 'kyc':        toc.push(['KYC Documents',n]);return pgKYC(STATE.mode!=='accounting'&&!p.kycNoCorporate);
       case 'feesetup':   toc.push(['Fee Quote',n]);return pgFee('setup',d);
       case 'feefixed':   return pgFee('fixed',d);
       case 'feecombined':toc.push(['Fee Quote',n]);return pgFeeCombined(d);
@@ -5411,6 +6219,58 @@ function liveBuild(delay){
 
 initWizard();
 build();          /* draw immediately on load — nothing to click */
+</script>
+<!-- ═══════════ ACCESS GATE ═══════════
+     Same shared password as the Client Risk Assessment page, checked by the
+     database (cra_check_password in cra_module_setup.sql) — the password
+     itself is not written anywhere in this file. Remembered for this browser
+     tab only. Headless renders (the PDF server and the proposal assistant
+     drive this page through Puppeteer) are not gated, and the overlay never
+     prints. -->
+<style>
+#pgGate{position:fixed;inset:0;z-index:9999;background:linear-gradient(150deg,#3E2436 0%,#241028 55%,#160A1C 100%);
+  display:flex;align-items:center;justify-content:center;font-family:var(--sans);}
+#pgGate .box{background:#fff;border-radius:10px;padding:28px 30px;width:360px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
+#pgGate h2{margin:0 0 4px;color:var(--navy);font-size:18px;font-weight:600}
+#pgGate p{margin:0 0 16px;color:#5A5468;font-size:12.5px;line-height:1.5}
+#pgGate input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #D9D4E0;border-radius:7px;font-size:14px}
+#pgGate input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(181,148,51,.18)}
+#pgGate button{width:100%;margin-top:12px;padding:10px;border:none;border-radius:7px;background:var(--gold);color:var(--navy);font-weight:700;font-size:13px;cursor:pointer}
+#pgGate button:disabled{opacity:.6;cursor:wait}
+#pgGate .err{color:#B23B3B;font-size:12px;min-height:16px;margin-top:8px}
+@media print{#pgGate{display:none!important}}
+</style>
+<div id="pgGate" class="noprint" style="display:none"><div class="box">
+  <h2>Proposal Generator</h2><p>Enter the access password to continue.</p>
+  <input type="password" id="pgGatePw" autocomplete="off" placeholder="Password">
+  <button type="button" id="pgGateGo">Continue</button>
+  <div class="err" id="pgGateErr"></div>
+</div></div>
+<script>
+(function(){
+  var SB='https://wxwbfkhvkrwtmsgwdkjy.supabase.co',ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4d2Jma2h2a3J3dG1zZ3dka2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTM5NDAsImV4cCI6MjA5NTg4OTk0MH0.RVFvV3Tu6vgIs3KvPsjOrfdsLaevncysHrirLjAATXM';
+  var gate=document.getElementById('pgGate');
+  if(!gate||navigator.webdriver||sessionStorage.getItem('pg_access')==='1')return;
+  gate.style.display='flex';
+  var pw=document.getElementById('pgGatePw'),go=document.getElementById('pgGateGo'),err=document.getElementById('pgGateErr');
+  setTimeout(function(){pw.focus();},0);
+  function submit(){
+    if(!pw.value){err.textContent='Enter the password';return;}
+    go.disabled=true;err.textContent='';
+    fetch(SB+'/rest/v1/rpc/cra_check_password',{method:'POST',
+      headers:{apikey:ANON,Authorization:'Bearer '+ANON,'Content-Type':'application/json'},
+      body:JSON.stringify({p_password:pw.value})})
+    .then(function(r){return r.ok?r.json():false;})
+    .then(function(ok){
+      if(ok===true){sessionStorage.setItem('pg_access','1');gate.remove();}
+      else{err.textContent='Incorrect password';pw.select();}
+    })
+    .catch(function(){err.textContent='Could not check the password — check your connection and try again';})
+    .then(function(){go.disabled=false;});
+  }
+  go.addEventListener('click',submit);
+  pw.addEventListener('keydown',function(e){if(e.key==='Enter')submit();});
+})();
 </script>
 </body>
 </html>

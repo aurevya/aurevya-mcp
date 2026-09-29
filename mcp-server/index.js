@@ -225,7 +225,9 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        mode: { type: 'string', enum: ['structure', 'mfo', 'fundlux', 'accounting'], default: 'structure' },
+        mode: { type: 'string', enum: ['structure', 'gbcvcc', 'mfo', 'fundlux', 'accounting'], default: 'structure', description: 'gbcvcc = a Global Business Company authorised as a Variable Capital Company (self-managed CIS with ring-fenced sub-funds) — its own proposal type, not built from company/trust/cis. Use it when the client wants a fund run as sub-funds of one GBC with no external CIS manager.' },
+        subFunds: { type: 'number', description: 'Only for mode=gbcvcc. Number of sub-funds at launch (default 3). Drives the FSC sub-fund fees: +400 processing per sub-fund after the first, annual +900 for the 2nd to 5th and +1,800 from the 6th. Ask the client how many.' },
+        subFundNames: { type: 'array', items: { type: 'string' }, description: 'Only for mode=gbcvcc. The project / strategy under each sub-fund, in order, e.g. ["Petrochemical Factory", "Real Estate"]. Its length sets the sub-fund count if subFunds is not given.' },
         company: { type: 'string', enum: ['ac', 'gbc', 'none'], default: 'ac', description: 'Only used when mode=structure. Ask which one the client wants.' },
         trust: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a Trust wrapper? Pass true/false based on their actual answer.' },
         cis: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a CIS (Protected Cell Company)? Pass true/false based on their actual answer.' },
@@ -249,7 +251,9 @@ const TOOLS = [
       type: 'object',
       properties: {
         clientName: { type: 'string', description: 'e.g. "Mr. Peter Nguyen" or "Smith Family" — used in the document title and filename ONLY. If there are multiple shareholders/settlors, put their names in the separate `shareholders` array, not here — do not append things like "(Settlors: John & Jane)" to this field.' },
-        mode: { type: 'string', enum: ['structure', 'mfo', 'fundlux', 'accounting'], default: 'structure' },
+        mode: { type: 'string', enum: ['structure', 'gbcvcc', 'mfo', 'fundlux', 'accounting'], default: 'structure', description: 'gbcvcc = a Global Business Company authorised as a Variable Capital Company (self-managed CIS with ring-fenced sub-funds) — its own proposal type, not built from company/trust/cis. Use it when the client wants a fund run as sub-funds of one GBC with no external CIS manager.' },
+        subFunds: { type: 'number', description: 'Only for mode=gbcvcc. Number of sub-funds at launch (default 3). Drives the FSC sub-fund fees: +400 processing per sub-fund after the first, annual +900 for the 2nd to 5th and +1,800 from the 6th. Ask the client how many.' },
+        subFundNames: { type: 'array', items: { type: 'string' }, description: 'Only for mode=gbcvcc. The project / strategy under each sub-fund, in order, e.g. ["Petrochemical Factory", "Real Estate"]. Its length sets the sub-fund count if subFunds is not given.' },
         company: { type: 'string', enum: ['ac', 'gbc', 'none'], default: 'ac', description: 'Only used when mode=structure. Ask which one the client wants.' },
         trust: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a Trust wrapper? Pass true/false based on their actual answer — never leave this out if they said yes.' },
         cis: { type: 'boolean', default: false, description: 'Ask the client explicitly: do they want a CIS (Protected Cell Company)? Pass true/false based on their actual answer.' },

@@ -112,6 +112,30 @@ async function configurePage(page, opts) {
     }
   }
 
+  // GBC with a self-managed CIS (VCC): how many sub-funds, and the project
+  // or strategy under each. Uses the page's own + Sub-Fund / delete, so the
+  // FSC sub-fund fees and the wording that names the count follow as they
+  // do when staff edit the diagram by hand.
+  if (mode === 'gbcvcc') {
+    await page.evaluate((cfg) => {
+      const names = Array.isArray(cfg.names) ? cfg.names.filter(Boolean) : [];
+      const want = Math.max(1, Math.min(12, +cfg.count || names.length || 3));
+      const st = STATE.struct; if (!st || typeof addVccSubFund !== 'function') return;
+      while (vccCount() < want) addVccSubFund();
+      while (vccCount() > want) {
+        const s = vccSubFunds(st).sort((a, b) => a.x - b.x);
+        removeAnyNode(s[s.length - 1].id);
+      }
+      const byId = {}; st.nodes.forEach((n) => { byId[n.id] = n; });
+      vccSubFunds(st).sort((a, b) => a.x - b.x).forEach((s, i) => {
+        if (!names[i]) return;
+        st.edges.filter((e) => e.from === s.id).map((e) => byId[e.to]).filter(Boolean)
+          .forEach((k) => { k.label = String(names[i]).toUpperCase(); });
+      });
+      if (typeof build === 'function') build();
+    }, { count: opts.subFunds, names: opts.subFundNames });
+  }
+
   // Multiple shareholders/settlors, extra trusts beyond the first, and/or
   // named CIS cells — all optional, all built on top of the base
   // structure using the app's own diagram-editing functions (the same
@@ -303,7 +327,7 @@ export async function quoteProposal(opts) {
         // diagram right now, by name — read this back to the client
         // before generating the final PDF so a structure with (say) 3
         // shareholders and 2 trusts is confirmed correct, not assumed.
-        structureDetail: STATE.mode === 'structure' && STATE.struct ? (function () {
+        structureDetail: (STATE.mode === 'structure' || STATE.mode === 'gbcvcc') && STATE.struct ? (function () {
           const plain = (s) => String(s || '').replace(/<br\s*\/?>/gi, ' ').trim();
           return {
             // shareholders with their holdings, so a 51/49 split can be
@@ -317,6 +341,11 @@ export async function quoteProposal(opts) {
               .map((n) => plain(n.label) + (n.cap ? ' (' + n.cap + ')' : '')),
             trusts: STATE.struct.nodes.filter((n) => n.kind === 'box' && /TRUST/i.test(n.label)).map((n) => plain(n.label)),
             cisCells: STATE.struct.nodes.filter((n) => n.kind === 'ciscell').map((n) => n.label),
+            // VCC sub-funds with the project/strategy each holds
+            subFunds: STATE.struct.nodes.filter((n) => n.subfund).sort((a, b) => a.x - b.x).map((sf) => {
+              const kid = STATE.struct.edges.filter((e) => e.from === sf.id).map((e) => STATE.struct.nodes.find((x) => x.id === e.to)).find(Boolean);
+              return plain(sf.label) + (kid ? ' — ' + plain(kid.label) : '');
+            }),
             note: STATE.struct.note || null,
           };
         }()) : null,
@@ -381,7 +410,7 @@ export async function createProposal(opts) {
           // Same read-back as quote_proposal, so whichever tool was used the
           // structure can be confirmed in the same words before the link is
           // passed to anyone.
-          structureDetail: STATE.mode === 'structure' && STATE.struct ? {
+          structureDetail: (STATE.mode === 'structure' || STATE.mode === 'gbcvcc') && STATE.struct ? {
             shareholders: STATE.struct.nodes.filter((n) => n.kind === 'shareholder')
               .map((n) => (n.pct ? plain(n.label) + ' — ' + n.pct : plain(n.label))),
             entities: STATE.struct.nodes.filter((n) => n.kind === 'box')
@@ -389,6 +418,11 @@ export async function createProposal(opts) {
               .map((n) => plain(n.label) + (n.cap ? ' (' + n.cap + ')' : '')),
             trusts: STATE.struct.nodes.filter((n) => n.kind === 'box' && /TRUST/i.test(n.label)).map((n) => plain(n.label)),
             cisCells: STATE.struct.nodes.filter((n) => n.kind === 'ciscell').map((n) => n.label),
+            // VCC sub-funds with the project/strategy each holds
+            subFunds: STATE.struct.nodes.filter((n) => n.subfund).sort((a, b) => a.x - b.x).map((sf) => {
+              const kid = STATE.struct.edges.filter((e) => e.from === sf.id).map((e) => STATE.struct.nodes.find((x) => x.id === e.to)).find(Boolean);
+              return plain(sf.label) + (kid ? ' — ' + plain(kid.label) : '');
+            }),
             note: STATE.struct.note || null,
           } : null,
           ownershipWarnings: (STATE.mode === 'structure' && typeof ownershipProblems === 'function')
