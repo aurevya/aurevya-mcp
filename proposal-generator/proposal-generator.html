@@ -391,13 +391,20 @@ h1.ptitle em{font-style:italic;}
    Tinted with --plum rather than black: a neutral grey veil turns the warm
    lamplight in the gate photograph muddy, where the plum sits under it.
    Sits at z-index 1, between the photograph and the title's z-index 2. */
+/* PRINT-SAFE: the veil is a pre-rendered image (assets/divider-scrim.png),
+   not a CSS gradient. It is the same gradient — 100deg, plum, transparent to
+   28%, then .34 / .66 / .76 at 48 / 70 / 100% — baked into a PNG with an
+   alpha channel. A CSS gradient with changing transparency is written into
+   the PDF by Chrome as a "soft-mask transparency group", and many office
+   printers abort the whole job when they reach one: a client could print
+   only pages 1-7 of his proposal, page 8 being the first divider. An image
+   with an alpha channel is the plain kind of transparency those printers
+   handle (every page already carries some). Do not change this back to a
+   CSS gradient, and avoid rgba gradients, filters, masks and blurred
+   shadows anywhere in the deck for the same reason. */
 .divider::before{
   content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:linear-gradient(100deg,
-    rgba(19,4,41,0)    28%,
-    rgba(19,4,41,.34)  48%,
-    rgba(19,4,41,.66)  70%,
-    rgba(19,4,41,.76) 100%);
+  background:url('assets/divider-scrim.png') center/100% 100% no-repeat;
 }
 /* These figures were measured, not eyeballed. White type on the CIS
    cityscape scored 1.92:1 against what sits behind it — illegible — and
@@ -414,6 +421,10 @@ h1.ptitle em{font-style:italic;}
      sitting directly behind a letter */
   text-shadow:0 1px 12px rgba(19,4,41,.55);
 }
+/* ...but not in the PDF: a blurred shadow is also written as a soft-mask
+   group (see the note above .divider::before). The veil alone keeps the
+   title at 4.9:1 contrast or better, so print loses nothing it needs. */
+@media print{.divider .dtitle h2{text-shadow:none;}}
 .divider .dtitle .ds{
   font-size:7.4pt;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-top:3mm;
 }
