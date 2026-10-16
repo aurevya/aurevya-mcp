@@ -5963,6 +5963,55 @@ async function downloadHTML(){
    catch-all rewrite (/* -> /index.html, 200) answers any unknown path with
    the portal's own HTML, so the export would have "succeeded" and saved a
    web page with a .pdf extension. */
+/* ═══════════════════════════════════════════════════════════════
+   EMBEDDED MODE — K&Co ICTMS Client Journey board
+   The board opens this page in a frame on a lead (?embed=ictms). In that
+   mode the page:
+     · skips its own password box, because the board has already signed
+       the person in, but only when the page is being framed by an
+       origin listed below (the server also restricts who may frame it);
+     · is told which client it is for, or which earlier deck to reopen
+       for a revision (S&M 12.6: a revision is generated afresh);
+     · hands the finished PDF and its generating file back to the board
+       instead of downloading it, so it can be approved and filed.
+   Opened any other way, none of this is active and the page behaves as before.
+   Add the ICTMS address here when it changes.
+   ═══════════════════════════════════════════════════════════════ */
+const EMBED_PARENTS=['https://kco-ictms.netlify.app','http://localhost:5173'];
+/* Bump this whenever the template, terms or price book change, after the
+   approval that S&M 21.2 requires (CLO for terms, CFO for fee basis). The
+   approver sees it on every proposal (S&M 12.4). */
+const TEMPLATE_VERSION='2026-10-17';
+const EMBED=(function(){
+  try{
+    if(window.parent===window)return null;
+    if(new URLSearchParams(location.search).get('embed')!=='ictms')return null;
+    const ao=(location.ancestorOrigins&&location.ancestorOrigins[0])||'';
+    const ref=document.referrer?new URL(document.referrer).origin:'';
+    const o=ao||ref;
+    return EMBED_PARENTS.indexOf(o)>=0?o:null;
+  }catch(e){return null;}
+})();
+function embedSend(msg,transfer){
+  if(!EMBED)return;
+  msg.source='aurevya-generator';
+  window.parent.postMessage(msg,EMBED,transfer||[]);
+}
+window.addEventListener('message',function(ev){
+  if(!EMBED||ev.origin!==EMBED||!ev.data||ev.data.source!=='ictms')return;
+  const m=ev.data;
+  if(m.type!=='init')return;
+  try{
+    if(m.snapshot){applySnapshot(m.snapshot);}
+    else if(m.clientName){
+      const c=$('fClient');
+      if(c){c.value=m.clientName;c.dispatchEvent(new Event('input',{bubbles:true}));c.dispatchEvent(new Event('change',{bubbles:true}));}
+    }
+    embedSend({type:'initialised',templateVersion:TEMPLATE_VERSION});
+  }catch(e){embedSend({type:'error',message:String(e&&e.message||e)});}
+});
+window.addEventListener('load',function(){embedSend({type:'ready',templateVersion:TEMPLATE_VERSION});});
+
 const PDF_HOST='https://aurevya-mcp-production.up.railway.app';
 /* Served from /generator on the render server, this is same-origin — no
    CORS, no preflight, and the page can never be a different version from
@@ -6059,6 +6108,14 @@ async function runPdfExport(){
       break;
     }
     if(!blob)throw new Error('The render did not finish in time.');
+    if(EMBED){
+      /* hand it to the board: PDF, the generating file, and the template version */
+      const buf=await blob.arrayBuffer();
+      embedSend({type:'pdf',filename:name+'.pdf',pdf:buf,pages:PAGENO,
+        snapshot:exportSnapshot(),templateVersion:TEMPLATE_VERSION},[buf]);
+      closePdfDialog();
+      return;
+    }
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
     a.download=name+'.pdf';
@@ -6261,7 +6318,7 @@ build();          /* draw immediately on load — nothing to click */
 (function(){
   var SB='https://wxwbfkhvkrwtmsgwdkjy.supabase.co',ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4d2Jma2h2a3J3dG1zZ3dka2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTM5NDAsImV4cCI6MjA5NTg4OTk0MH0.RVFvV3Tu6vgIs3KvPsjOrfdsLaevncysHrirLjAATXM';
   var gate=document.getElementById('pgGate');
-  if(!gate||navigator.webdriver||sessionStorage.getItem('pg_access')==='1')return;
+  if(!gate||navigator.webdriver||sessionStorage.getItem('pg_access')==='1'||(typeof EMBED!=='undefined'&&EMBED))return;
   gate.style.display='flex';
   var pw=document.getElementById('pgGatePw'),go=document.getElementById('pgGateGo'),err=document.getElementById('pgGateErr');
   setTimeout(function(){pw.focus();},0);

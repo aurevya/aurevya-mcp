@@ -649,10 +649,18 @@ if (process.env.PORT) {
     const { fileURLToPath: f2u } = await import('url');
     const here = nodePath.dirname(f2u(import.meta.url));
     const generatorDir = nodePath.join(here, '..', 'proposal-generator');
+    /* Who may show the generator inside a frame: this server itself and the
+       K&Co ICTMS board. Set FRAME_ANCESTORS in Railway (comma separated
+       origins) to change it. The generator page checks the same list before
+       it skips its password box. */
+    const frameAncestors = ["'self'",
+      ...((process.env.FRAME_ANCESTORS || 'https://kco-ictms.netlify.app,http://localhost:5173')
+        .split(',').map((x) => x.trim()).filter(Boolean))].join(' ');
     app.use('/generator', express.static(generatorDir, {
       index: 'proposal-generator.html',
       /* the deck changes with every edit; the fonts and photographs do not */
       setHeaders: (res, filePath) => {
+        res.set('Content-Security-Policy', 'frame-ancestors ' + frameAncestors);
         res.set('Cache-Control', /\.(woff2|png|svg|ico)$/i.test(filePath)
           ? 'public, max-age=604800'
           : 'no-cache');
