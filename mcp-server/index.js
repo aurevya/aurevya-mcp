@@ -10,6 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { login, logout, getAuthedClient, logAudit, AuthRequiredError, beginPairedLogin, claimPairedLogin } from './lib/supabaseClient.js';
+import { fitPdf } from './lib/compress-pdf.js';
 import { createProposal, quoteProposal, listGeneratedProposals, renderHtmlToPdf, renderSnapshotToPdf } from './lib/proposal.js';
 import { ensureProposalsBucket, storageConfigured, uploadProposal, listStoredProposals } from './lib/proposalStorage.js';
 import {
@@ -918,7 +919,10 @@ if (process.env.PORT) {
         const pdf = snapshot
           ? await renderSnapshotToPdf(snapshot)
           : await renderHtmlToPdf(html);
-        renderJobs.set(jobId, { status: 'done', pdf: Buffer.from(pdf), at: Date.now() });
+        /* Proposals are emailed, so keep them under 10 MB (compressed only when needed). */
+        let out = Buffer.from(pdf);
+        try { out = (await fitPdf(out)).pdf; } catch (e) { console.error('[aurevya-mcp] fitPdf failed:', e); }
+        renderJobs.set(jobId, { status: 'done', pdf: out, at: Date.now() });
       } catch (e) {
         console.error('[aurevya-mcp] render-pdf failed:', e);
         renderJobs.set(jobId, {
